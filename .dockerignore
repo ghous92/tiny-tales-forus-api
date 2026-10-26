@@ -1,0 +1,18 @@
+# Secrets must never enter the build context.
+.env
+.env.*
+
+node_modules
+dist
+coverage
+.git
+.github
+.vscode
+test
+docs
+drizzle
+*.md
+.prettierrc.json
+eslint.config.js
+vitest.config.ts
+drizzle.config.ts

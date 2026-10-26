@@ -1,0 +1,16 @@
+node_modules/
+dist/
+coverage/
+.DS_Store
+
+# Secrets — never commit. Placeholders live in .env.example only.
+.env
+.env.*
+!.env.example
+*.pem
+*serviceAccount*.json
+google-services.json
+GoogleService-Info.plist
+
+# one-off dev scratch scripts
+scripts/dev/tmp-*

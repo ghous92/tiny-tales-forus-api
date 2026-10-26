@@ -1,0 +1,292 @@
+name: Deploy
+
+# Two release paths, one pipeline, gated by the trigger:
+#
+#   manual run, ref = main    → deploy STAGING (laanya-api-staging, Neon staging branch)
+#   manual run, ref = v* tag  → deploy PROD    (laanya-api,         Neon main branch)
+#
+# Manual only (workflow_dispatch) — no push/tag auto-fires this anymore. Pick the
+# branch or tag from the "Run workflow" ref dropdown in the Actions tab; the
+# deploy jobs below key off that selected ref, same as before.
+#
+# Both paths run the same `check` job (lint + typecheck + tests) first, then a
+# target-specific deploy job. The deploy jobs are mutually exclusive: each guards
+# on the trigger, so a main run never touches prod and a tag run never touches
+# staging.
+
+on:
+  workflow_dispatch:
+
+jobs:
+  # Shared gate — the same checks CI runs, so both staging and prod deploys are
+  # blocked on a green suite regardless of which trigger fired.
+  check:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+
+  # ── STAGING ────────────────────────────────────────────────────────────────
+  # Fires on a manual run with ref = main. Builds the image, migrates the Neon *staging*
+  # branch, and deploys the laanya-api-staging Cloud Run service. Auth reuses the
+  # laanya-prod Firebase project (staging validates against the same tokens);
+  # only the database differs.
+  deploy-staging:
+    needs: check
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # OIDC token for Workload Identity Federation
+    env:
+      IMAGE: asia-southeast1-docker.pkg.dev/laanya-prod/laanya/laanya-api:${{ github.sha }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud (WIF, no key files)
+        uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: projects/69070121252/locations/global/workloadIdentityPools/github/providers/github-oidc
+          service_account: laanya-api-deploy@laanya-prod.iam.gserviceaccount.com
+
+      - uses: google-github-actions/setup-gcloud@v2
+
+      - name: Build and push image to Artifact Registry
+        run: |
+          gcloud auth configure-docker asia-southeast1-docker.pkg.dev --quiet
+          docker build -t "$IMAGE" .
+          docker push "$IMAGE"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+
+      - name: Run database migrations (Neon staging, direct endpoint)
+        run: npm run db:migrate
+        env:
+          DATABASE_URL_DIRECT: ${{ secrets.DATABASE_URL_DIRECT_STAGING }}
+
+      # The custom delimiter below changes gcloud's list delimiter from the
+      # default comma to `#`. It was originally `@` (still comma-safe for
+      # CORS_ALLOWED_ORIGINS, itself a comma-separated list — with the default
+      # delimiter gcloud would read each origin as a separate malformed env
+      # var), but ALERT_EMAIL_FROM/ALERT_EMAIL_TO below are email addresses
+      # and therefore contain `@` themselves, which would collide with `@` as
+      # the delimiter and truncate/mis-split those values. `#` appears in none
+      # of the values here (nor CORS origins, nor the repo slug) — if a future
+      # value ever needs `#`, pick another delimiter char, don't reuse one
+      # that already appears in a value.
+      #
+      # IMPORTANT — set each alert group ALL-OR-NOTHING. src/env.ts validates
+      # these in GROUPS and REJECTS a partial group at boot (a partial set is a
+      # config mistake, same rule as Razorpay) — it does NOT silently ignore the
+      # stragglers. Both groups are now complete:
+      #   * Email trio (BREVO_API_KEY + ALERT_EMAIL_FROM + ALERT_EMAIL_TO) —
+      #     secret laanya-api-brevo-api-key created 2026-07-22, sender
+      #     hello@adix.ai verified in Brevo. Email alerting is live.
+      #   * GitHub pair (ALERT_GITHUB_TOKEN + ALERT_GITHUB_REPO) — secret
+      #     laanya-api-alerts-github-token created 2026-07-22 (fine-grained PAT).
+      #     Labels auto-fix-candidate/auto-fix/staging/production already exist
+      #     on this repo. GitHub issue creation on alert is live.
+      # PROXY_SHARED_SECRET is the only alert-adjacent secret still pending —
+      # see below.
+      #
+      # This allow-list intentionally includes staging.laanya.shop; the prod job
+      # below does NOT. The staging admin UI may call the staging API, but the
+      # staging UI must never be able to reach production.
+      #
+      # WHATSAPP_* now shares the SAME live WABA/number/token as prod
+      # (deliberate, 2026-08-17): `order_paid_ops` is an ops notification to
+      # the owner's own phone (ops.notifyNumbers config), not customer-facing
+      # (see routes/opsNotifications.ts), so a staging test order pings the
+      # same owner phone prod would — acceptable, not a customer-facing risk.
+      # This is DIFFERENT from Delhivery below, which stays UAT-only because a
+      # prod credential there dispatches a real pickup van.
+      # PROXY_SHARED_SECRET (proxy gate, see src/env.ts / src/app.ts) is
+      # deliberately NOT in --set-secrets below yet. Uncomment the flag once:
+      #   1. `gcloud secrets create laanya-api-proxy-shared-secret` has been run
+      #      (adding the flag before the secret exists fails every deploy), AND
+      #   2. mobile/admin clients and the Razorpay webhook URL have all moved
+      #      to https://www.laanya.shop/api — enabling the gate closes the
+      #      direct run.app path, so this must happen strictly after cutover.
+      # TASKS_* turns on the event-driven sweep triggers
+      # (docs/WIP-EVENT-DRIVEN-SWEEPS.md). All five vars or none — src/env.ts
+      # refuses a partial set at boot — and absent means cron-only, not broken.
+      #
+      # TASKS_QUEUE differs per environment and MUST: task names are
+      # `<kind>-<bucket epoch>` with no environment component (src/lib/tasks.ts),
+      # so staging and prod sharing one queue would collide, and the 409 that
+      # collision produces is deliberately read as "already covered" — the
+      # losing environment's drain would silently never run.
+      #
+      # TASKS_SERVICE_ACCOUNT is laanya-scheduler@, the SAME identity Cloud
+      # Scheduler uses, so SCHEDULER_OIDC_AUDIENCE/SCHEDULER_SERVICE_ACCOUNTS
+      # above authenticate task callers with no second allowlist to drift.
+      # The audience is taken from SCHEDULER_OIDC_AUDIENCE, not duplicated.
+      #
+      # TASKS_TARGET_BASE_URL is where the task calls BACK IN, so it must be
+      # this service's own URL. The `-69070121252-` project-number form is
+      # stable, but if the service URL ever changes this string must change
+      # with it — a stale value fails as tasks that dispatch and 404.
+      - name: Deploy to Cloud Run (staging)
+        run: |
+          gcloud run deploy laanya-api-staging \
+            --image "$IMAGE" \
+            --project laanya-prod \
+            --region asia-southeast1 \
+            --service-account laanya-api-run@laanya-prod.iam.gserviceaccount.com \
+            --allow-unauthenticated \
+            --set-secrets DATABASE_URL=laanya-api-database-url-staging:latest,RAZORPAY_KEY_ID=RAZORPAY_KEY_ID:latest,RAZORPAY_KEY_SECRET=RAZORPAY_KEY_SECRET:latest,RAZORPAY_WEBHOOK_SECRET=RAZORPAY_WEBHOOK_SECRET:latest,GOOGLE_MAPS_SERVER_KEY=GOOGLE_MAPS_SERVER_KEY:latest,BREVO_API_KEY=laanya-api-brevo-api-key:latest,ALERT_GITHUB_TOKEN=laanya-api-alerts-github-token:latest,RUDDERSTACK_WRITE_KEY=laanya-api-rudderstack-write-key:latest,DELHIVERY_API_TOKEN=laanya-api-delhivery-api-token:latest,DELHIVERY_WEBHOOK_SECRET=laanya-api-delhivery-webhook-secret:latest,WHATSAPP_ACCESS_TOKEN=laanya-api-whatsapp-access-token-live:latest,GRAFANA_ALERT_WEBHOOK_SECRET=laanya-api-grafana-alert-webhook-secret:latest,IMAGE_INTAKE_UPLOAD_TOKEN=laanya-api-image-intake-upload-token:latest \
+            --set-env-vars "^#^FIREBASE_PROJECT_ID=laanya-prod#APP_ENV=staging#CORS_ALLOWED_ORIGINS=http://localhost:3000,https://laanya.shop,https://www.laanya.shop,https://staging.laanya.shop#ALERT_EMAIL_FROM=hello@adix.ai#ALERT_EMAIL_TO=gsnz86@gmail.com#ALERT_GITHUB_REPO=ghous92/laanya-api#RUDDERSTACK_DATA_PLANE_URL=https://adixhellokzqkb.dataplane.rudderstack.com#DELHIVERY_BASE_URL=https://staging-express.delhivery.com#DELHIVERY_CLIENT_NAME=ADIXAIB2C-B2C#WHATSAPP_PHONE_NUMBER_ID=927479007124972#WHATSAPP_TEMPLATE_ORDER_PAID=order_paid_ops#WHATSAPP_TEMPLATE_LOCALE=en#SCHEDULER_OIDC_AUDIENCE=laanya-api-sweeps-staging#SCHEDULER_SERVICE_ACCOUNTS=laanya-scheduler@laanya-prod.iam.gserviceaccount.com#TASKS_QUEUE=laanya-sweeps-staging#TASKS_PROJECT=laanya-prod#TASKS_LOCATION=asia-southeast1#TASKS_TARGET_BASE_URL=https://laanya-api-staging-69070121252.asia-southeast1.run.app#TASKS_SERVICE_ACCOUNT=laanya-scheduler@laanya-prod.iam.gserviceaccount.com" \
+            --min-instances 0 \
+            --cpu-boost \
+            --port 8080
+            # PROXY_SHARED_SECRET: append to --set-secrets above once that
+            # secret exists (see comment block above this step).
+            # --set-secrets ...,PROXY_SHARED_SECRET=laanya-api-proxy-shared-secret:latest
+
+  # ── PRODUCTION ───────────────────────────────────────────────────────────────
+  # Fires on a manual run with ref = a v* tag. Identical build, but migrates the
+  # Neon *main* branch and deploys the prod laanya-api service with min-instances
+  # 1 (one instance kept warm to avoid cold starts). Cutting a release is still
+  # `git tag vX.Y.Z && git push --tags`, then trigger this workflow manually
+  # with that tag selected as the ref.
+  deploy-prod:
+    needs: check
+    if: github.event_name == 'workflow_dispatch' && startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # OIDC token for Workload Identity Federation
+    env:
+      IMAGE: asia-southeast1-docker.pkg.dev/laanya-prod/laanya/laanya-api:${{ github.sha }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud (WIF, no key files)
+        uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: projects/69070121252/locations/global/workloadIdentityPools/github/providers/github-oidc
+          service_account: laanya-api-deploy@laanya-prod.iam.gserviceaccount.com
+
+      - uses: google-github-actions/setup-gcloud@v2
+
+      - name: Build and push image to Artifact Registry
+        run: |
+          gcloud auth configure-docker asia-southeast1-docker.pkg.dev --quiet
+          docker build -t "$IMAGE" .
+          docker push "$IMAGE"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+
+      - name: Run database migrations (Neon main, direct endpoint)
+        run: npm run db:migrate
+        env:
+          DATABASE_URL_DIRECT: ${{ secrets.DATABASE_URL_DIRECT }}
+
+      # Same custom-delimiter rationale as the staging job above: `#` instead
+      # of the default comma (no comma-separated values here today, but kept
+      # consistent with staging) and instead of `@` (ALERT_EMAIL_FROM /
+      # ALERT_EMAIL_TO are email addresses and would collide with `@` as a
+      # delimiter).
+      #
+      # ALERT_EMAIL_FROM / ALERT_EMAIL_TO / ALERT_GITHUB_REPO are safe to set
+      # unconditionally here too — same all-or-nothing graceful degrade as
+      # staging (src/lib/alerts.ts / src/env.ts): both alert groups are complete
+      # (see the comment block above the staging deploy step above) — prod
+      # shares the same Brevo secret and the same GitHub PAT as staging, so
+      # this covers both environments' email + issue creation.
+      #
+      # PROXY_SHARED_SECRET (proxy gate, see src/env.ts / src/app.ts) is
+      # deliberately NOT in --set-secrets below yet. Uncomment the flag once:
+      #   1. `gcloud secrets create laanya-api-proxy-shared-secret` has been run
+      #      (adding the flag before the secret exists fails every deploy), AND
+      #   2. mobile/admin clients and the Razorpay webhook URL have all moved
+      #      to https://www.laanya.shop/api — enabling the gate closes the
+      #      direct run.app path, so this must happen strictly after cutover.
+      # DELHIVERY_CLIENT_NAME is "ADIX AI B2C" here and "ADIXAIB2C-B2C" on
+      # staging — the two accounts genuinely carry different client names, so
+      # do NOT "fix" this to match staging. Confirm either one without writing
+      # anything by asking the waybill pool for a bad count; the 400 echoes the
+      # client the token is bound to:
+      #   curl -H "Authorization: Token $TOKEN" \
+      #     "$BASE_URL/waybill/api/bulk/json/?count=0"
+      #   -> Bad Request! Invalid count for client <NAME>
+      #
+      # DELHIVERY_* use `-live`-suffixed secrets, deliberately NOT the bare
+      # `laanya-api-delhivery-api-token` / `-webhook-secret` that the staging
+      # job above pins at `:latest`. Those two hold the UAT credentials. Adding
+      # a prod version to them instead would silently repoint staging at
+      # production Delhivery, where a manifest call books a real pickup against
+      # a real parcel — a test run would dispatch a van.
+      #
+      # WHATSAPP_* is now shared with the staging job above too (2026-08-17,
+      # see comment there). There is one WABA and one verified sender ("Adix
+      # AI", +91 92175 85635) — `order_paid_ops` targets the owner's own phone
+      # (ops.notifyNumbers), not the customer, so a staging test order pinging
+      # that same phone is acceptable. Unconfigured is still a supported state
+      # end to end (src/env.ts leaves all four optional; sendOpsNotification
+      # writes `skipped_unconfigured` when absent) — just no longer the
+      # staging default.
+      #
+      # All four or none — src/env.ts `.superRefine` FAILS BOOT on a partial
+      # set ("set all four or none"), so never add the secret without the three
+      # env vars beside it.
+      #
+      # WHATSAPP_APP_SECRET + WHATSAPP_VERIFY_TOKEN are PROD-ONLY, and they are
+      # in this list because leaving them out already broke inbound once. They
+      # were set by hand with `gcloud run services update` on 2026-09-02, and
+      # the next promote — `--set-secrets` REPLACES the whole secret list, it
+      # does not merge — dropped them, which takes /v1/whatsapp/webhook to 503
+      # ("unconfigured is CLOSED, not degraded") and silently loses every
+      # shopper message until someone notices. Anything set by hand on this
+      # service must be mirrored here or the next deploy erases it.
+      #
+      # The app secret is pinned to `:2` — version 2 is the n8n Demo app's
+      # secret, and n8n Demo (34409957368591359) is the app actually subscribed
+      # to the WABA. Version 1 is AdixAI's; switching apps means subscribing
+      # AdixAI and repinning to `:1`, not just editing this line.
+      #
+      # Staging deliberately has NEITHER: an unconfigured webhook is closed, and
+      # a staging environment that accepted inbound would be a second consumer
+      # of the same WABA's messages.
+      #
+      # WHATSAPP_TEMPLATE_ORDER_PAID / _LOCALE here are only the fallback.
+      # `notify.orderPaidTemplate` / `notify.orderPaidLocale` in app_config
+      # override them at SEND time (src/routes/opsNotifications.ts), which is
+      # what makes a wrong template a config edit instead of a redeploy — and
+      # lets the retry sweep drain rows that already failed on the old one.
+      # The values below name `order_paid_ops` (6 body params, language `en`,
+      # UTILITY), submitted to the Adix AI WABA on 2026-08-15. Do NOT put
+      # `laanya_order_delivered` here: it is a 2-param customer-facing delivery
+      # notice, and sending it with 6 params fails with Meta error 132000.
+      - name: Deploy to Cloud Run (prod)
+        run: |
+          gcloud run deploy laanya-api \
+            --image "$IMAGE" \
+            --project laanya-prod \
+            --region asia-southeast1 \
+            --service-account laanya-api-run@laanya-prod.iam.gserviceaccount.com \
+            --allow-unauthenticated \
+            --set-secrets DATABASE_URL=laanya-api-database-url:latest,RAZORPAY_KEY_ID=laanya-api-razorpay-key-id-live-v2:latest,RAZORPAY_KEY_SECRET=laanya-api-razorpay-key-secret-live-v2:latest,RAZORPAY_WEBHOOK_SECRET=laanya-api-razorpay-webhook-secret-live-v2:latest,GOOGLE_MAPS_SERVER_KEY=GOOGLE_MAPS_SERVER_KEY:latest,BREVO_API_KEY=laanya-api-brevo-api-key:latest,ALERT_GITHUB_TOKEN=laanya-api-alerts-github-token:latest,RUDDERSTACK_WRITE_KEY=laanya-api-rudderstack-write-key:latest,DELHIVERY_API_TOKEN=laanya-api-delhivery-api-token-live:latest,DELHIVERY_WEBHOOK_SECRET=laanya-api-delhivery-webhook-secret-live:latest,WHATSAPP_ACCESS_TOKEN=laanya-api-whatsapp-access-token-live:latest,WHATSAPP_APP_SECRET=laanya-api-whatsapp-app-secret-live:2,WHATSAPP_VERIFY_TOKEN=laanya-api-whatsapp-verify-token-live:latest,GRAFANA_ALERT_WEBHOOK_SECRET=laanya-api-grafana-alert-webhook-secret-live:latest,IMAGE_INTAKE_UPLOAD_TOKEN=laanya-api-image-intake-upload-token:latest,OPENAI_ADS_CONVERSIONS_API_KEY=laanya-api-openai-ads-conversions-api-key:latest \
+            --set-env-vars "^#^FIREBASE_PROJECT_ID=laanya-prod#APP_ENV=production#ALERT_EMAIL_FROM=hello@adix.ai#ALERT_EMAIL_TO=gsnz86@gmail.com#ALERT_GITHUB_REPO=ghous92/laanya-api#RUDDERSTACK_DATA_PLANE_URL=https://adixhellokzqkb.dataplane.rudderstack.com#DELHIVERY_BASE_URL=https://track.delhivery.com#DELHIVERY_CLIENT_NAME=ADIX AI B2C#WHATSAPP_PHONE_NUMBER_ID=927479007124972#WHATSAPP_TEMPLATE_ORDER_PAID=order_paid_ops#WHATSAPP_TEMPLATE_LOCALE=en#SCHEDULER_OIDC_AUDIENCE=laanya-api-sweeps#SCHEDULER_SERVICE_ACCOUNTS=laanya-scheduler@laanya-prod.iam.gserviceaccount.com#TASKS_QUEUE=laanya-sweeps#TASKS_PROJECT=laanya-prod#TASKS_LOCATION=asia-southeast1#TASKS_TARGET_BASE_URL=https://laanya-api-h57blldwiq-as.a.run.app#TASKS_SERVICE_ACCOUNT=laanya-scheduler@laanya-prod.iam.gserviceaccount.com#OPENAI_ADS_PIXEL_ID=2G5GikW8eeREBWdmE63VcL" \
+            --min-instances 1 \
+            --cpu-boost \
+            --port 8080
+            # PROXY_SHARED_SECRET: append to --set-secrets above once that
+            # secret exists (see comment block above this step).
+            # --set-secrets ...,PROXY_SHARED_SECRET=laanya-api-proxy-shared-secret:latest

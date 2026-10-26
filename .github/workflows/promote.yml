@@ -1,0 +1,70 @@
+name: Promote to Production
+
+# HITL gate 3 (see docs/LOGGING.md). Deliberately does ONE thing: create and
+# push a v* tag off origin/main. Pushing that tag is what deploy.yml's
+# existing deploy-prod job already reacts to — this workflow does not build,
+# migrate, or deploy anything itself, so the actual release mechanics stay in
+# the one place they've always lived (deploy.yml), and promotion is just
+# "which commit gets to be a release."
+#
+# Required repo setup:
+#   - A `production` GitHub Environment (Settings → Environments → New
+#     environment, name it exactly `production`) with required reviewers
+#     configured. The `environment: production` line on the job below is what
+#     makes GitHub pause this run and wait for that approval before the tag
+#     is ever created — THAT approval screen ​IS​ HITL gate 3, not any code
+#     in this file.
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to release, e.g. 1.4.0 — becomes tag v1.4.0"
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  tag:
+    runs-on: ubuntu-latest
+    # Gates the whole job behind the `production` environment's required
+    # reviewers. The job does not start running steps until someone approves
+    # it in the Actions UI.
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Validate version format
+        run: |
+          version="${{ inputs.version }}"
+          if ! [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::version must look like 1.4.0 (got '$version')"
+            exit 1
+          fi
+
+      - name: Fail if the tag already exists
+        run: |
+          tag="v${{ inputs.version }}"
+          if git ls-remote --exit-code --tags origin "refs/tags/$tag" >/dev/null 2>&1; then
+            echo "::error::$tag already exists on origin — bump the version"
+            exit 1
+          fi
+
+      - name: Create and push the release tag
+        run: |
+          tag="v${{ inputs.version }}"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          # `origin/main` (not just HEAD) so the tag always points at the
+          # actual tip of main as of this run, regardless of how checkout
+          # resolved the local ref.
+          git tag -a "$tag" -m "Release $tag — promoted via promote.yml by ${{ github.actor }}" origin/main
+          git push origin "$tag"
+
+      # Nothing else runs here on purpose. The push above triggers
+      # deploy.yml's `deploy-prod` job (on: push: tags: ['v*']), which builds
+      # the image, migrates the Neon main branch, and deploys laanya-api.
