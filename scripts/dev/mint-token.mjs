@@ -29,7 +29,7 @@ const RUNTIME_SA = 'tinytales-api-run@tinytalesforus-prod.iam.gserviceaccount.co
 // Firebase's auto-created Browser key — used only to call the public
 // signInWithCustomToken endpoint, never to access anything privileged.
 const BROWSER_API_KEY_RESOURCE =
-  'projects/69070121252/locations/global/keys/0f04625d-1937-4637-b11b-2cc7f83db6a8'
+  'projects/597924238682/locations/global/keys/889e2d0f-2405-4644-9007-0fff109f8860'
 const phone = process.argv[2] ?? '+919000000000'
 
 if (!/^\+\d{8,15}$/.test(phone)) {

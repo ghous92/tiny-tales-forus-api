@@ -12,7 +12,7 @@
 #
 # Usage:
 #   scripts/dev/verify-payments.sh                       # http://localhost:8080
-#   scripts/dev/verify-payments.sh https://tinytales-api-staging-69070121252.asia-southeast1.run.app
+#   scripts/dev/verify-payments.sh https://tinytales-api-staging-597924238682.asia-southeast1.run.app
 #
 # Webhook secret: taken from $RAZORPAY_WEBHOOK_SECRET if set (use this when the
 # local server's .env differs from Secret Manager), else fetched from Secret
