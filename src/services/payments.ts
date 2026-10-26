@@ -812,7 +812,7 @@ export async function createUpiIntent(
       ip: client.ip,
       referer: client.referer,
       user_agent: client.userAgent,
-      notes: { userId },
+      notes: { userId, store: RAZORPAY_STORE_TAG },
       upi: { flow: 'intent', expiry_time: expiryMinutes },
     })
   } catch (err) {
@@ -1272,6 +1272,8 @@ interface WebhookEvent {
         error_reason?: string
         error_source?: string
         error_step?: string
+        /** Order notes Razorpay copies onto the payment; `store` tags whose order it is. */
+        notes?: Record<string, unknown>
       }
     }
     refund?: {
@@ -1283,9 +1285,10 @@ interface WebhookEvent {
         /** Razorpay's refund lifecycle — mirrored onto the row, never inferred. */
         status?: string
         speed_processed?: string
+        notes?: Record<string, unknown>
       }
     }
-    order?: { entity?: { id?: string } }
+    order?: { entity?: { id?: string; notes?: Record<string, unknown> } }
   }
 }
 
@@ -1346,6 +1349,17 @@ async function dispatchWebhook(
 ): Promise<void> {
   const payment = event.payload?.payment?.entity
 
+  // The Razorpay account is shared with another storefront, so this webhook
+  // receives every event on it. An event whose order carries ANOTHER store's
+  // tag is not ours: drop it quietly, before any lookup or log. Untagged events
+  // still go through, and each branch below already treats an unknown order
+  // id as a no-op, so a foreign order without a tag is ignored the same way.
+  const store =
+    payment?.notes?.store ??
+    event.payload?.refund?.entity?.notes?.store ??
+    event.payload?.order?.entity?.notes?.store
+  if (typeof store === 'string' && store !== RAZORPAY_STORE_TAG) return
+
   if (event.event === 'payment.captured') {
     const orderId = payment?.order_id
     const paymentId = payment?.id
@@ -1403,6 +1417,16 @@ async function dispatchWebhook(
   if (event.event === 'payment.failed') {
     const orderId = payment?.order_id
     if (!orderId) return
+    // An order id we never created (the other storefront's, on the shared
+    // account) is not ours to record: the attempt log has a foreign key to
+    // `payments`, and inserting against a missing row would surface as an
+    // ERROR on every declined card at the other store.
+    const [known] = await db
+      .select({ orderId: payments.orderId })
+      .from(payments)
+      .where(eq(payments.orderId, orderId))
+      .limit(1)
+    if (!known) return
     // The declined attempt itself, with the gateway's own reason — the whole
     // point of the log. Written whether or not the UPDATE below matches
     // anything: a decline that arrives after the order is already paid (a

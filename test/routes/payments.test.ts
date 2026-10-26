@@ -938,6 +938,45 @@ describe('POST /v1/payments/webhook', () => {
     expect(row?.status).toBe('failed')
   })
 
+  // The Razorpay account is shared with another storefront, so this webhook
+  // sees that store's events too. They must be ignored without an attempt row
+  // (foreign key to `payments`) and without touching any of our rows.
+  it('ignores payment.failed for an order id it never created (shared account)', async () => {
+    const res = await postWebhook({
+      event: 'payment.failed',
+      payload: { payment: { entity: { id: 'pay_X1', order_id: 'order_OTHERSTORE1', amount: 9900 } } },
+    })
+    expect(res.statusCode).toBe(200)
+    const attempts = await ctx.db
+      .select()
+      .from(paymentAttempts)
+      .where(eq(paymentAttempts.orderId, 'order_OTHERSTORE1'))
+    expect(attempts).toHaveLength(0)
+  })
+
+  it("drops an event tagged with another store's notes.store, even on a known order id", async () => {
+    await createOrder()
+    const event = capturedEvent('order_TEST0001', 49800) as {
+      payload: { payment: { entity: Record<string, unknown> } }
+    }
+    event.payload.payment.entity.notes = { store: 'otherstore' }
+    const res = await postWebhook(event)
+    expect(res.statusCode).toBe(200)
+    const [row] = await ctx.db.select().from(payments).where(eq(payments.orderId, 'order_TEST0001'))
+    expect(row?.status).toBe('pending')
+  })
+
+  it('still processes an event tagged with our own store', async () => {
+    await createOrder()
+    const event = capturedEvent('order_TEST0001', 49800) as {
+      payload: { payment: { entity: Record<string, unknown> } }
+    }
+    event.payload.payment.entity.notes = { store: 'tinytales' }
+    await postWebhook(event)
+    const [row] = await ctx.db.select().from(payments).where(eq(payments.orderId, 'order_TEST0001'))
+    expect(row?.status).toBe('paid')
+  })
+
   it('transitions paid → refunded on refund.processed (order_id on the refund entity)', async () => {
     await createOrder()
     await postWebhook(capturedEvent('order_TEST0001', 49800)) // → paid
