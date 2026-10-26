@@ -85,7 +85,11 @@ function prettyColor(color: string): string {
 export function buildCatalogAutoReply(snapshot: CatalogSnapshot | null): string {
   const products = (snapshot?.products ?? [])
     .map((product) => {
-      const live = product.variants.filter((variant) => variant.in_stock)
+      // Only pieces a shopper can pay for: in stock and priced.
+      const live = product.variants.filter(
+        (variant): variant is typeof variant & { effective_price_inr: number } =>
+          variant.in_stock && variant.effective_price_inr !== null
+      )
 
       // Group by size, cheapest first — the price shown must be one a shopper
       // can actually pay for that size, so it tracks the variant it came from.

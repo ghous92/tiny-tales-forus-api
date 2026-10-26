@@ -333,7 +333,7 @@ describe('scenario: ref-code permutations from the wa.me prefill', () => {
     },
     {
       label: 'lower-case link',
-      text: 'price for shampoo 1L [lny-7d3e5f]',
+      text: 'price for shampoo 1L [tt-7d3e5f]',
       expected: 'TT-7D3E5F',
       body: 'price for shampoo 1L',
     },

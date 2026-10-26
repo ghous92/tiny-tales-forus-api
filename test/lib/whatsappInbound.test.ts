@@ -75,7 +75,7 @@ describe('ref codes', () => {
   })
 
   it('uppercases so one entry point is one attribution row', () => {
-    expect(extractRefCode('hello [lny-4f2a9c]')).toBe('TT-4F2A9C')
+    expect(extractRefCode('hello [tt-4f2a9c]')).toBe('TT-4F2A9C')
   })
 
   it('returns null when there is no code', () => {

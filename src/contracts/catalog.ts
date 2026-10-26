@@ -58,7 +58,8 @@ export const CatalogVariantSchema = z.object({
   size_ml: z.number().int(),
   /** Shade/color slug (e.g. "lavender-blue"), for products sold in multiple colors. Null when the product has none. */
   color: z.string().nullable(),
-  price_inr: z.number().int(),
+  /** Whole rupees; null while the piece is unpriced ("Coming soon"). */
+  price_inr: z.number().int().nullable(),
   mrp_inr: z.number().int(),
   /**
    * What the shopper actually pays: `price_inr` with the product's seasonal
@@ -67,7 +68,7 @@ export const CatalogVariantSchema = z.object({
    * so the app must display THIS as the price and strike `price_inr`/`mrp_inr`
    * — showing `price_inr` as the payable price would disagree with the cart.
    */
-  effective_price_inr: z.number().int(),
+  effective_price_inr: z.number().int().nullable(),
   in_stock: z.boolean(),
   /** On-hand quantity, or null when untracked. */
   stock_qty: z.number().int().nullable(),
@@ -208,6 +209,9 @@ export const ProductCreateSchema = z.strictObject({
   maxQtyPerUser: positiveInt.nullish(),
   newUntil: z.iso.datetime().nullish(),
   active: z.boolean().optional(),
+  /** Takedown switch: hides the product everywhere without touching `active`. */
+  hidden: z.boolean().optional(),
+  hiddenReason: z.string().max(500).optional(),
   manufacturerName: z.string().max(300).optional(),
   manufacturerAddress: z.string().max(2000).optional(),
   countryOfOrigin: z.string().max(120).optional(),
@@ -240,6 +244,9 @@ export const ProductUpdateSchema = z.strictObject({
   maxQtyPerUser: positiveInt.nullish(),
   newUntil: z.iso.datetime().nullish(),
   active: z.boolean().optional(),
+  /** Takedown switch: hides the product everywhere without touching `active`. */
+  hidden: z.boolean().optional(),
+  hiddenReason: z.string().max(500).optional(),
   manufacturerName: z.string().max(300).optional(),
   manufacturerAddress: z.string().max(2000).optional(),
   countryOfOrigin: z.string().max(120).optional(),
@@ -273,7 +280,8 @@ export const VariantCreateSchema = z.strictObject({
   lengthCm: dimensionCm.optional(),
   widthCm: dimensionCm.optional(),
   heightCm: dimensionCm.optional(),
-  priceInr: nonNegInt,
+  /** Omitted or null ⇒ unpriced: shown as "Coming soon", not purchasable. */
+  priceInr: nonNegInt.nullish(),
   mrpInr: nonNegInt.optional(),
   asin: z.string().max(20).optional(),
   itemPartNumber: z.string().max(120).optional(),
@@ -293,7 +301,7 @@ export const VariantUpdateSchema = z.strictObject({
   lengthCm: dimensionCm.optional(),
   widthCm: dimensionCm.optional(),
   heightCm: dimensionCm.optional(),
-  priceInr: nonNegInt.optional(),
+  priceInr: nonNegInt.nullish(),
   mrpInr: nonNegInt.optional(),
   asin: z.string().max(20).optional(),
   itemPartNumber: z.string().max(120).optional(),
@@ -327,7 +335,7 @@ export const AdminVariantSchema = z.object({
   lengthCm: z.number().int(),
   widthCm: z.number().int(),
   heightCm: z.number().int(),
-  priceInr: z.number().int(),
+  priceInr: z.number().int().nullable(),
   mrpInr: z.number().int(),
   inStock: z.boolean(),
   stockQty: z.number().int().nullable(),
@@ -354,6 +362,8 @@ export const AdminProductSchema = z.object({
   maxQtyPerUser: z.number().int().nullable(),
   newUntil: z.iso.datetime().nullable(),
   active: z.boolean(),
+  hidden: z.boolean(),
+  hiddenReason: z.string(),
   manufacturerName: z.string(),
   manufacturerAddress: z.string(),
   countryOfOrigin: z.string(),

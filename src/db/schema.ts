@@ -339,6 +339,19 @@ export const products = pgTable(
     /** Soft delete / unpublish — excluded from the public catalog when false. */
     active: boolean('active').notNull().default(true),
     /**
+     * Takedown flag. A hidden product disappears from the public catalog and
+     * its skus stop being purchasable, exactly like `active: false`, but it is
+     * a separate switch on purpose: `active` is merchandising (is it on sale?)
+     * while `hidden` is compliance (a rights-holder complaint or an ad
+     * rejection). Flipping it must not lose the merchandising state, and an
+     * operator unhiding a product must not accidentally publish one that was
+     * never meant to be live. The edge Worker also answers 410 for a hidden
+     * product's URLs until the next static build drops its page.
+     */
+    hidden: boolean('hidden').notNull().default(false),
+    /** Why it was hidden (free text for the audit trail); '' while visible. */
+    hiddenReason: text('hidden_reason').notNull().default(''),
+    /**
      * Legal Metrology (Packaged Commodities) Rules + Consumer Protection
      * (E-Commerce) Rules mandatory PDP disclosures. Additive NOT NULL columns
      * with safe defaults (never breaks an existing migration on already-live
@@ -451,8 +464,13 @@ export const productVariants = pgTable(
     lengthCm: integer('length_cm').notNull().default(0),
     widthCm: integer('width_cm').notNull().default(0),
     heightCm: integer('height_cm').notNull().default(0),
-    /** Selling price in paise-free INR (whole rupees). */
-    priceInr: integer('price_inr').notNull(),
+    /**
+     * Selling price in whole rupees, or NULL while the price is not set yet.
+     * An unpriced variant is shown ("Coming soon / Notify me") but is never
+     * projected as purchasable, so cart and checkout refuse it server-side.
+     * Prices are never hard-coded anywhere else.
+     */
+    priceInr: integer('price_inr'),
     /** MRP (strike-through) in INR. */
     mrpInr: integer('mrp_inr').notNull().default(0),
     /** Per-variant availability. */
@@ -480,7 +498,10 @@ export const productVariants = pgTable(
       table.size,
       table.color
     ),
-    check('product_variants_price_inr_non_negative', sql`${table.priceInr} >= 0`),
+    check(
+      'product_variants_price_inr_non_negative',
+      sql`${table.priceInr} is null or ${table.priceInr} >= 0`
+    ),
     check(
       'product_variants_stock_qty_non_negative',
       sql`${table.stockQty} is null or ${table.stockQty} >= 0`

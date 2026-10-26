@@ -1,5 +1,5 @@
 {
-  "id": "e16c5ed0-e956-4072-baeb-4f130c244cab",
+  "id": "0c55037b-be58-42ae-9229-ab5129a68446",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -3403,7 +3403,7 @@
           "name": "price_inr",
           "type": "integer",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
         },
         "mrp_inr": {
           "name": "mrp_inr",
@@ -3525,7 +3525,7 @@
       "checkConstraints": {
         "product_variants_price_inr_non_negative": {
           "name": "product_variants_price_inr_non_negative",
-          "value": "\"product_variants\".\"price_inr\" >= 0"
+          "value": "\"product_variants\".\"price_inr\" is null or \"product_variants\".\"price_inr\" >= 0"
         },
         "product_variants_stock_qty_non_negative": {
           "name": "product_variants_stock_qty_non_negative",
@@ -3652,6 +3652,20 @@
           "primaryKey": false,
           "notNull": true,
           "default": true
+        },
+        "hidden": {
+          "name": "hidden",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "hidden_reason": {
+          "name": "hidden_reason",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "''"
         },
         "manufacturer_name": {
           "name": "manufacturer_name",

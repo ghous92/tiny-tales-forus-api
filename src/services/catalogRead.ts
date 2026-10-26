@@ -12,7 +12,7 @@
  * stable for identical data.
  */
 
-import { asc, eq, inArray } from 'drizzle-orm'
+import { and, asc, eq, inArray } from 'drizzle-orm'
 
 import type { Db } from '../db/client.js'
 import { categories, products, productVariants } from '../db/schema.js'
@@ -91,7 +91,7 @@ export async function getCatalogSnapshot(db: Db): Promise<CatalogSnapshot> {
     db
       .select()
       .from(products)
-      .where(eq(products.active, true))
+      .where(and(eq(products.active, true), eq(products.hidden, false)))
       .orderBy(asc(products.sortOrder), asc(products.id)),
     db
       .select()
@@ -123,7 +123,7 @@ export async function getCatalogSnapshot(db: Db): Promise<CatalogSnapshot> {
     color: v.color,
     price_inr: v.priceInr,
     mrp_inr: v.mrpInr,
-    effective_price_inr: effectivePriceInr(v.priceInr, seasonalPct),
+    effective_price_inr: v.priceInr === null ? null : effectivePriceInr(v.priceInr, seasonalPct),
     in_stock: v.inStock,
     stock_qty: v.stockQty,
     best_before_mode: v.bestBeforeMode as 'date' | 'printed_on_pack',

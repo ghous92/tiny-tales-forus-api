@@ -50,6 +50,19 @@ function gridUrl(images: unknown): string {
 }
 
 /**
+ * Whether a variant is purchasable: the product is on sale and not taken down,
+ * the variant is in stock, and it HAS a price. An unpriced variant is still
+ * shown in the public catalog ("Coming soon"), but projecting it as active
+ * would let the cart charge ₹0 for it.
+ */
+export function isPurchasable(
+  product: { active: boolean; hidden: boolean },
+  variant: { inStock: boolean; priceInr: number | null }
+): boolean {
+  return product.active && !product.hidden && variant.inStock && variant.priceInr !== null
+}
+
+/**
  * Re-project a single product's variants into `catalog_items`. Upserts every
  * current variant and deactivates any `catalog_items` row for this product
  * whose sku is no longer among them (variant deleted). Call inside the same
@@ -91,10 +104,12 @@ export async function projectProduct(
 
   for (const v of variants) {
     liveSkus.push(v.sku)
-    const active = product.active && v.inStock
+    const active = isPurchasable(product, v)
     // Cart/payments charge this price — fold in the product's seasonal discount
     // so the authority already reflects it (see lib/pricing.ts). pct 0 → raw.
-    const priceInr = effectivePriceInr(v.priceInr, product.seasonalDiscountPct)
+    // An unpriced variant projects as 0 but always inactive (see isPurchasable),
+    // so that 0 can never reach a cart total.
+    const priceInr = effectivePriceInr(v.priceInr ?? 0, product.seasonalDiscountPct)
     await tx
       .insert(catalogItems)
       .values({

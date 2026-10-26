@@ -33,7 +33,7 @@ import pg from 'pg'
 import type { Db } from '../src/db/client.js'
 import { catalogItems, products, productVariants } from '../src/db/schema.js'
 import { effectivePriceInr } from '../src/lib/pricing.js'
-import { projectProduct } from '../src/services/catalogProjection.js'
+import { isPurchasable, projectProduct } from '../src/services/catalogProjection.js'
 
 /** One disagreement between the catalog and its projection. */
 export interface Drift {
@@ -95,13 +95,13 @@ export async function diagnoseCatalog(db: Db): Promise<DoctorReport> {
       productId: product.id,
       name: product.name,
       size: v.size,
-      priceInr: effectivePriceInr(v.priceInr, product.seasonalDiscountPct),
+      priceInr: effectivePriceInr(v.priceInr ?? 0, product.seasonalDiscountPct),
       weightG: v.weightG,
       lengthCm: v.lengthCm,
       widthCm: v.widthCm,
       heightCm: v.heightCm,
       imageUrl: gridUrl(product.images),
-      active: product.active && v.inStock,
+      active: isPurchasable(product, v),
     }
 
     for (const [field, want] of Object.entries(expected)) {
