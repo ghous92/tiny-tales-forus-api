@@ -33,7 +33,14 @@ import { eq } from 'drizzle-orm'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
 import { waConversations, waMessages } from '../../src/db/schema.js'
-import { auth, createTestApp, promoteToAdmin, USER_A, USER_ADMIN, type TestContext } from '../helpers/app.js'
+import {
+  auth,
+  createTestApp,
+  promoteToAdmin,
+  USER_A,
+  USER_ADMIN,
+  type TestContext,
+} from '../helpers/app.js'
 
 const APP_SECRET = 'scenario-app-secret'
 const VERIFY_TOKEN = 'scenario-verify-token'
@@ -75,7 +82,9 @@ async function makeApp(options: { configured?: boolean; canSend?: boolean } = {}
   sends = []
   sendFailure = null
   ctx = await createTestApp({
-    ...(configured ? { whatsappInbound: { appSecret: APP_SECRET, verifyToken: VERIFY_TOKEN } } : {}),
+    ...(configured
+      ? { whatsappInbound: { appSecret: APP_SECRET, verifyToken: VERIFY_TOKEN } }
+      : {}),
     ...(canSend ? { whatsapp: { phoneNumberId: 'pnid', accessToken: 'token' } } : {}),
     whatsappFetch: graphFetch(),
   })
@@ -100,7 +109,9 @@ function metaMessage(m: MetaMessage) {
     type,
     timestamp: m.timestamp ?? String(Math.floor(Date.now() / 1000)),
     ...(type === 'text' ? { text: { body: m.text ?? '' } } : {}),
-    ...(type === 'image' ? { image: { id: 'media-1', ...(m.caption ? { caption: m.caption } : {}) } } : {}),
+    ...(type === 'image'
+      ? { image: { id: 'media-1', ...(m.caption ? { caption: m.caption } : {}) } }
+      : {}),
     ...(type === 'location' ? { location: { latitude: 23.02, longitude: 72.57 } } : {}),
   }
 }
@@ -237,8 +248,16 @@ describe('scenario: a stranger on a PDP asks whether the business is real', () =
     expect(sends).toHaveLength(1)
 
     // Then the real objections, in the order shoppers actually raise them.
-    await says({ id: 'wamid.S1b', from: STRANGER, text: 'Is this original? My cousin got a fake one online' })
-    await says({ id: 'wamid.S1c', from: STRANGER, text: 'And do you deliver to 380015? COD possible?' })
+    await says({
+      id: 'wamid.S1b',
+      from: STRANGER,
+      text: 'Is this original? My cousin got a fake one online',
+    })
+    await says({
+      id: 'wamid.S1c',
+      from: STRANGER,
+      text: 'And do you deliver to 380015? COD possible?',
+    })
 
     const waiting = await threadFor(STRANGER)
     expect(waiting?.unreadCount).toBe(2)
@@ -269,7 +288,12 @@ describe('scenario: a signed-up shopper messages about an order', () => {
   })
 
   it('resolves the thread to their account with no linking step', async () => {
-    await says({ id: 'wamid.S2', from: KNOWN, name: 'Rahul', text: 'where is my order? ordered 3 days back' })
+    await says({
+      id: 'wamid.S2',
+      from: KNOWN,
+      name: 'Rahul',
+      text: 'where is my order? ordered 3 days back',
+    })
     const thread = await threadFor(KNOWN)
     expect(thread?.userId).not.toBeNull()
     await record('S2 — known account, order status', KNOWN)
@@ -356,7 +380,12 @@ describe('scenario: what a shopper can actually send', () => {
   })
 
   it('keeps an image caption — "is this the one I bought?"', async () => {
-    await says({ id: 'wamid.M1', from: STRANGER, type: 'image', caption: 'is this the same bottle?' })
+    await says({
+      id: 'wamid.M1',
+      from: STRANGER,
+      type: 'image',
+      caption: 'is this the same bottle?',
+    })
     const thread = await threadFor(STRANGER)
     const [first] = await messagesFor(thread!.id)
     expect(first).toMatchObject({ msgType: 'image', body: 'is this the same bottle?' })
@@ -437,7 +466,12 @@ describe('scenario: Meta delivery quirks', () => {
             {
               value: {
                 statuses: [
-                  { id: 'wamid.OUT1', status: 'read', recipient_id: STRANGER, timestamp: '1788600100' },
+                  {
+                    id: 'wamid.OUT1',
+                    status: 'read',
+                    recipient_id: STRANGER,
+                    timestamp: '1788600100',
+                  },
                 ],
               },
             },
@@ -499,7 +533,10 @@ describe('scenario: the reply window', () => {
   it('lets the operator answer inside 24h', async () => {
     await says({ id: 'wamid.W1', from: STRANGER, text: 'is 1L cheaper per ml than 500ml?' })
     const thread = await threadFor(STRANGER)
-    const res = await operatorReplies(thread!.id, 'Yes — ₹649 for 1L vs ₹349 for 500ml, about 7% less per ml.')
+    const res = await operatorReplies(
+      thread!.id,
+      'Yes — ₹649 for 1L vs ₹349 for 500ml, about 7% less per ml.'
+    )
     expect(res.statusCode).toBe(200)
     await record('S7 — answered inside the window', STRANGER)
   })
@@ -529,7 +566,9 @@ describe('scenario: the reply window', () => {
     expect((await operatorReplies(thread!.id, 'hello?')).statusCode).toBe(422)
 
     await says({ id: 'wamid.W3b', from: STRANGER, text: 'ok I want to order the 1L' })
-    expect((await operatorReplies(thread!.id, 'Great — sending you the details.')).statusCode).toBe(200)
+    expect((await operatorReplies(thread!.id, 'Great — sending you the details.')).statusCode).toBe(
+      200
+    )
     await record('S7c — window closed, then re-opened by the shopper', STRANGER)
   })
 })

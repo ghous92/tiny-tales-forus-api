@@ -17,7 +17,8 @@ import {
 const REGISTERED_SELLER: InvoiceSellerBlock = {
   legalName: 'Adix AI',
   brand: 'Tiny Tales',
-  address: '3, Qamar Makhdumi Road, near Noori Masjid, Bhuli Road, Wasseypur, Dhanbad, Jharkhand 826001',
+  address:
+    '3, Qamar Makhdumi Road, near Noori Masjid, Bhuli Road, Wasseypur, Dhanbad, Jharkhand 826001',
   gstRegistered: true,
   gstin: '20AAAAA0000A1Z5',
   supportEmail: 'hello@adix.ai',
@@ -171,7 +172,9 @@ describe('buildCreditNoteDocument', () => {
     expect(note.totals.rateWise).toEqual(invoice.totals.rateWise)
 
     // Same invariant `invoiceHtml.test.ts` asserts on the invoice itself: taxable + tax == total.
-    expect(note.totals.taxableValuePaise + note.totals.totalTaxPaise).toBe(note.totals.totalInr * 100)
+    expect(note.totals.taxableValuePaise + note.totals.totalTaxPaise).toBe(
+      note.totals.totalInr * 100
+    )
   })
 
   it('numbers independently of the invoice series — fy/seq come from the credit note counters, not the invoice', () => {

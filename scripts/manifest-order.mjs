@@ -39,7 +39,10 @@ for (const name of ['PROD_DB', 'DELHIVERY_API_TOKEN', 'DELHIVERY_BASE_URL']) {
   }
 }
 
-const client = new pg.Client({ connectionString: process.env.PROD_DB, ssl: { rejectUnauthorized: false } })
+const client = new pg.Client({
+  connectionString: process.env.PROD_DB,
+  ssl: { rejectUnauthorized: false },
+})
 await client.connect()
 const db = drizzle(client)
 
@@ -52,7 +55,9 @@ if (target.length === 0) {
   process.exit(1)
 }
 if (target[0].status !== 'pending_manifest') {
-  console.error(`manifest-order: ${targetOrder} is '${target[0].status}', not 'pending_manifest' — nothing to do`)
+  console.error(
+    `manifest-order: ${targetOrder} is '${target[0].status}', not 'pending_manifest' — nothing to do`
+  )
   await client.end()
   process.exit(1)
 }
@@ -69,7 +74,9 @@ for (const row of others) {
     .set({ manifestAttempts: rule.manifestMaxAttempts })
     .where(eq(shipments.orderId, row.orderId))
 }
-console.log(`parked ${others.length} other pending order(s): ${others.map((o) => o.orderId).join(', ') || '(none)'}`)
+console.log(
+  `parked ${others.length} other pending order(s): ${others.map((o) => o.orderId).join(', ') || '(none)'}`
+)
 
 const adapter = createDelhiveryAdapter({
   apiToken: process.env.DELHIVERY_API_TOKEN,
@@ -84,7 +91,10 @@ try {
   console.log('sweep outcome', JSON.stringify(outcome))
 } finally {
   for (const row of others) {
-    await db.update(shipments).set({ manifestAttempts: row.manifestAttempts }).where(eq(shipments.orderId, row.orderId))
+    await db
+      .update(shipments)
+      .set({ manifestAttempts: row.manifestAttempts })
+      .where(eq(shipments.orderId, row.orderId))
   }
   console.log('restored parked orders to their original attempt counts')
 }

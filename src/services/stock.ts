@@ -156,13 +156,15 @@ export interface StockContext {
 }
 
 /** Merge a policy row over the defaults; null limits mean "use the default", never "no limit". */
-export function resolvePolicy(row: {
-  mode: string
-  lowStockAt: number | null
-  maxCascadeStores: number | null
-  maxRadiusKm: number | null
-  hubFallback: boolean
-} | null): EffectivePolicy {
+export function resolvePolicy(
+  row: {
+    mode: string
+    lowStockAt: number | null
+    maxCascadeStores: number | null
+    maxRadiusKm: number | null
+    hubFallback: boolean
+  } | null
+): EffectivePolicy {
   const mode = row?.mode
   return {
     mode: mode === 'force_in' || mode === 'force_out' ? mode : 'auto',
@@ -434,7 +436,12 @@ export function cascadeForSku(sku: string, context: StockContext): CascadeResult
 
   // 8. Nothing anywhere.
   if (!winner) {
-    return OUT_OF_STOCK(sku, hubs.length > 0 ? 'hub_fallback_disabled' : 'no_candidates', policy, explained)
+    return OUT_OF_STOCK(
+      sku,
+      hubs.length > 0 ? 'hub_fallback_disabled' : 'no_candidates',
+      policy,
+      explained
+    )
   }
 
   return {
@@ -483,7 +490,10 @@ export interface StockWrite {
  * because its most important caller — the decrement inside `markOrderPaid` —
  * has to share that payment's transaction or the guarantee is worthless.
  */
-export async function setStock(tx: Db, write: StockWrite): Promise<{ oldQty: number | null; newQty: number }> {
+export async function setStock(
+  tx: Db,
+  write: StockWrite
+): Promise<{ oldQty: number | null; newQty: number }> {
   const [existing] = await tx
     .select({ qty: storeStock.qty, tracked: storeStock.tracked })
     .from(storeStock)

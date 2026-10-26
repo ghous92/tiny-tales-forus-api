@@ -65,7 +65,11 @@ describe('getCouponRuleByCode', () => {
     await seedCoupon()
     const lookup = await getCouponRuleByCode(db, 'DIRECT15')
     expect(lookup.code).toBe('DIRECT15')
-    expect(lookup.rule).toMatchObject({ code: 'DIRECT15', discountType: 'percent', discountValue: 15 })
+    expect(lookup.rule).toMatchObject({
+      code: 'DIRECT15',
+      discountType: 'percent',
+      discountValue: 15,
+    })
   })
 
   it('normalizes lower/mixed case and surrounding whitespace to the uppercase code', async () => {
@@ -176,9 +180,17 @@ describe('admin CRUD', () => {
   })
 
   it('rejects a duplicate code (case-insensitive)', async () => {
-    await createCoupon(db, { code: 'DIRECT15', label: 'x', discountType: 'flat', discountValue: 10 }, adminId)
+    await createCoupon(
+      db,
+      { code: 'DIRECT15', label: 'x', discountType: 'flat', discountValue: 10 },
+      adminId
+    )
     await expect(
-      createCoupon(db, { code: 'direct15', label: 'y', discountType: 'flat', discountValue: 20 }, adminId)
+      createCoupon(
+        db,
+        { code: 'direct15', label: 'y', discountType: 'flat', discountValue: 20 },
+        adminId
+      )
     ).rejects.toMatchObject({ statusCode: 422, code: 'validation_failed' })
   })
 
@@ -199,7 +211,11 @@ describe('admin CRUD', () => {
   })
 
   it('lists every coupon, including inactive', async () => {
-    await createCoupon(db, { code: 'A', label: 'a', discountType: 'flat', discountValue: 10 }, adminId)
+    await createCoupon(
+      db,
+      { code: 'A', label: 'a', discountType: 'flat', discountValue: 10 },
+      adminId
+    )
     await createCoupon(
       db,
       { code: 'B', label: 'b', discountType: 'flat', discountValue: 10, active: false },
@@ -210,9 +226,16 @@ describe('admin CRUD', () => {
   })
 
   it('reads one coupon by code (normalized), 404s when absent', async () => {
-    await createCoupon(db, { code: 'A', label: 'a', discountType: 'flat', discountValue: 10 }, adminId)
+    await createCoupon(
+      db,
+      { code: 'A', label: 'a', discountType: 'flat', discountValue: 10 },
+      adminId
+    )
     expect((await getAdminCoupon(db, 'a')).code).toBe('A')
-    await expect(getAdminCoupon(db, 'GHOST')).rejects.toMatchObject({ statusCode: 404, code: 'not_found' })
+    await expect(getAdminCoupon(db, 'GHOST')).rejects.toMatchObject({
+      statusCode: 404,
+      code: 'not_found',
+    })
   })
 
   it('patches a single field, leaving the rest untouched', async () => {
@@ -246,7 +269,11 @@ describe('admin CRUD', () => {
   })
 
   it('deletes a coupon (204-equivalent no-throw), 404s when absent', async () => {
-    await createCoupon(db, { code: 'A', label: 'a', discountType: 'flat', discountValue: 10 }, adminId)
+    await createCoupon(
+      db,
+      { code: 'A', label: 'a', discountType: 'flat', discountValue: 10 },
+      adminId
+    )
     await deleteCoupon(db, 'a')
     const [row] = await db.select().from(coupons).where(eq(coupons.code, 'A'))
     expect(row).toBeUndefined()

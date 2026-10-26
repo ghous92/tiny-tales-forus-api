@@ -69,7 +69,12 @@ describe('POST /v1/client-errors', () => {
     ;({ app } = await createTestApp({ alerter }))
 
     const events = [
-      { type: 'error', message: 'crash', stack: 'Error: crash\n    at x (/app/foo.js:1:1)', url: '/checkout' },
+      {
+        type: 'error',
+        message: 'crash',
+        stack: 'Error: crash\n    at x (/app/foo.js:1:1)',
+        url: '/checkout',
+      },
       { type: 'console.error', message: 'warn', meta: { screen: 'Home' } },
     ]
     const res = await app.inject({
@@ -81,7 +86,10 @@ describe('POST /v1/client-errors', () => {
 
     expect(res.statusCode).toBe(202)
     expect(notifyClientEvents).toHaveBeenCalledTimes(1)
-    const [receivedEvents, ctx] = notifyClientEvents.mock.calls[0] as [unknown, { source: string; ip: string; userAgent?: string }]
+    const [receivedEvents, ctx] = notifyClientEvents.mock.calls[0] as [
+      unknown,
+      { source: string; ip: string; userAgent?: string },
+    ]
     expect(receivedEvents).toEqual(events)
     expect(ctx.source).toBe('web')
     expect(ctx.userAgent).toBe('test-agent/1.0')
@@ -119,7 +127,11 @@ describe('POST /v1/client-errors', () => {
 
     let limited = false
     for (let i = 0; i < 11; i++) {
-      const res = await app.inject({ method: 'POST', url: '/v1/client-errors', payload: validBody() })
+      const res = await app.inject({
+        method: 'POST',
+        url: '/v1/client-errors',
+        payload: validBody(),
+      })
       if (res.statusCode === 429) {
         limited = true
         expect(res.json().error.code).toBe('limit_exceeded')

@@ -76,7 +76,11 @@ async function seedProduct(id = 'dan-hair-oil', over: Record<string, unknown> = 
   })
 }
 
-async function seedVariant(productId = 'dan-hair-oil', sku = 'SKU-200', over: Record<string, unknown> = {}) {
+async function seedVariant(
+  productId = 'dan-hair-oil',
+  sku = 'SKU-200',
+  over: Record<string, unknown> = {}
+) {
   return ctx.app.inject({
     method: 'POST',
     url: `/v1/admin/catalog/products/${productId}/variants`,
@@ -127,7 +131,11 @@ describe('category CRUD', () => {
     expect(created.json()).toMatchObject({ slug: 'hair oil', label: 'Hair Oil', active: true })
     expect(await getCatalogVersion(ctx.db)).toBe(v0 + 1)
 
-    const list = await ctx.app.inject({ method: 'GET', url: '/v1/admin/catalog/categories', headers: A() })
+    const list = await ctx.app.inject({
+      method: 'GET',
+      url: '/v1/admin/catalog/categories',
+      headers: A(),
+    })
     expect(list.json()).toHaveLength(1)
 
     const upd = await ctx.app.inject({
@@ -219,7 +227,11 @@ describe('product CRUD', () => {
       headers: A(),
       payload: { isBestSeller: true, seasonalDiscountPct: 15, maxQtyPerUser: 3 },
     })
-    expect(res.json()).toMatchObject({ isBestSeller: true, seasonalDiscountPct: 15, maxQtyPerUser: 3 })
+    expect(res.json()).toMatchObject({
+      isBestSeller: true,
+      seasonalDiscountPct: 15,
+      maxQtyPerUser: 3,
+    })
   })
 
   it('creates and patches manufacturerLicence and brand (Phase 3)', async () => {

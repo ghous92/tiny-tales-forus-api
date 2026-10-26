@@ -944,7 +944,9 @@ describe('POST /v1/payments/webhook', () => {
   it('ignores payment.failed for an order id it never created (shared account)', async () => {
     const res = await postWebhook({
       event: 'payment.failed',
-      payload: { payment: { entity: { id: 'pay_X1', order_id: 'order_OTHERSTORE1', amount: 9900 } } },
+      payload: {
+        payment: { entity: { id: 'pay_X1', order_id: 'order_OTHERSTORE1', amount: 9900 } },
+      },
     })
     expect(res.statusCode).toBe(200)
     const attempts = await ctx.db
@@ -2786,4 +2788,3 @@ describe('refund details on a refunded order', () => {
     expect((await details()).refund).toBeNull()
   })
 })
-

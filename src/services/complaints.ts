@@ -69,7 +69,11 @@ function toAdminComplaint(row: ComplaintTicketRow): ComplaintAdmin {
  * astronomically rare collision — 32^6 combinations per day) and sets
  * `dueAt` = now + 30 days.
  */
-export async function createComplaint(db: Db, userId: string, input: ComplaintCreate): Promise<Complaint> {
+export async function createComplaint(
+  db: Db,
+  userId: string,
+  input: ComplaintCreate
+): Promise<Complaint> {
   const now = new Date()
   const dueAt = new Date(now.getTime() + SLA_DAYS * 24 * 60 * 60 * 1000)
 
@@ -109,11 +113,17 @@ export async function listComplaints(db: Db, userId: string): Promise<Complaint[
  * the shopper-facing tracking number. Cross-user access or an unknown number
  * both read as 404.
  */
-export async function getComplaint(db: Db, userId: string, ticketNumber: string): Promise<Complaint> {
+export async function getComplaint(
+  db: Db,
+  userId: string,
+  ticketNumber: string
+): Promise<Complaint> {
   const [row] = await db
     .select()
     .from(complaintTickets)
-    .where(and(eq(complaintTickets.ticketNumber, ticketNumber), eq(complaintTickets.userId, userId)))
+    .where(
+      and(eq(complaintTickets.ticketNumber, ticketNumber), eq(complaintTickets.userId, userId))
+    )
     .limit(1)
   if (!row) throw notFound('Complaint not found')
   return toComplaint(row)

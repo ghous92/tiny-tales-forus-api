@@ -40,9 +40,7 @@ describe('createPaymentsGateway', () => {
   it('returns undefined when any secret is missing', () => {
     expect(createPaymentsGateway({})).toBeUndefined()
     expect(createPaymentsGateway({ keyId: 'rzp_test_x' })).toBeUndefined()
-    expect(
-      createPaymentsGateway({ keyId: 'rzp_test_x', keySecret: 's' })
-    ).toBeUndefined()
+    expect(createPaymentsGateway({ keyId: 'rzp_test_x', keySecret: 's' })).toBeUndefined()
   })
 
   it('builds a gateway with a derived mode and does NOT construct the SDK eagerly', () => {

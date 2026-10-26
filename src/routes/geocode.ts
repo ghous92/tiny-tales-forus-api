@@ -14,10 +14,7 @@
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod'
 
 import { ErrorEnvelopeSchema } from '../contracts/config.js'
-import {
-  ReverseGeocodeQuerySchema,
-  ReverseGeocodeResultSchema,
-} from '../contracts/geocode.js'
+import { ReverseGeocodeQuerySchema, ReverseGeocodeResultSchema } from '../contracts/geocode.js'
 import { notFound } from '../lib/errors.js'
 import { reverseGeocode } from '../services/geocode.js'
 
@@ -89,9 +86,9 @@ export const geocodeRoutes: FastifyPluginAsyncZod<GeocodeRoutesOptions> = async 
     },
     async (request, reply) => {
       if (rateLimited(request.ip, Date.now())) {
-        return reply
-          .code(429)
-          .send({ error: { code: 'limit_exceeded', message: 'Too many lookups. Try again shortly.' } })
+        return reply.code(429).send({
+          error: { code: 'limit_exceeded', message: 'Too many lookups. Try again shortly.' },
+        })
       }
 
       const { lat, lng } = request.query

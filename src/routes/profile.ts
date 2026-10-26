@@ -10,11 +10,7 @@
 import { z } from 'zod'
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod'
 
-import {
-  ErrorEnvelopeSchema,
-  ProfileSchema,
-  ProfileUpdateSchema,
-} from '../contracts/profile.js'
+import { ErrorEnvelopeSchema, ProfileSchema, ProfileUpdateSchema } from '../contracts/profile.js'
 import type { Db } from '../db/client.js'
 import type { Analytics } from '../lib/analytics.js'
 import type { FirebaseUserDeleter } from '../plugins/auth.js'

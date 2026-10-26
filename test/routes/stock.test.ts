@@ -18,8 +18,23 @@
 
 import { beforeEach, describe, expect, it } from 'vitest'
 
-import { catalogItems, categories, pickupNodes, pincodes, productVariants, products, storeStock } from '../../src/db/schema.js'
-import { auth, createTestApp, promoteToAdmin, USER_A, USER_ADMIN, type TestContext } from '../helpers/app.js'
+import {
+  catalogItems,
+  categories,
+  pickupNodes,
+  pincodes,
+  productVariants,
+  products,
+  storeStock,
+} from '../../src/db/schema.js'
+import {
+  auth,
+  createTestApp,
+  promoteToAdmin,
+  USER_A,
+  USER_ADMIN,
+  type TestContext,
+} from '../helpers/app.js'
 
 const SKU = 'DAN-CREAM-100'
 /** Shopper in Ahmedabad. */
@@ -39,8 +54,22 @@ let hubNodeId: string
  */
 async function seedStockWorld(): Promise<void> {
   await ctx.db.insert(pincodes).values([
-    { pincode: AHMEDABAD, taluk: 'Ahmadabad City', district: 'Ahmadabad', state: 'Gujarat', lat: 23.0225, lng: 72.5714 },
-    { pincode: RAJKOT, taluk: 'Rajkot', district: 'Rajkot', state: 'Gujarat', lat: 22.2996, lng: 70.8042 },
+    {
+      pincode: AHMEDABAD,
+      taluk: 'Ahmadabad City',
+      district: 'Ahmadabad',
+      state: 'Gujarat',
+      lat: 23.0225,
+      lng: 72.5714,
+    },
+    {
+      pincode: RAJKOT,
+      taluk: 'Rajkot',
+      district: 'Rajkot',
+      state: 'Gujarat',
+      lat: 22.2996,
+      lng: 70.8042,
+    },
   ])
 
   const nodes = await ctx.db
@@ -390,7 +419,9 @@ describe('/v1/admin/stock', () => {
 
     const body = response.json()
     expect(body.decidedBy).toBe('retail_hit')
-    expect(body.candidates.find((c: { nodeCode: string }) => c.nodeCode === 'AHM-NEAR').chosen).toBe(true)
+    expect(
+      body.candidates.find((c: { nodeCode: string }) => c.nodeCode === 'AHM-NEAR').chosen
+    ).toBe(true)
     expect(body.destinationCoords).toEqual({ lat: 23.0225, lng: 72.5714 })
     expect(body.effectivePolicy.maxCascadeStores).toBe(3)
   })

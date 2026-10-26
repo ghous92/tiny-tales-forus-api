@@ -76,7 +76,9 @@ declare module 'fastify' {
  * is why this is a library call rather than a `tokeninfo` fetch.
  */
 export function createGoogleOidcVerifier(): OidcVerifier {
-  let client: { verifyIdToken: (o: { idToken: string; audience: string }) => Promise<unknown> } | undefined
+  let client:
+    | { verifyIdToken: (o: { idToken: string; audience: string }) => Promise<unknown> }
+    | undefined
   return async (token, audience) => {
     if (!client) {
       const { OAuth2Client } = await import('google-auth-library')
@@ -161,7 +163,10 @@ export const schedulerPlugin = fp<SchedulerPluginOptions>(
       if (!allowed.has(email)) {
         // Logged at warn: a correctly-signed token from an unexpected identity
         // is the signal worth alerting on, unlike a malformed one.
-        request.log.warn({ email }, 'scheduler token from a service account that is not allowlisted')
+        request.log.warn(
+          { email },
+          'scheduler token from a service account that is not allowlisted'
+        )
         throw forbidden()
       }
 

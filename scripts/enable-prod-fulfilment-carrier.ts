@@ -34,7 +34,9 @@ async function main(): Promise<void> {
   const dryRun = process.argv.includes('--dry-run')
   const connectionString = process.env.DATABASE_URL_DIRECT ?? process.env.DATABASE_URL
   if (!connectionString) {
-    console.error('db:enable-prod-fulfilment-carrier: set DATABASE_URL_DIRECT (preferred) or DATABASE_URL')
+    console.error(
+      'db:enable-prod-fulfilment-carrier: set DATABASE_URL_DIRECT (preferred) or DATABASE_URL'
+    )
     process.exit(1)
   }
 
@@ -43,7 +45,9 @@ async function main(): Promise<void> {
     const db = drizzle(pool) as unknown as Db
 
     /* eslint-disable no-console */
-    console.log(`db:enable-prod-fulfilment-carrier: ${WRITES.length} key(s) to set${dryRun ? ' (DRY RUN)' : ''}`)
+    console.log(
+      `db:enable-prod-fulfilment-carrier: ${WRITES.length} key(s) to set${dryRun ? ' (DRY RUN)' : ''}`
+    )
     for (const w of WRITES) {
       console.log(`  SET ${w.key} = ${JSON.stringify(w.value)}`)
     }

@@ -89,14 +89,15 @@ export const couponRoutes: FastifyPluginAsyncZod<CouponRoutesOptions> = async (a
 }
 
 /** Admin coupon CRUD, mounted at `/v1/admin/coupons`. */
-export const adminCouponsRoutes: FastifyPluginAsyncZod<CouponRoutesOptions> = async (app, { db }) => {
+export const adminCouponsRoutes: FastifyPluginAsyncZod<CouponRoutesOptions> = async (
+  app,
+  { db }
+) => {
   app.addHook('onRequest', app.authenticate)
   app.addHook('onRequest', app.requireAdmin)
 
-  app.get(
-    '/',
-    { schema: { response: { 200: CouponListSchema, ...errorResponses } } },
-    async () => listAdminCoupons(db)
+  app.get('/', { schema: { response: { 200: CouponListSchema, ...errorResponses } } }, async () =>
+    listAdminCoupons(db)
   )
 
   app.post(

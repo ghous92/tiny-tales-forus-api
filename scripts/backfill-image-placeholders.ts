@@ -217,7 +217,9 @@ export async function backfillImagePlaceholders(
 async function main(): Promise<void> {
   const connectionString = process.env.DATABASE_URL_DIRECT ?? process.env.DATABASE_URL
   if (!connectionString) {
-    console.error('backfill-image-placeholders: set DATABASE_URL_DIRECT (preferred) or DATABASE_URL')
+    console.error(
+      'backfill-image-placeholders: set DATABASE_URL_DIRECT (preferred) or DATABASE_URL'
+    )
     process.exit(1)
   }
 
@@ -227,7 +229,9 @@ async function main(): Promise<void> {
   const pool = new pg.Pool({ connectionString })
   const db = drizzle(pool) as unknown as Db
   try {
-    console.error(`backfill-image-placeholders${dryRun ? ' (dry run)' : ''}${force ? ' --force' : ''}`)
+    console.error(
+      `backfill-image-placeholders${dryRun ? ' (dry run)' : ''}${force ? ' --force' : ''}`
+    )
     const summary = await backfillImagePlaceholders(db, { force, dryRun })
     console.error(
       `done: ${summary.productsUpdated}/${summary.productsScanned} products updated, ` +

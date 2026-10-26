@@ -60,8 +60,14 @@ export const ComplaintStatusSchema = z.enum(['open', 'in_progress', 'resolved', 
  */
 export const ComplaintCreateSchema = z.strictObject({
   category: ComplaintCategorySchema,
-  subject: z.string().min(1, 'subject is required').max(200, 'subject must be 200 characters or fewer'),
-  message: z.string().min(1, 'message is required').max(2000, 'message must be 2000 characters or fewer'),
+  subject: z
+    .string()
+    .min(1, 'subject is required')
+    .max(200, 'subject must be 200 characters or fewer'),
+  message: z
+    .string()
+    .min(1, 'message is required')
+    .max(2000, 'message must be 2000 characters or fewer'),
   orderId: z.string().min(1).max(100).optional(),
   sku: z.string().min(1).max(100).optional(),
 })

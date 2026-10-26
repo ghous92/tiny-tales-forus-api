@@ -71,7 +71,10 @@ async function seedOrder(): Promise<string> {
 }
 
 async function withAwb(shipmentId: string): Promise<void> {
-  await db.update(shipments).set({ awb: AWB, status: 'manifested' }).where(eq(shipments.id, shipmentId))
+  await db
+    .update(shipments)
+    .set({ awb: AWB, status: 'manifested' })
+    .where(eq(shipments.id, shipmentId))
 }
 
 beforeEach(async () => {
@@ -127,7 +130,9 @@ describe('ingestScan — idempotency (DoD 5)', () => {
     const viaPoll = await ingestScan(db, AWB, s, 'poll', {})
 
     expect(viaPoll.stored).toBe(false)
-    expect(await db.select().from(shipmentEvents).where(eq(shipmentEvents.awb, AWB))).toHaveLength(1)
+    expect(await db.select().from(shipmentEvents).where(eq(shipmentEvents.awb, AWB))).toHaveLength(
+      1
+    )
   })
 
   it('produces the same dedupe hash for the same scan and different for different', () => {
@@ -278,7 +283,11 @@ describe('ingestScan — NDR', () => {
     await ingestScan(
       db,
       AWB,
-      scan({ status: 'Pending', statusCode: 'EOD-74', scannedAt: new Date('2026-08-03T10:00:00Z') }),
+      scan({
+        status: 'Pending',
+        statusCode: 'EOD-74',
+        scannedAt: new Date('2026-08-03T10:00:00Z'),
+      }),
       'webhook',
       {}
     )

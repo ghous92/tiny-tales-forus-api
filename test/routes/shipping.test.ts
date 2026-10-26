@@ -23,8 +23,23 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 
 import type { Cart } from '../../src/contracts/cart.js'
-import { appConfig, catalogItems, couriers, courierRateSlabs, courierServiceAreas, pickupNodes, pincodes } from '../../src/db/schema.js'
-import { auth, createTestApp, USER_A, USER_ADMIN, promoteToAdmin, type TestContext } from '../helpers/app.js'
+import {
+  appConfig,
+  catalogItems,
+  couriers,
+  courierRateSlabs,
+  courierServiceAreas,
+  pickupNodes,
+  pincodes,
+} from '../../src/db/schema.js'
+import {
+  auth,
+  createTestApp,
+  USER_A,
+  USER_ADMIN,
+  promoteToAdmin,
+  type TestContext,
+} from '../helpers/app.js'
 
 /** The real Daniya price points, so the threshold arithmetic is the live one. */
 const SKU_CREAM = 'DAN-CREAM-100'
@@ -88,10 +103,42 @@ async function seedShippingWorld(): Promise<void> {
   ])
 
   await ctx.db.insert(pincodes).values([
-    { pincode: AHMEDABAD, officeName: 'Ahmedabad GPO', taluk: 'Ahmadabad City', district: 'Ahmadabad', state: 'Gujarat', lat: 23.02, lng: 72.57 },
-    { pincode: AHMEDABAD_SATELLITE, officeName: 'Satellite', taluk: 'Ahmadabad City', district: 'Ahmadabad', state: 'Gujarat', lat: 23.01, lng: 72.51 },
-    { pincode: SURAT, officeName: 'Nanpura', taluk: 'Surat City', district: 'Surat', state: 'Gujarat', lat: 21.18, lng: 72.82 },
-    { pincode: DAMAN, officeName: 'Daman', taluk: 'Daman', district: 'Daman', state: 'Daman and Diu', lat: 20.39, lng: 72.83 },
+    {
+      pincode: AHMEDABAD,
+      officeName: 'Ahmedabad GPO',
+      taluk: 'Ahmadabad City',
+      district: 'Ahmadabad',
+      state: 'Gujarat',
+      lat: 23.02,
+      lng: 72.57,
+    },
+    {
+      pincode: AHMEDABAD_SATELLITE,
+      officeName: 'Satellite',
+      taluk: 'Ahmadabad City',
+      district: 'Ahmadabad',
+      state: 'Gujarat',
+      lat: 23.01,
+      lng: 72.51,
+    },
+    {
+      pincode: SURAT,
+      officeName: 'Nanpura',
+      taluk: 'Surat City',
+      district: 'Surat',
+      state: 'Gujarat',
+      lat: 21.18,
+      lng: 72.82,
+    },
+    {
+      pincode: DAMAN,
+      officeName: 'Daman',
+      taluk: 'Daman',
+      district: 'Daman',
+      state: 'Daman and Diu',
+      lat: 20.39,
+      lng: 72.83,
+    },
   ])
 
   await ctx.db.insert(pickupNodes).values({
@@ -116,10 +163,38 @@ async function seedShippingWorld(): Promise<void> {
   })
 
   await ctx.db.insert(courierRateSlabs).values([
-    { courierCode: 'delhivery', zone: 'A', uptoG: 500, rateInr: 30, addlPerG: 1000, addlRateInr: 0 },
-    { courierCode: 'delhivery', zone: 'A', uptoG: 2000, rateInr: 105, addlPerG: 1000, addlRateInr: 45 },
-    { courierCode: 'delhivery', zone: 'B', uptoG: 500, rateInr: 37, addlPerG: 1000, addlRateInr: 0 },
-    { courierCode: 'delhivery', zone: 'B', uptoG: 2000, rateInr: 140, addlPerG: 1000, addlRateInr: 60 },
+    {
+      courierCode: 'delhivery',
+      zone: 'A',
+      uptoG: 500,
+      rateInr: 30,
+      addlPerG: 1000,
+      addlRateInr: 0,
+    },
+    {
+      courierCode: 'delhivery',
+      zone: 'A',
+      uptoG: 2000,
+      rateInr: 105,
+      addlPerG: 1000,
+      addlRateInr: 45,
+    },
+    {
+      courierCode: 'delhivery',
+      zone: 'B',
+      uptoG: 500,
+      rateInr: 37,
+      addlPerG: 1000,
+      addlRateInr: 0,
+    },
+    {
+      courierCode: 'delhivery',
+      zone: 'B',
+      uptoG: 2000,
+      rateInr: 140,
+      addlPerG: 1000,
+      addlRateInr: 60,
+    },
   ])
 
   // The whole Gujarat band, INCLUDING Daman's 396xxx — proving the state fence
@@ -310,11 +385,14 @@ describe('absence is never free', () => {
 
 describe('coupons never raise the amount due', () => {
   beforeEach(async () => {
-    await ctx.db.insert(appConfig).values({
-      key: 'shipping.thresholdBasis',
-      value: 'postCoupon',
-      description: '',
-    }).onConflictDoUpdate({ target: appConfig.key, set: { value: 'postCoupon' } })
+    await ctx.db
+      .insert(appConfig)
+      .values({
+        key: 'shipping.thresholdBasis',
+        value: 'postCoupon',
+        description: '',
+      })
+      .onConflictDoUpdate({ target: appConfig.key, set: { value: 'postCoupon' } })
   })
 
   it('does not re-acquire the fee when a coupon drops the cart below the threshold', async () => {
@@ -416,7 +494,12 @@ describe('GET /v1/shipping/quote', () => {
       url: `/v1/shipping/quote?sku=${SKU_CREAM}&pincode=${SURAT}`,
     })
     expect(res.statusCode).toBe(200)
-    expect(res.json()).toMatchObject({ serviceable: true, feeInr: 59, zone: 'B', chargeableWeightG: 500 })
+    expect(res.json()).toMatchObject({
+      serviceable: true,
+      feeInr: 59,
+      zone: 'B',
+      chargeableWeightG: 500,
+    })
   })
 
   it('rejects an attempt to pass a weight', async () => {
@@ -459,7 +542,14 @@ describe('POST /v1/admin/shipping/simulate', () => {
       method: 'POST',
       url: '/v1/admin/shipping/simulate',
       headers: auth(USER_ADMIN.token),
-      payload: { destPincode: SURAT, weightG: 220, cartValueInr: 119, lengthCm: 1, widthCm: 1, heightCm: 1 },
+      payload: {
+        destPincode: SURAT,
+        weightG: 220,
+        cartValueInr: 119,
+        lengthCm: 1,
+        widthCm: 1,
+        heightCm: 1,
+      },
     })
     expect(res.statusCode).toBe(200)
     const body = res.json()
@@ -479,7 +569,14 @@ describe('POST /v1/admin/shipping/simulate', () => {
       method: 'POST',
       url: '/v1/admin/shipping/simulate',
       headers: auth(USER_ADMIN.token),
-      payload: { destPincode: SURAT, weightG: 1900, cartValueInr: 999, lengthCm: 1, widthCm: 1, heightCm: 1 },
+      payload: {
+        destPincode: SURAT,
+        weightG: 1900,
+        cartValueInr: 999,
+        lengthCm: 1,
+        widthCm: 1,
+        heightCm: 1,
+      },
     })
     const winner = res.json().candidates[0]
     // (140 base × 1.11 fuel + 5 docket) × 1.18 GST = 189.27 → ₹189, +10% margin → ₹208.

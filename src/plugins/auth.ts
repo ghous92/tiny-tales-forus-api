@@ -211,7 +211,12 @@ export const authPlugin = fp<AuthPluginOptions>(
 
           const [byPhone] = await tx
             .update(users)
-            .set({ firebaseUid: uid, role: 'customer', consentAccepted: true, updatedAt: sql`now()` })
+            .set({
+              firebaseUid: uid,
+              role: 'customer',
+              consentAccepted: true,
+              updatedAt: sql`now()`,
+            })
             .where(eq(users.phone, phoneNumber))
             .returning(cols)
           if (byPhone) {

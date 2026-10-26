@@ -240,11 +240,16 @@ export async function listPublicCoupons(
     .from(coupons)
     .where(eq(coupons.active, true))
     .orderBy(asc(coupons.sortOrder), asc(coupons.code))
-  const timeValid = rows.filter((row) => isCouponValidNow(row.active, row.validFrom, row.validTo, now))
+  const timeValid = rows.filter((row) =>
+    isCouponValidNow(row.active, row.validFrom, row.validTo, now)
+  )
   // Only limited coupons need counting; the unlimited ones (today, all of them)
   // cost no query at all.
   const limited = timeValid.filter((row) => row.usageLimit !== null)
-  const redeemed = await countRedemptionsByCode(db, limited.map((row) => row.code))
+  const redeemed = await countRedemptionsByCode(
+    db,
+    limited.map((row) => row.code)
+  )
   const eligible = timeValid.filter(
     (row) => row.usageLimit === null || (redeemed.get(row.code) ?? 0) < row.usageLimit
   )
@@ -304,7 +309,10 @@ export async function getCouponRuleByCode(
 /** Every coupon, admin view (incl. inactive/expired), ordered `sortOrder` then `code`. */
 export async function listAdminCoupons(db: Db): Promise<Coupon[]> {
   const rows = await db.select().from(coupons).orderBy(asc(coupons.sortOrder), asc(coupons.code))
-  const redeemed = await countRedemptionsByCode(db, rows.map((row) => row.code))
+  const redeemed = await countRedemptionsByCode(
+    db,
+    rows.map((row) => row.code)
+  )
   return rows.map((row) => toAdminCoupon(row, redeemed.get(row.code) ?? 0))
 }
 
@@ -383,14 +391,23 @@ export async function updateCoupon(
     // Validate the EFFECTIVE (merged) pricing/window, not just what's in this
     // patch — a lone `discountValue` patch must still be checked against the
     // (unpatched) existing discountType, and vice versa.
-    const effectiveDiscountType = input.discountType ?? (existing.discountType as CouponDiscountType)
+    const effectiveDiscountType =
+      input.discountType ?? (existing.discountType as CouponDiscountType)
     const effectiveDiscountValue = input.discountValue ?? existing.discountValue
     assertPricingValid(effectiveDiscountType, effectiveDiscountValue)
 
     const validFrom =
-      input.validFrom !== undefined ? (input.validFrom ? new Date(input.validFrom) : null) : existing.validFrom
+      input.validFrom !== undefined
+        ? input.validFrom
+          ? new Date(input.validFrom)
+          : null
+        : existing.validFrom
     const validTo =
-      input.validTo !== undefined ? (input.validTo ? new Date(input.validTo) : null) : existing.validTo
+      input.validTo !== undefined
+        ? input.validTo
+          ? new Date(input.validTo)
+          : null
+        : existing.validTo
     assertWindowValid(validFrom, validTo)
 
     const [updated] = await tx

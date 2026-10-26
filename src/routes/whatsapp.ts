@@ -299,7 +299,9 @@ export const whatsappRoutes: FastifyPluginAsyncZod<WhatsAppRoutesOptions> = asyn
    * the shopper hearing nothing at all is the one outcome worth protecting
    * against, so a broken catalog degrades the message rather than the channel.
    */
-  async function autoReplyBody(log: { error: (obj: object, msg: string) => void }): Promise<string> {
+  async function autoReplyBody(log: {
+    error: (obj: object, msg: string) => void
+  }): Promise<string> {
     if (autoReplyText !== undefined) return autoReplyText
     const now = Date.now()
     if (cached && now - cached.builtAtMs < AUTO_REPLY_TTL_MS) return cached.body
@@ -347,10 +349,8 @@ export const whatsappRoutes: FastifyPluginAsyncZod<WhatsAppRoutesOptions> = asyn
   // bytes Meta sent, and any re-serialisation changes key order and whitespace
   // enough to break a digest that was otherwise fine.
   app.register(async (hook) => {
-    hook.addContentTypeParser(
-      'application/json',
-      { parseAs: 'buffer' },
-      (_req, body, done) => done(null, body)
+    hook.addContentTypeParser('application/json', { parseAs: 'buffer' }, (_req, body, done) =>
+      done(null, body)
     )
 
     hook.post('/webhook', async (request, reply) => {
@@ -366,7 +366,13 @@ export const whatsappRoutes: FastifyPluginAsyncZod<WhatsAppRoutesOptions> = asyn
         : Buffer.from((request.body as string | undefined) ?? '')
       const signature = request.headers['x-hub-signature-256']
 
-      if (!verifySignature(rawBody, typeof signature === 'string' ? signature : undefined, config.appSecret)) {
+      if (
+        !verifySignature(
+          rawBody,
+          typeof signature === 'string' ? signature : undefined,
+          config.appSecret
+        )
+      ) {
         // Deliberately terse and unlogged-at-error: a bad signature is an
         // internet fact, not an incident, and logging every probe at error
         // level would bury the ones that matter.
@@ -403,7 +409,13 @@ export const whatsappRoutes: FastifyPluginAsyncZod<WhatsAppRoutesOptions> = asyn
           if (dueNow) {
             const replyText = await autoReplyBody(request.log)
             if (replyText) {
-              await deliverReply(conversation.id, conversation.waPhone, replyText, undefined, request.log)
+              await deliverReply(
+                conversation.id,
+                conversation.waPhone,
+                replyText,
+                undefined,
+                request.log
+              )
             }
           }
 
@@ -416,7 +428,10 @@ export const whatsappRoutes: FastifyPluginAsyncZod<WhatsAppRoutesOptions> = asyn
           // One bad message must not fail the batch — the rest are other
           // people's conversations. Meta would retry the whole envelope, and
           // the messages that DID land would be deduped on the second pass.
-          request.log.error({ err, waMessageId: message.waMessageId }, 'could not record inbound WhatsApp message')
+          request.log.error(
+            { err, waMessageId: message.waMessageId },
+            'could not record inbound WhatsApp message'
+          )
         }
       }
 
@@ -427,7 +442,10 @@ export const whatsappRoutes: FastifyPluginAsyncZod<WhatsAppRoutesOptions> = asyn
         try {
           await applyStatusUpdate(db, update)
         } catch (err) {
-          request.log.error({ err, waMessageId: update.waMessageId }, 'could not apply WhatsApp status receipt')
+          request.log.error(
+            { err, waMessageId: update.waMessageId },
+            'could not apply WhatsApp status receipt'
+          )
         }
       }
 
@@ -436,7 +454,6 @@ export const whatsappRoutes: FastifyPluginAsyncZod<WhatsAppRoutesOptions> = asyn
       return reply.code(200).send({ ok: true })
     })
   })
-
 }
 
 export interface WhatsAppAdminRoutesOptions {
@@ -487,7 +504,11 @@ export const whatsappAdminRoutes: FastifyPluginAsyncZod<WhatsAppAdminRoutesOptio
       // Reinstalling a home-screen web app mints a new token and abandons the
       // old one, which stays valid at FCM for weeks — long enough to double
       // every alert. Same person, same label, older token: it is a ghost.
-      await pruneSupersededDevices(db, { userId: request.user.id, token: request.body.token, label })
+      await pruneSupersededDevices(db, {
+        userId: request.user.id,
+        token: request.body.token,
+        label,
+      })
       return { ok: true, label }
     }
   )
@@ -626,7 +647,9 @@ export const whatsappAdminRoutes: FastifyPluginAsyncZod<WhatsAppAdminRoutesOptio
       // is one WE started, and templating at it is a cold contact rather than a
       // follow-up.
       if (!thread.lastInboundAt) {
-        throw validationFailed('This shopper has never messaged in, so there is nothing to follow up on.')
+        throw validationFailed(
+          'This shopper has never messaged in, so there is nothing to follow up on.'
+        )
       }
 
       // One follow-up per shopper message, enforced on `msgType` rather than on

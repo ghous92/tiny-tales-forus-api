@@ -74,7 +74,10 @@ describe('GET /v1/geocode/reverse', () => {
     stubGoogle(googleOk())
     ;({ app } = await createTestApp({ googleMapsServerKey: 'test-key' }))
 
-    const res = await app.inject({ method: 'GET', url: `/v1/geocode/reverse?lat=${LAT}&lng=${LNG}` })
+    const res = await app.inject({
+      method: 'GET',
+      url: `/v1/geocode/reverse?lat=${LAT}&lng=${LNG}`,
+    })
 
     expect(res.statusCode).toBe(200)
     expect(res.json()).toEqual({
@@ -93,7 +96,10 @@ describe('GET /v1/geocode/reverse', () => {
     stubGoogle(googleOk())
     ;({ app } = await createTestApp({ googleMapsServerKey: 'test-key' }))
 
-    const res = await app.inject({ method: 'GET', url: `/v1/geocode/reverse?lat=${LAT}&lng=${LNG}` })
+    const res = await app.inject({
+      method: 'GET',
+      url: `/v1/geocode/reverse?lat=${LAT}&lng=${LNG}`,
+    })
 
     // The privacy contract in services/geocode.ts depends on this staying true.
     expect(res.body).not.toContain(String(LAT))
@@ -104,7 +110,10 @@ describe('GET /v1/geocode/reverse', () => {
     stubGoogle(googleOk())
     ;({ app } = await createTestApp({ googleMapsServerKey: 'test-key' }))
 
-    const res = await app.inject({ method: 'GET', url: `/v1/geocode/reverse?lat=${LAT}&lng=${LNG}` })
+    const res = await app.inject({
+      method: 'GET',
+      url: `/v1/geocode/reverse?lat=${LAT}&lng=${LNG}`,
+    })
     expect(res.statusCode).toBe(200)
   })
 
@@ -127,7 +136,10 @@ describe('GET /v1/geocode/reverse', () => {
   it('answers 503 geocoding_disabled when no key is configured', async () => {
     ;({ app } = await createTestApp())
 
-    const res = await app.inject({ method: 'GET', url: `/v1/geocode/reverse?lat=${LAT}&lng=${LNG}` })
+    const res = await app.inject({
+      method: 'GET',
+      url: `/v1/geocode/reverse?lat=${LAT}&lng=${LNG}`,
+    })
 
     expect(res.statusCode).toBe(503)
     expect(res.json().error.code).toBe('geocoding_disabled')

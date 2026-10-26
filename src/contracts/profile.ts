@@ -35,7 +35,9 @@ const dob = z.iso.date('Please enter a valid date of birth').refine((value) => {
   const parsed = new Date(`${value}T00:00:00Z`)
   const now = new Date()
   if (parsed.getTime() > now.getTime()) return false
-  const minDate = new Date(Date.UTC(now.getUTCFullYear() - 120, now.getUTCMonth(), now.getUTCDate()))
+  const minDate = new Date(
+    Date.UTC(now.getUTCFullYear() - 120, now.getUTCMonth(), now.getUTCDate())
+  )
   return parsed.getTime() >= minDate.getTime()
 }, 'Please enter a valid date of birth')
 

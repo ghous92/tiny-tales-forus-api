@@ -133,7 +133,11 @@ describe('PATCH /v1/me', () => {
     expect(res.statusCode).toBe(200)
     expect(res.json()).toMatchObject({ gender: 'miss', dob: '1998-05-20' })
 
-    const after = await ctx.app.inject({ method: 'GET', url: '/v1/me', headers: auth(USER_A.token) })
+    const after = await ctx.app.inject({
+      method: 'GET',
+      url: '/v1/me',
+      headers: auth(USER_A.token),
+    })
     expect(after.json()).toMatchObject({ gender: 'miss', dob: '1998-05-20' })
   })
 
@@ -296,7 +300,10 @@ describe('DELETE /v1/me (account deletion)', () => {
 
     await delCtx.app.inject({ method: 'DELETE', url: '/v1/me', headers: auth(USER_A.token) })
 
-    const [row] = await delCtx.db.select().from(payments).where(eq(payments.orderId, 'order_KEEP_ME'))
+    const [row] = await delCtx.db
+      .select()
+      .from(payments)
+      .where(eq(payments.orderId, 'order_KEEP_ME'))
     expect(row).toBeDefined()
     expect(row!.userId).toBe(userId)
   })
@@ -336,7 +343,11 @@ describe('DELETE /v1/me (account deletion)', () => {
     // to a brand-new row rather than 404ing outright — assert the important
     // property instead: it is definitely not the same account (fresh/empty),
     // never a resurrection of the deleted one's data.
-    const res = await delCtx.app.inject({ method: 'GET', url: '/v1/me', headers: auth(USER_A.token) })
+    const res = await delCtx.app.inject({
+      method: 'GET',
+      url: '/v1/me',
+      headers: auth(USER_A.token),
+    })
     expect((res.json() as Profile).name).toBeNull()
   })
 
@@ -351,7 +362,11 @@ describe('DELETE /v1/me (account deletion)', () => {
 
     await delCtx.app.inject({ method: 'DELETE', url: '/v1/me', headers: auth(USER_A.token) })
 
-    const res = await delCtx.app.inject({ method: 'GET', url: '/v1/me', headers: auth(USER_B.token) })
+    const res = await delCtx.app.inject({
+      method: 'GET',
+      url: '/v1/me',
+      headers: auth(USER_B.token),
+    })
     expect(res.statusCode).toBe(200)
     expect((res.json() as Profile).name).toBe('Other User')
   })

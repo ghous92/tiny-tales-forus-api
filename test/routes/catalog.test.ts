@@ -35,8 +35,26 @@ function catalogFile(): CatalogFile {
         highlights: [{ icon: 'leaf-outline', label: 'Key', value: 'Amla' }],
         images: { main: IMG, gallery: [IMG], hero: IMG },
         variants: [
-          { sku: 'A-200', asin: 'x1', size: '200ml', size_ml: 200, price_inr: 249, mrp_inr: 280, in_stock: true, best_before_mode: 'printed_on_pack' },
-          { sku: 'B-500', asin: 'x2', size: '500ml', size_ml: 500, price_inr: 399, mrp_inr: 450, in_stock: false, best_before_mode: 'printed_on_pack' },
+          {
+            sku: 'A-200',
+            asin: 'x1',
+            size: '200ml',
+            size_ml: 200,
+            price_inr: 249,
+            mrp_inr: 280,
+            in_stock: true,
+            best_before_mode: 'printed_on_pack',
+          },
+          {
+            sku: 'B-500',
+            asin: 'x2',
+            size: '500ml',
+            size_ml: 500,
+            price_inr: 399,
+            mrp_inr: 450,
+            in_stock: false,
+            best_before_mode: 'printed_on_pack',
+          },
         ],
         in_stock: true,
         manufacturer_name: 'Saman Products Company',
@@ -87,7 +105,12 @@ describe('GET /v1/catalog (public)', () => {
     expect(p.highlights).toEqual([{ icon: 'leaf-outline', label: 'Key', value: 'Amla' }])
     expect(p.images).toEqual({ main: IMG, gallery: [IMG], hero: IMG })
     expect(p.variants).toHaveLength(2)
-    expect(p.variants[0]).toMatchObject({ sku: 'A-200', size: '200ml', price_inr: 249, stock_qty: null })
+    expect(p.variants[0]).toMatchObject({
+      sku: 'A-200',
+      size: '200ml',
+      price_inr: 249,
+      stock_qty: null,
+    })
     // No seasonal discount → effective price equals the raw price.
     expect(p.variants[0].effective_price_inr).toBe(249)
     expect(p.variants[1].effective_price_inr).toBe(399)

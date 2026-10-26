@@ -262,7 +262,12 @@ export function makeManifestSourceResolver(
     // Only a paid order ships. Anything else is a bug upstream and must
     // not be handed to a carrier on the strength of a stale row.
     if (order === undefined || order.status !== 'paid') return null
-    return manifestSourceFor(order.addressSnapshot, order.cartSnapshot, order.shippingSnapshot, extras)
+    return manifestSourceFor(
+      order.addressSnapshot,
+      order.cartSnapshot,
+      order.shippingSnapshot,
+      extras
+    )
   }
 }
 

@@ -100,7 +100,10 @@ async function seedPendingShipment(ctx: TestContext): Promise<string> {
     userId: user!.id,
     amountPaise: 17_900,
     status: 'paid',
-    cartSnapshot: { items: [{ sku: 'SKU-1', qty: 1, name: 'Hair Oil', priceInr: 179 }], totalInr: 179 },
+    cartSnapshot: {
+      items: [{ sku: 'SKU-1', qty: 1, name: 'Hair Oil', priceInr: 179 }],
+      totalInr: 179,
+    },
     addressSnapshot: {
       fullName: 'Test Buyer',
       phone: '+919876543210',
@@ -203,7 +206,11 @@ describe('skips are 200, not 503', () => {
       headers: oidc(SCHEDULER_SA.token),
     })
     expect(res.statusCode).toBe(200)
-    expect(res.json()).toMatchObject({ sweep: 'manifest', ran: false, reason: 'fulfilment_disabled' })
+    expect(res.json()).toMatchObject({
+      sweep: 'manifest',
+      ran: false,
+      reason: 'fulfilment_disabled',
+    })
   })
 
   it('reports manual_mode separately from fulfilment_disabled', async () => {
@@ -255,7 +262,13 @@ describe('the sweeps actually sweep', () => {
       headers: oidc(SCHEDULER_SA.token),
     })
     expect(res.statusCode).toBe(200)
-    expect(res.json()).toMatchObject({ sweep: 'manifest', ran: true, reason: null, scanned: 1, succeeded: 1 })
+    expect(res.json()).toMatchObject({
+      sweep: 'manifest',
+      ran: true,
+      reason: null,
+      scanned: 1,
+      succeeded: 1,
+    })
     expect(adapter.manifest).toHaveBeenCalledTimes(1)
 
     const [row] = await ctx.db.select().from(shipments).where(eq(shipments.id, id))
@@ -391,7 +404,10 @@ describe('readiness', () => {
  *    which for tracking means a shopper watching a stale page for 24 hours.
  */
 describe('event-driven chaining', () => {
-  function recorder(): { taskEnqueuer: { enqueue: (i: TaskEnqueueInput) => Promise<void> }; calls: TaskEnqueueInput[] } {
+  function recorder(): {
+    taskEnqueuer: { enqueue: (i: TaskEnqueueInput) => Promise<void> }
+    calls: TaskEnqueueInput[]
+  } {
     const calls: TaskEnqueueInput[] = []
     return {
       calls,
@@ -418,7 +434,11 @@ describe('event-driven chaining', () => {
 
   it('does not chain when the manifest sweep drained everything', async () => {
     const { taskEnqueuer, calls } = recorder()
-    const ctx = await createTestApp({ scheduler: SCHEDULER, carrierAdapter: fakeAdapter(), taskEnqueuer })
+    const ctx = await createTestApp({
+      scheduler: SCHEDULER,
+      carrierAdapter: fakeAdapter(),
+      taskEnqueuer,
+    })
     await seedRule(ctx)
     await seedPendingShipment(ctx)
 
@@ -434,7 +454,9 @@ describe('event-driven chaining', () => {
     // cap. It terminates because every outcome burns an attempt — including
     // this one — so the chain is bounded by `manifestMaxAttempts`.
     const { taskEnqueuer, calls } = recorder()
-    const adapter = fakeAdapter({ manifest: vi.fn(async () => ({ ok: false, remark: 'bad pincode', raw: {} })) })
+    const adapter = fakeAdapter({
+      manifest: vi.fn(async () => ({ ok: false, remark: 'bad pincode', raw: {} })),
+    })
     const ctx = await createTestApp({ scheduler: SCHEDULER, carrierAdapter: adapter, taskEnqueuer })
     await seedRule(ctx)
     await seedPendingShipment(ctx)
@@ -451,7 +473,11 @@ describe('event-driven chaining', () => {
     // The parcel is now moving and the tracking webhook may never fire for it.
     // The poll is created HERE, so it exists only once something is in flight.
     const { taskEnqueuer, calls } = recorder()
-    const ctx = await createTestApp({ scheduler: SCHEDULER, carrierAdapter: fakeAdapter(), taskEnqueuer })
+    const ctx = await createTestApp({
+      scheduler: SCHEDULER,
+      carrierAdapter: fakeAdapter(),
+      taskEnqueuer,
+    })
     await seedRule(ctx)
     await seedPendingShipment(ctx)
 
@@ -469,7 +495,11 @@ describe('event-driven chaining', () => {
     // `lastScanAt`, so staleness is zero by definition the moment it finishes.
     // Chaining off that would stop the chain exactly when it worked.
     const { taskEnqueuer, calls } = recorder()
-    const ctx = await createTestApp({ scheduler: SCHEDULER, carrierAdapter: fakeAdapter(), taskEnqueuer })
+    const ctx = await createTestApp({
+      scheduler: SCHEDULER,
+      carrierAdapter: fakeAdapter(),
+      taskEnqueuer,
+    })
     await seedRule(ctx)
     const id = await seedPendingShipment(ctx)
     await ctx.db
@@ -485,7 +515,11 @@ describe('event-driven chaining', () => {
 
   it('ends the reconcile chain when nothing is moving', async () => {
     const { taskEnqueuer, calls } = recorder()
-    const ctx = await createTestApp({ scheduler: SCHEDULER, carrierAdapter: fakeAdapter(), taskEnqueuer })
+    const ctx = await createTestApp({
+      scheduler: SCHEDULER,
+      carrierAdapter: fakeAdapter(),
+      taskEnqueuer,
+    })
     await seedRule(ctx)
 
     await sweep(ctx, 'reconcile')
@@ -498,7 +532,11 @@ describe('event-driven chaining', () => {
     // The reason manifest and reconcile were left on cron until now: every task
     // created here would buy a Neon compute window to be told `ran: false`.
     const { taskEnqueuer, calls } = recorder()
-    const ctx = await createTestApp({ scheduler: SCHEDULER, carrierAdapter: fakeAdapter(), taskEnqueuer })
+    const ctx = await createTestApp({
+      scheduler: SCHEDULER,
+      carrierAdapter: fakeAdapter(),
+      taskEnqueuer,
+    })
     await seedRule(ctx, { 'fulfilment.enabled': false })
     await seedPendingShipment(ctx)
 

@@ -44,7 +44,11 @@ const SIGNATURE_PREFIX = 'sha256='
  * same answer to the only question being asked, and a thrown error here would
  * turn an attacker's probe into a 500 with a stack trace.
  */
-export function verifySignature(rawBody: Buffer, header: string | undefined, appSecret: string): boolean {
+export function verifySignature(
+  rawBody: Buffer,
+  header: string | undefined,
+  appSecret: string
+): boolean {
   if (!header || !header.startsWith(SIGNATURE_PREFIX)) return false
   const provided = header.slice(SIGNATURE_PREFIX.length)
   // A hex digest of SHA-256 is always 64 chars. Checking first keeps
@@ -255,7 +259,10 @@ export function parseStatusUpdates(payload: unknown): StatusUpdate[] {
         // Meta has shipped each of them alone, so join whichever exist.
         const firstError = asRecord(asArray(rec.errors)[0])
         const errorText = firstError
-          ? [asString(firstError.title), asString(firstError.message) ?? asString(asRecord(firstError.error_data)?.details)]
+          ? [
+              asString(firstError.title),
+              asString(firstError.message) ?? asString(asRecord(firstError.error_data)?.details),
+            ]
               .filter(Boolean)
               .join(' — ') || null
           : null

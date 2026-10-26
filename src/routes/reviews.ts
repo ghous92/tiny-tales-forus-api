@@ -37,7 +37,12 @@ import type { Db } from '../db/client.js'
 import { products, users } from '../db/schema.js'
 import { notFound } from '../lib/errors.js'
 import { hasPurchasedProduct } from '../services/payments.js'
-import { getProductReviews, getRatingSummaries, upsertReview, voteReviewHelpful } from '../services/reviews.js'
+import {
+  getProductReviews,
+  getRatingSummaries,
+  upsertReview,
+  voteReviewHelpful,
+} from '../services/reviews.js'
 
 const errorResponses = {
   '4xx': ErrorEnvelopeSchema,
@@ -48,12 +53,20 @@ const errorResponses = {
 const ANONYMOUS_AUTHOR_NAME = 'Tiny Tales customer'
 
 async function assertProductExists(db: Db, productId: string): Promise<void> {
-  const [row] = await db.select({ id: products.id }).from(products).where(eq(products.id, productId)).limit(1)
+  const [row] = await db
+    .select({ id: products.id })
+    .from(products)
+    .where(eq(products.id, productId))
+    .limit(1)
   if (!row) throw notFound(`Product "${productId}" not found`)
 }
 
 async function resolveAuthorName(db: Db, userId: string): Promise<string> {
-  const [row] = await db.select({ name: users.name }).from(users).where(eq(users.id, userId)).limit(1)
+  const [row] = await db
+    .select({ name: users.name })
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1)
   return row?.name?.trim() || ANONYMOUS_AUTHOR_NAME
 }
 
@@ -97,7 +110,10 @@ export const reviewRoutes: FastifyPluginAsyncZod<ReviewRoutesOptions> = async (a
 }
 
 /** Authed: write/edit the caller's own review, vote a review helpful. */
-export const authedReviewRoutes: FastifyPluginAsyncZod<ReviewRoutesOptions> = async (app, { db }) => {
+export const authedReviewRoutes: FastifyPluginAsyncZod<ReviewRoutesOptions> = async (
+  app,
+  { db }
+) => {
   app.addHook('onRequest', app.authenticate)
 
   app.post(

@@ -86,7 +86,10 @@ export const CouponCreateSchema = z
       'discountValue must be 1..90 for a percent coupon, or a positive whole number for a flat coupon',
     path: ['discountValue'],
   })
-  .refine(windowRefinement, { message: 'validFrom must be on or before validTo', path: ['validTo'] })
+  .refine(windowRefinement, {
+    message: 'validFrom must be on or before validTo',
+    path: ['validTo'],
+  })
 
 /** PUT /v1/admin/coupons/:code — partial patch. `code` is immutable (path only). */
 export const CouponUpdateSchema = z
@@ -110,7 +113,10 @@ export const CouponUpdateSchema = z
       'discountValue must be 1..90 for a percent coupon, or a positive whole number for a flat coupon',
     path: ['discountValue'],
   })
-  .refine(windowRefinement, { message: 'validFrom must be on or before validTo', path: ['validTo'] })
+  .refine(windowRefinement, {
+    message: 'validFrom must be on or before validTo',
+    path: ['validTo'],
+  })
 
 /** Path params for the admin single-coupon routes. */
 export const CouponCodeParamsSchema = z.strictObject({ code: codeInput })

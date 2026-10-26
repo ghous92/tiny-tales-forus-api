@@ -10,7 +10,11 @@
  * makes "the credit note reverses exactly the invoice" true by construction.
  */
 
-import type { CreditNoteDocument, CreditNoteLine, CreditNoteRateWise } from '../contracts/creditNotes.js'
+import type {
+  CreditNoteDocument,
+  CreditNoteLine,
+  CreditNoteRateWise,
+} from '../contracts/creditNotes.js'
 import type { InvoiceDocument } from '../contracts/invoices.js'
 import { amountInWords, formatCreditNoteNumber } from './invoiceFormat.js'
 
@@ -60,7 +64,9 @@ function toRateWise(invoice: InvoiceDocument): CreditNoteRateWise[] {
  * shape `resolveGstBreakdown` uses for "no docVersion 2 possible" — a refund
  * must never be blocked by this check either way.
  */
-export function buildCreditNoteDocument(input: BuildCreditNoteDocumentInput): CreditNoteDocument | null {
+export function buildCreditNoteDocument(
+  input: BuildCreditNoteDocumentInput
+): CreditNoteDocument | null {
   const { invoice } = input
   if (invoice.docVersion !== 2 || !invoice.placeOfSupply) return null
 

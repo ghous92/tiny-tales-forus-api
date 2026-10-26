@@ -79,10 +79,7 @@ export interface ShippingRoutesOptions {
 }
 
 /** Mounted at '/v1/shipping' by app.ts. Public, rate-limited. */
-export const shippingRoutes: FastifyPluginAsyncZod<ShippingRoutesOptions> = async (
-  app,
-  { db }
-) => {
+export const shippingRoutes: FastifyPluginAsyncZod<ShippingRoutesOptions> = async (app, { db }) => {
   app.get(
     '/serviceability',
     {

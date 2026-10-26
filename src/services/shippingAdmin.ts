@@ -224,7 +224,11 @@ export async function listCouriers(db: Db): Promise<AdminCourier[]> {
 }
 
 async function requireCourier(db: Db | Tx, code: string): Promise<void> {
-  const [row] = await db.select({ code: couriers.code }).from(couriers).where(eq(couriers.code, code)).limit(1)
+  const [row] = await db
+    .select({ code: couriers.code })
+    .from(couriers)
+    .where(eq(couriers.code, code))
+    .limit(1)
   if (!row) throw notFound(`Courier "${code}" not found`)
 }
 
@@ -314,7 +318,9 @@ export async function replaceSlabs(
     await requireCourier(tx, code)
     await tx.delete(courierRateSlabs).where(eq(courierRateSlabs.courierCode, code))
     if (slabs.length > 0) {
-      await tx.insert(courierRateSlabs).values(slabs.map((slab) => ({ courierCode: code, ...slab })))
+      await tx
+        .insert(courierRateSlabs)
+        .values(slabs.map((slab) => ({ courierCode: code, ...slab })))
     }
   })
 
@@ -451,7 +457,9 @@ export async function importServiceExceptions(
   if (values.size > 0 || replace) {
     await db.transaction(async (tx: Tx) => {
       if (replace) {
-        await tx.delete(courierServiceExceptions).where(eq(courierServiceExceptions.courierCode, code))
+        await tx
+          .delete(courierServiceExceptions)
+          .where(eq(courierServiceExceptions.courierCode, code))
       }
 
       const entries = [...values.entries()]
@@ -483,7 +491,9 @@ export async function importServiceExceptions(
         const chunk = entries.slice(i, i + 5000)
         await tx
           .insert(courierServiceExceptions)
-          .values(chunk.map(([pin, serviceable]) => ({ courierCode: code, pincode: pin, serviceable })))
+          .values(
+            chunk.map(([pin, serviceable]) => ({ courierCode: code, pincode: pin, serviceable }))
+          )
           .onConflictDoUpdate({
             target: [courierServiceExceptions.courierCode, courierServiceExceptions.pincode],
             set: {

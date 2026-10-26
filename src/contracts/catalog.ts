@@ -166,7 +166,13 @@ const discountPct = z.number().int().min(0).max(90)
 const positiveInt = z.number().int().positive()
 const nonNegInt = z.number().int().min(0)
 /** Mirrors the DB check `products_gst_rate_pct_valid` / `catalog_items_gst_rate_pct_valid`. */
-const gstRatePct = z.union([z.literal(0), z.literal(5), z.literal(12), z.literal(18), z.literal(28)])
+const gstRatePct = z.union([
+  z.literal(0),
+  z.literal(5),
+  z.literal(12),
+  z.literal(18),
+  z.literal(28),
+])
 
 /** POST /v1/admin/catalog/categories */
 export const CategoryCreateSchema = z.strictObject({

@@ -51,12 +51,13 @@ interface SentTemplate {
 }
 
 /** A fetch stub plus a reader for the single request body it captured. */
-function stubFetch(
-  response: Response
-): { impl: typeof fetch; sent: () => SentTemplate; init: () => RequestInit } {
+function stubFetch(response: Response): {
+  impl: typeof fetch
+  sent: () => SentTemplate
+  init: () => RequestInit
+} {
   const fn = vi.fn(async () => response.clone())
-  const calls = () =>
-    (fn as unknown as { mock: { calls: [string, RequestInit][] } }).mock.calls[0]!
+  const calls = () => (fn as unknown as { mock: { calls: [string, RequestInit][] } }).mock.calls[0]!
   return {
     impl: fn as unknown as typeof fetch,
     sent: () => JSON.parse(String(calls()[1].body)) as SentTemplate,
@@ -192,9 +193,12 @@ describe('createWhatsAppCloudChannel — failure reporting', () => {
    */
   it('names the template and a body-only shape on a 132000', async () => {
     const f = stubFetch(
-      new Response(JSON.stringify({ error: { code: 132000, message: 'number of parameters does not match' } }), {
-        status: 200,
-      })
+      new Response(
+        JSON.stringify({ error: { code: 132000, message: 'number of parameters does not match' } }),
+        {
+          status: 200,
+        }
+      )
     )
 
     const result = await createWhatsAppCloudChannel(CFG, f.impl).send('919900000001', {
@@ -254,9 +258,12 @@ describe('createWhatsAppCloudChannel — failure reporting', () => {
    */
   it('treats a 200 carrying an error body as a failure', async () => {
     const f = stubFetch(
-      new Response(JSON.stringify({ error: { code: 132001, message: 'template does not exist' } }), {
-        status: 200,
-      })
+      new Response(
+        JSON.stringify({ error: { code: 132001, message: 'template does not exist' } }),
+        {
+          status: 200,
+        }
+      )
     )
 
     const result = await createWhatsAppCloudChannel(CFG, f.impl).send('919900000001', {

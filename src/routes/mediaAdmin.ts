@@ -118,10 +118,16 @@ export const mediaAdminRoutes: FastifyPluginAsyncZod<MediaAdminRoutesOptions> = 
         })
       }
 
-      const data = (await upstream.json().catch(() => null)) as { key?: string; error?: string } | null
+      const data = (await upstream.json().catch(() => null)) as {
+        key?: string
+        error?: string
+      } | null
       if (!upstream.ok || !data?.key) {
         return reply.code(502).send({
-          error: { code: 'media_upload_failed', message: data?.error || `Upload failed (HTTP ${upstream.status})` },
+          error: {
+            code: 'media_upload_failed',
+            message: data?.error || `Upload failed (HTTP ${upstream.status})`,
+          },
         })
       }
 

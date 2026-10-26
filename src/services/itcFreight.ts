@@ -45,7 +45,12 @@ import type { ItcFreightExportQuery, ItcFreightReport } from '../contracts/itcFr
 import type { Db } from '../db/client.js'
 import { payments, shipments } from '../db/schema.js'
 import { csvDocument } from '../lib/csv.js'
-import { formatInvoiceDate, istDayAfter, istDayStart, istMonthBounds } from '../lib/invoiceFormat.js'
+import {
+  formatInvoiceDate,
+  istDayAfter,
+  istDayStart,
+  istMonthBounds,
+} from '../lib/invoiceFormat.js'
 import { freightRateBps, type FreightCost } from '../lib/shipping.js'
 import type { ShippingSnapshot } from './shipping.js'
 

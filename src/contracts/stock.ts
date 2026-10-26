@@ -116,12 +116,7 @@ export const StockChangeReasonSchema = z.enum([
  * manual correction with it would make the audit trail unable to answer "did we
  * actually sell these, or did someone adjust the number?".
  */
-export const AdminStockChangeReasonSchema = z.enum([
-  'manual',
-  'restock',
-  'correction',
-  'import',
-])
+export const AdminStockChangeReasonSchema = z.enum(['manual', 'restock', 'correction', 'import'])
 
 export const StockPolicyModeSchema = z.enum(['auto', 'force_in', 'force_out'])
 

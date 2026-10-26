@@ -196,7 +196,9 @@ export function parseArgs(argv: readonly string[]): BackfillOptions {
     } else if (arg === '--limit') {
       const raw = Number(argv[i + 1])
       if (!Number.isInteger(raw) || raw < 1 || raw > MAX_LIMIT) {
-        throw new Error(`--limit must be an integer between 1 and ${MAX_LIMIT}, got "${argv[i + 1]}"`)
+        throw new Error(
+          `--limit must be an integer between 1 and ${MAX_LIMIT}, got "${argv[i + 1]}"`
+        )
       }
       limit = raw
       i += 1

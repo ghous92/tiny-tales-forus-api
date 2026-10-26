@@ -87,7 +87,12 @@ describe('POST /v1/reviews/products/:productId', () => {
     })
     expect(res.statusCode).toBe(200)
     const body = res.json()
-    expect(body).toMatchObject({ rating: 4, title: 'Good stuff', verifiedPurchase: false, source: 'user' })
+    expect(body).toMatchObject({
+      rating: 4,
+      title: 'Good stuff',
+      verifiedPurchase: false,
+      source: 'user',
+    })
   })
 
   it('verifiedPurchase is true when the caller has a PAID order containing this product — computed server-side, never client-supplied', async () => {
@@ -127,7 +132,7 @@ describe('POST /v1/reviews/products/:productId', () => {
     expect(other.json().verifiedPurchase).toBe(false)
   })
 
-  it('a resubmission edits the caller\'s own review rather than creating a second one', async () => {
+  it("a resubmission edits the caller's own review rather than creating a second one", async () => {
     await ctx.app.inject({
       method: 'POST',
       url: `/v1/reviews/products/${PRODUCT_ID}`,

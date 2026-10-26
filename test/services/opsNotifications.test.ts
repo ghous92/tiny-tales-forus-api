@@ -68,12 +68,23 @@ describe('enqueueOpsNotification', () => {
       orderId: ORDER_ID,
       channel: 'whatsapp_cloud',
       target: '919900000001',
-      message: { params: [ORDER_ID, 'Asha', 'Surat', '2 items', '179', 'https://tinytalesforus.com/admin/orders/x'] },
+      message: {
+        params: [
+          ORDER_ID,
+          'Asha',
+          'Surat',
+          '2 items',
+          '179',
+          'https://tinytalesforus.com/admin/orders/x',
+        ],
+      },
     })
     expect(row).not.toBeNull()
     expect(row?.status).toBe('pending')
     expect(row?.attempts).toBe(0)
-    expect(row?.dedupeKey).toBe(opsNotificationDedupeKey('order_paid', ORDER_ID, 'whatsapp_cloud', '919900000001'))
+    expect(row?.dedupeKey).toBe(
+      opsNotificationDedupeKey('order_paid', ORDER_ID, 'whatsapp_cloud', '919900000001')
+    )
     expect((row?.payload as { params: string[] }).params[0]).toBe(ORDER_ID)
   })
 
@@ -91,7 +102,10 @@ describe('enqueueOpsNotification', () => {
     expect(first).not.toBeNull()
     expect(second).toBeNull()
 
-    const rows = await db.select().from(opsNotifications).where(eq(opsNotifications.orderId, ORDER_ID))
+    const rows = await db
+      .select()
+      .from(opsNotifications)
+      .where(eq(opsNotifications.orderId, ORDER_ID))
     expect(rows).toHaveLength(1)
   })
 
@@ -111,7 +125,10 @@ describe('enqueueOpsNotification', () => {
       target: '919900000002',
       message: { params: ['a'] },
     })
-    const rows = await db.select().from(opsNotifications).where(eq(opsNotifications.orderId, ORDER_ID))
+    const rows = await db
+      .select()
+      .from(opsNotifications)
+      .where(eq(opsNotifications.orderId, ORDER_ID))
     expect(rows).toHaveLength(2)
   })
 })
@@ -337,7 +354,6 @@ describe('listOpsNotificationsNeedingSend', () => {
     const owed = await listOpsNotificationsNeedingSend(db)
     expect(owed.map((r) => r.id)).not.toContain(row!.id)
   })
-
 })
 
 describe('listPendingOpsNotificationsForOrder', () => {
@@ -365,7 +381,10 @@ describe('listPendingOpsNotificationsForOrder', () => {
       target: '919900000002',
       message: { params: ['a'] },
     })
-    await recordOpsNotificationAttempt(db, alreadySent!.id, { status: 'sent', providerMessageId: null })
+    await recordOpsNotificationAttempt(db, alreadySent!.id, {
+      status: 'sent',
+      providerMessageId: null,
+    })
 
     const rows = await listPendingOpsNotificationsForOrder(db, ORDER_ID)
     const ids = rows.map((r) => r.id)

@@ -55,7 +55,11 @@ function createFetchMock() {
   const state = {
     brevo: { ok: true, status: 200, text: '' },
     githubSearch: { ok: true, status: 200, body: { items: [] as Array<{ html_url: string }> } },
-    githubCreate: { ok: true, status: 201, body: { html_url: 'https://github.com/acme/tinytales-api/issues/1' } },
+    githubCreate: {
+      ok: true,
+      status: 201,
+      body: { html_url: 'https://github.com/acme/tinytales-api/issues/1' },
+    },
   }
 
   const impl = vi.fn(async (url: string | URL | Request, init?: RequestInit) => {
@@ -64,7 +68,12 @@ function createFetchMock() {
 
     if (urlStr.startsWith('https://api.brevo.com')) {
       const r = state.brevo
-      return { ok: r.ok, status: r.status, text: async () => r.text, json: async () => ({}) } as Response
+      return {
+        ok: r.ok,
+        status: r.status,
+        text: async () => r.text,
+        json: async () => ({}),
+      } as Response
     }
     if (urlStr.includes('/search/issues')) {
       const r = state.githubSearch
@@ -95,7 +104,11 @@ async function flush(): Promise<void> {
   await new Promise((resolve) => setTimeout(resolve, 0))
 }
 
-const BREVO = { apiKey: 'brevo-test-key', emailFrom: 'alerts@tinytalesforus.com', emailTo: 'oncall@tinytalesforus.com' }
+const BREVO = {
+  apiKey: 'brevo-test-key',
+  emailFrom: 'alerts@tinytalesforus.com',
+  emailTo: 'oncall@tinytalesforus.com',
+}
 const GITHUB = { token: 'gh-test-token', repo: 'acme/tinytales-api' }
 
 // --- fingerprintError ---------------------------------------------------------
@@ -142,22 +155,54 @@ describe('fingerprintError', () => {
   })
 
   it('does NOT collide different routes for the same message', () => {
-    const fp1 = fingerprintError({ kind: 'server', name: 'Error', message: 'boom', route: 'GET /v1/x' })
-    const fp2 = fingerprintError({ kind: 'server', name: 'Error', message: 'boom', route: 'POST /v1/y' })
+    const fp1 = fingerprintError({
+      kind: 'server',
+      name: 'Error',
+      message: 'boom',
+      route: 'GET /v1/x',
+    })
+    const fp2 = fingerprintError({
+      kind: 'server',
+      name: 'Error',
+      message: 'boom',
+      route: 'POST /v1/y',
+    })
     expect(fp1).not.toBe(fp2)
   })
 
   it('does NOT collide different error names for the same message/route', () => {
-    const fp1 = fingerprintError({ kind: 'server', name: 'TypeError', message: 'boom', route: 'GET /v1/x' })
-    const fp2 = fingerprintError({ kind: 'server', name: 'RangeError', message: 'boom', route: 'GET /v1/x' })
+    const fp1 = fingerprintError({
+      kind: 'server',
+      name: 'TypeError',
+      message: 'boom',
+      route: 'GET /v1/x',
+    })
+    const fp2 = fingerprintError({
+      kind: 'server',
+      name: 'RangeError',
+      message: 'boom',
+      route: 'GET /v1/x',
+    })
     expect(fp1).not.toBe(fp2)
   })
 
   it('ignores line:col churn in stack frames (paths only)', () => {
     const stackA = 'Error: boom\n    at handler (/app/src/routes/foo.js:10:5)'
     const stackB = 'Error: boom\n    at handler (/app/src/routes/foo.js:99:1)'
-    const fp1 = fingerprintError({ kind: 'server', name: 'Error', message: 'boom', route: 'GET /v1/x', stack: stackA })
-    const fp2 = fingerprintError({ kind: 'server', name: 'Error', message: 'boom', route: 'GET /v1/x', stack: stackB })
+    const fp1 = fingerprintError({
+      kind: 'server',
+      name: 'Error',
+      message: 'boom',
+      route: 'GET /v1/x',
+      stack: stackA,
+    })
+    const fp2 = fingerprintError({
+      kind: 'server',
+      name: 'Error',
+      message: 'boom',
+      route: 'GET /v1/x',
+      stack: stackB,
+    })
     expect(fp1).toBe(fp2)
   })
 
@@ -173,7 +218,9 @@ describe('fingerprintError', () => {
       `Error: boom\n${appFrame}\n    at run (/app/node_modules/@vitest/runner/dist/x.js:752:20)\n` +
       '    at processTicksAndRejections (node:internal/process/task_queues:103:5)'
     const base = { kind: 'server', name: 'Error', message: 'boom', route: 'GET /v1/x' } as const
-    expect(fingerprintError({ ...base, stack: stackShallow })).toBe(fingerprintError({ ...base, stack: stackDeep }))
+    expect(fingerprintError({ ...base, stack: stackShallow })).toBe(
+      fingerprintError({ ...base, stack: stackDeep })
+    )
   })
 
   it('client fingerprint: type + normalized message + url pathname (ids still collapse)', () => {
@@ -193,8 +240,18 @@ describe('fingerprintError', () => {
   })
 
   it('client fingerprint differs across event types for the same message/url', () => {
-    const fp1 = fingerprintError({ kind: 'client', type: 'error', message: 'boom', urlPathname: '/x' })
-    const fp2 = fingerprintError({ kind: 'client', type: 'console.error', message: 'boom', urlPathname: '/x' })
+    const fp1 = fingerprintError({
+      kind: 'client',
+      type: 'error',
+      message: 'boom',
+      urlPathname: '/x',
+    })
+    const fp2 = fingerprintError({
+      kind: 'client',
+      type: 'console.error',
+      message: 'boom',
+      urlPathname: '/x',
+    })
     expect(fp1).not.toBe(fp2)
   })
 })
@@ -222,13 +279,20 @@ describe('suppressed sends', () => {
     await flush()
 
     expect(calls).toHaveLength(0)
-    expect(logCalls.some((c) => c.level === 'debug' && String(c.msg).includes('alert suppressed'))).toBe(true)
+    expect(
+      logCalls.some((c) => c.level === 'debug' && String(c.msg).includes('alert suppressed'))
+    ).toBe(true)
   })
 
   it('suppresses in staging/production when Brevo is not configured', async () => {
     const { impl, calls } = createFetchMock()
     const { logger } = createFakeLogger()
-    const alerter = new ErrorAlerter({ appEnv: 'production', log: logger, fetchImpl: impl, now: () => 1_000 })
+    const alerter = new ErrorAlerter({
+      appEnv: 'production',
+      log: logger,
+      fetchImpl: impl,
+      now: () => 1_000,
+    })
 
     alerter.notifyServerError(new Error('boom'), {
       method: 'GET',
@@ -302,9 +366,9 @@ describe('storm brake', () => {
     }
 
     expect(calls.filter((c) => c.url.startsWith('https://api.brevo.com'))).toHaveLength(20)
-    expect(
-      logCalls.some((c) => c.level === 'warn' && String(c.msg).includes('storm brake'))
-    ).toBe(true)
+    expect(logCalls.some((c) => c.level === 'warn' && String(c.msg).includes('storm brake'))).toBe(
+      true
+    )
   })
 })
 
@@ -403,7 +467,9 @@ describe('Brevo email payload', () => {
     })
     await flush()
 
-    const errorLog = logCalls.find((c) => c.level === 'error' && String(c.msg).includes('Brevo email send failed'))
+    const errorLog = logCalls.find(
+      (c) => c.level === 'error' && String(c.msg).includes('Brevo email send failed')
+    )
     expect(errorLog).toBeDefined()
     expect(errorLog?.fields).toMatchObject({ status: 500, body: 'internal server error' })
   })
@@ -430,7 +496,9 @@ describe('GitHub issue integration', () => {
     await flush()
 
     const createCalls = calls.filter(
-      (c) => c.url === 'https://api.github.com/repos/acme/tinytales-api/issues' && c.init?.method === 'POST'
+      (c) =>
+        c.url === 'https://api.github.com/repos/acme/tinytales-api/issues' &&
+        c.init?.method === 'POST'
     )
     expect(createCalls).toHaveLength(1)
     const createBody = JSON.parse(createCalls[0]!.init!.body as string) as {
@@ -447,14 +515,20 @@ describe('GitHub issue integration', () => {
     expect(firstEmailBody.htmlContent).toContain('https://github.com/acme/tinytales-api/issues/1')
 
     // Search now reports the issue just created as open, for the same fingerprint.
-    state.githubSearch = { ok: true, status: 200, body: { items: [{ html_url: state.githubCreate.body.html_url }] } }
+    state.githubSearch = {
+      ok: true,
+      status: 200,
+      body: { items: [{ html_url: state.githubCreate.body.html_url }] },
+    }
 
     now += 31 * 60 * 1000 // past the 30-minute server cooldown — a second alert fires
     alerter.notifyServerError(new Error('boom'), { ...ctx, requestId: 'req-2' })
     await flush()
 
     const createCallsAfter = calls.filter(
-      (c) => c.url === 'https://api.github.com/repos/acme/tinytales-api/issues' && c.init?.method === 'POST'
+      (c) =>
+        c.url === 'https://api.github.com/repos/acme/tinytales-api/issues' &&
+        c.init?.method === 'POST'
     )
     // Still just the one creation — the second alert found and reused the existing issue.
     expect(createCallsAfter).toHaveLength(1)
@@ -474,7 +548,13 @@ describe('GitHub issue integration', () => {
   it('omitting github config skips issue creation entirely (email still sends)', async () => {
     const { impl, calls } = createFetchMock()
     const { logger } = createFakeLogger()
-    const alerter = new ErrorAlerter({ appEnv: 'production', log: logger, brevo: BREVO, fetchImpl: impl, now: () => 1_000 })
+    const alerter = new ErrorAlerter({
+      appEnv: 'production',
+      log: logger,
+      brevo: BREVO,
+      fetchImpl: impl,
+      now: () => 1_000,
+    })
 
     alerter.notifyServerError(new Error('boom'), {
       method: 'GET',
@@ -496,9 +576,19 @@ describe('notifyClientEvents', () => {
     let now = 1_000_000
     const { impl, calls } = createFetchMock()
     const { logger } = createFakeLogger()
-    const alerter = new ErrorAlerter({ appEnv: 'production', log: logger, brevo: BREVO, fetchImpl: impl, now: () => now })
+    const alerter = new ErrorAlerter({
+      appEnv: 'production',
+      log: logger,
+      brevo: BREVO,
+      fetchImpl: impl,
+      now: () => now,
+    })
 
-    const noisyEvent: ClientErrorEvent = { type: 'console.error', message: 'noisy warning', url: '/home' }
+    const noisyEvent: ClientErrorEvent = {
+      type: 'console.error',
+      message: 'noisy warning',
+      url: '/home',
+    }
 
     alerter.notifyClientEvents([noisyEvent], { ip: '1.2.3.4', source: 'mobile' })
     await flush()
@@ -518,7 +608,13 @@ describe('notifyClientEvents', () => {
   it('dedupes two events on the same pathname whose urls differ only by query string', async () => {
     const { impl, calls } = createFetchMock()
     const { logger } = createFakeLogger()
-    const alerter = new ErrorAlerter({ appEnv: 'production', log: logger, brevo: BREVO, fetchImpl: impl, now: () => 1_000 })
+    const alerter = new ErrorAlerter({
+      appEnv: 'production',
+      log: logger,
+      brevo: BREVO,
+      fetchImpl: impl,
+      now: () => 1_000,
+    })
 
     alerter.notifyClientEvents(
       [{ type: 'error', message: 'crash', url: 'https://tinytalesforus.com/checkout?ref=a' }],
@@ -539,12 +635,18 @@ describe('notifyClientEvents', () => {
   it('uses a warning glyph for noisy classes and a siren for error/unhandledrejection', async () => {
     const { impl, calls } = createFetchMock()
     const { logger } = createFakeLogger()
-    const alerter = new ErrorAlerter({ appEnv: 'production', log: logger, brevo: BREVO, fetchImpl: impl, now: () => 1_000 })
+    const alerter = new ErrorAlerter({
+      appEnv: 'production',
+      log: logger,
+      brevo: BREVO,
+      fetchImpl: impl,
+      now: () => 1_000,
+    })
 
-    alerter.notifyClientEvents(
-      [{ type: 'memory', message: 'high memory usage', url: '/home' }],
-      { ip: '1.2.3.4', source: 'mobile' }
-    )
+    alerter.notifyClientEvents([{ type: 'memory', message: 'high memory usage', url: '/home' }], {
+      ip: '1.2.3.4',
+      source: 'mobile',
+    })
     await flush()
     const noisyBody = JSON.parse(calls[0]!.init!.body as string) as { subject: string }
     expect(noisyBody.subject).toContain('⚠️')
@@ -581,6 +683,8 @@ describe('notifyClientEvents', () => {
     ).not.toThrow()
     await flush()
 
-    expect(logCalls.some((c) => c.level === 'error' && String(c.msg).includes('Brevo email send threw'))).toBe(true)
+    expect(
+      logCalls.some((c) => c.level === 'error' && String(c.msg).includes('Brevo email send threw'))
+    ).toBe(true)
   })
 })

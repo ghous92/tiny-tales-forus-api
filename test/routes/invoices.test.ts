@@ -839,7 +839,9 @@ describe('/v1/admin/invoices', () => {
     })
     expect(res.statusCode).toBe(200)
     expect(res.headers['content-type']).toContain('text/csv')
-    expect(res.headers['content-disposition']).toContain('tinytales-itc-freight-summary-2026-08.csv')
+    expect(res.headers['content-disposition']).toContain(
+      'tinytales-itc-freight-summary-2026-08.csv'
+    )
     expect(res.body).toContain('Freight GST (modelled ITC)')
     // The banner rides in the data so it cannot be lost between here and the CA.
     expect(res.body).toContain('Not a GSTR-3B figure')

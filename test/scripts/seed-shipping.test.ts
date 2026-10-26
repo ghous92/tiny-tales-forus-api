@@ -17,7 +17,12 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 
 import type { Db } from '../../src/db/client.js'
-import { COURIER_SEEDS, PINCODE_SEEDS, SLAB_SEEDS, seedShipping } from '../../scripts/seed-shipping.js'
+import {
+  COURIER_SEEDS,
+  PINCODE_SEEDS,
+  SLAB_SEEDS,
+  seedShipping,
+} from '../../scripts/seed-shipping.js'
 import { baseFreightInr, trueCostInr, type RateSlab, type Zone } from '../../src/lib/shipping.js'
 import { createTestDb } from '../helpers/app.js'
 

@@ -266,9 +266,7 @@ async function loadCatalogFile(pathOrUrl: string): Promise<CatalogFile> {
 
   const parsed = CatalogFileSchema.safeParse(json)
   if (!parsed.success) {
-    const issues = parsed.error.issues
-      .map((i) => `  ${i.path.join('.')}: ${i.message}`)
-      .join('\n')
+    const issues = parsed.error.issues.map((i) => `  ${i.path.join('.')}: ${i.message}`).join('\n')
     throw new Error(`catalog:seed: input failed validation:\n${issues}`)
   }
   return parsed.data

@@ -98,7 +98,10 @@ describe('customer delivery milestones', () => {
     await react('out_for_delivery')
     expect(await ctx.db.select().from(opsNotifications)).toHaveLength(0)
     await ctx.db.insert(appConfig).values([
-      { key: 'notify.orderOutForDeliveryCustomerTemplate', value: 'tinytales_order_out_for_delivery' },
+      {
+        key: 'notify.orderOutForDeliveryCustomerTemplate',
+        value: 'tinytales_order_out_for_delivery',
+      },
       { key: 'notify.orderOutForDeliveryCustomerLocale', value: 'en' },
     ])
     await react('out_for_delivery')
@@ -126,7 +129,10 @@ describe('customer delivery milestones', () => {
       })
       .where(eq(payments.orderId, ORDER_ID))
     await ctx.db.insert(appConfig).values([
-      { key: 'notify.orderOutForDeliveryCustomerTemplate', value: 'tinytales_order_out_for_delivery' },
+      {
+        key: 'notify.orderOutForDeliveryCustomerTemplate',
+        value: 'tinytales_order_out_for_delivery',
+      },
       { key: 'notify.orderOutForDeliveryCustomerLocale', value: 'en' },
     ])
     const send = vi.fn(async () => ({ ok: true, providerMessageId: 'wamid.1' }))
@@ -497,7 +503,6 @@ describe('manifestSourceFor — package count vs unit count', () => {
     expect(source?.codAmountInr).toBe(0)
     expect(source?.declaredValueInr).toBe(144)
   })
-
 
   it('rejects an order with no units', () => {
     expect(

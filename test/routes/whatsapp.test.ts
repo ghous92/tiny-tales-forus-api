@@ -13,10 +13,23 @@ import { createHmac } from 'node:crypto'
 import { eq } from 'drizzle-orm'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
-import { adminPushDevices, appConfig, users, waConversations, waMessages } from '../../src/db/schema.js'
+import {
+  adminPushDevices,
+  appConfig,
+  users,
+  waConversations,
+  waMessages,
+} from '../../src/db/schema.js'
 import type { AdminPushMessage, AdminPushSender } from '../../src/lib/notify/adminPush.js'
 import { FOLLOW_UP_BODY } from '../../src/lib/whatsapp/followUp.js'
-import { auth, createTestApp, promoteToAdmin, USER_A, USER_ADMIN, type TestContext } from '../helpers/app.js'
+import {
+  auth,
+  createTestApp,
+  promoteToAdmin,
+  USER_A,
+  USER_ADMIN,
+  type TestContext,
+} from '../helpers/app.js'
 
 const APP_SECRET = 'test-app-secret'
 const VERIFY_TOKEN = 'test-verify-token'
@@ -58,7 +71,9 @@ async function makeApp(
   sends = []
   graphFailure = undefined
   ctx = await createTestApp({
-    ...(configured ? { whatsappInbound: { appSecret: APP_SECRET, verifyToken: VERIFY_TOKEN } } : {}),
+    ...(configured
+      ? { whatsappInbound: { appSecret: APP_SECRET, verifyToken: VERIFY_TOKEN } }
+      : {}),
     ...(canSend ? { whatsapp: { phoneNumberId: 'pnid', accessToken: 'token' } } : {}),
     whatsappFetch: graphFetch(),
     ...(options.pushSender ? { adminPushSender: options.pushSender } : {}),
@@ -527,7 +542,9 @@ describe('/v1/admin/whatsapp', () => {
     expect(res.statusCode).toBe(200)
     expect(res.json().ok).toBe(true)
     expect(sends).toHaveLength(2)
-    expect(sends[1]).toMatchObject({ text: { body: 'Yes, we deliver to 380015 in 2 days.', preview_url: false } })
+    expect(sends[1]).toMatchObject({
+      text: { body: 'Yes, we deliver to 380015 in 2 days.', preview_url: false },
+    })
 
     const outbound = await ctx.db
       .select()
@@ -561,7 +578,8 @@ describe('/v1/admin/whatsapp', () => {
     const url = `/v1/admin/whatsapp/conversations/${conversation.id}/reply`
     // 422, not 400 — this app maps schema violations to validation_failed.
     expect(
-      (await ctx.app.inject({ method: 'POST', url, headers: A(), payload: { body: '' } })).statusCode
+      (await ctx.app.inject({ method: 'POST', url, headers: A(), payload: { body: '' } }))
+        .statusCode
     ).toBe(422)
     expect(
       (

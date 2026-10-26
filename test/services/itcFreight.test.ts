@@ -258,7 +258,7 @@ describe('ITC-on-freight export', () => {
   })
 
   describe('resolvePeriod', () => {
-    it('matches the GSTR-1 feed\'s IST conventions', () => {
+    it("matches the GSTR-1 feed's IST conventions", () => {
       const { start, end } = resolvePeriod({ month: '2026-08' })
       expect(start?.toISOString()).toBe('2026-07-31T18:30:00.000Z')
       expect(end?.toISOString()).toBe('2026-08-31T18:30:00.000Z')

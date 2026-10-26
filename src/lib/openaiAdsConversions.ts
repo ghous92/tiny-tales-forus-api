@@ -88,8 +88,7 @@ export interface OpenAiAdsConversions {
 
 const DISABLED: OpenAiAdsConversions = { enabled: false, orderCreated: () => {} }
 
-const sha256 = (value: string): string =>
-  createHash('sha256').update(value, 'utf8').digest('hex')
+const sha256 = (value: string): string => createHash('sha256').update(value, 'utf8').digest('hex')
 
 /** Trim, lowercase. The exact normalisation OpenAI specifies for emails. */
 export function normalizeEmail(email: string): string {
@@ -102,7 +101,10 @@ export function normalizeEmail(email: string): string {
  * Returns null when the result is not the 8–15 digits the API accepts.
  */
 export function normalizePhone(phone: string): string | null {
-  const digits = phone.replace(/[\s().-]/g, '').replace(/^\+/, '').replace(/^0+/, '')
+  const digits = phone
+    .replace(/[\s().-]/g, '')
+    .replace(/^\+/, '')
+    .replace(/^0+/, '')
   return /^\d{8,15}$/.test(digits) ? digits : null
 }
 
@@ -111,9 +113,7 @@ export function inrToMinorUnit(valueInr: number): number {
   return Math.round(valueInr * 100)
 }
 
-export function createOpenAiAdsConversions(
-  config: OpenAiAdsConfig
-): OpenAiAdsConversions {
+export function createOpenAiAdsConversions(config: OpenAiAdsConfig): OpenAiAdsConversions {
   const { pixelId, apiKey, appEnv, log } = config
   if (!pixelId || !apiKey) return DISABLED
 

@@ -154,10 +154,7 @@ export function clearGeocodeCache(): void {
 
 // --- Parsing -----------------------------------------------------------------
 
-function componentValue(
-  components: GoogleAddressComponent[],
-  ...types: string[]
-): string {
+function componentValue(components: GoogleAddressComponent[], ...types: string[]): string {
   for (const type of types) {
     const match = components.find((c) => Array.isArray(c.types) && c.types.includes(type))
     const name = match?.long_name

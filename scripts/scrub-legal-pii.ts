@@ -31,7 +31,9 @@ import { CONFIG_DEFAULTS, type ConfigDefault } from './seed-config.js'
 const CLEAN_LEGAL_COMPANY: ConfigDefault = (() => {
   const entry = CONFIG_DEFAULTS.find((e) => e.key === 'legal.company')
   if (!entry) {
-    throw new Error('scrub-legal-pii: legal.company missing from CONFIG_DEFAULTS — seed-config.ts changed shape')
+    throw new Error(
+      'scrub-legal-pii: legal.company missing from CONFIG_DEFAULTS — seed-config.ts changed shape'
+    )
   }
   return entry
 })()
@@ -55,7 +57,11 @@ async function main(): Promise<void> {
   const pool = new pg.Pool({ connectionString, max: 1 })
   try {
     const db = drizzle(pool) as unknown as Db
-    const [before] = await db.select().from(appConfig).where(eq(appConfig.key, 'legal.company')).limit(1)
+    const [before] = await db
+      .select()
+      .from(appConfig)
+      .where(eq(appConfig.key, 'legal.company'))
+      .limit(1)
     const beforeValue = (before?.value ?? {}) as Record<string, unknown>
     const hadPii = PII_FIELDS.filter((f) => f in beforeValue)
 
@@ -68,7 +74,9 @@ async function main(): Promise<void> {
 
     if (hadPii.length === 0) {
       // eslint-disable-next-line no-console
-      console.log('db:scrub-legal-pii: legal.company already clean, nothing to remove (row rewritten anyway)')
+      console.log(
+        'db:scrub-legal-pii: legal.company already clean, nothing to remove (row rewritten anyway)'
+      )
     } else {
       // eslint-disable-next-line no-console
       console.log(`db:scrub-legal-pii: removed PII field(s): ${hadPii.join(', ')}`)

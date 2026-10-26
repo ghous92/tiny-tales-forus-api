@@ -177,9 +177,7 @@ describe('parseInboundMessages', () => {
     const parsed = parseInboundMessages({
       entry: [
         {
-          changes: [
-            { value: { statuses: [{ id: 'wamid.OUT', status: 'delivered' }] } },
-          ],
+          changes: [{ value: { statuses: [{ id: 'wamid.OUT', status: 'delivered' }] } }],
         },
       ],
     })
@@ -265,7 +263,11 @@ describe('parseStatusUpdates', () => {
       entry: [
         {
           changes: [
-            { value: { messages: [{ id: 'wamid.IN', from: '919876543210', type: 'text', timestamp: '1' }] } },
+            {
+              value: {
+                messages: [{ id: 'wamid.IN', from: '919876543210', type: 'text', timestamp: '1' }],
+              },
+            },
           ],
         },
       ],

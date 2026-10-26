@@ -206,7 +206,9 @@ async function main(): Promise<void> {
       process.exitCode = 1
       return
     }
-    console.error(`catalog-doctor: re-projected ${report.affectedProductIds.length} product(s) — clean`)
+    console.error(
+      `catalog-doctor: re-projected ${report.affectedProductIds.length} product(s) — clean`
+    )
   } finally {
     await pool.end()
   }

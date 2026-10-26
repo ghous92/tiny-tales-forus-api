@@ -169,10 +169,8 @@ export const stockAdminRoutes: FastifyPluginAsyncZod<StockAdminRoutesOptions> = 
     async (request) => setNodeStockEnabled(db, request.params.nodeId, request.body.enabled)
   )
 
-  app.get(
-    '/skus',
-    { schema: { response: { 200: SkuListSchema, ...errorResponses } } },
-    async () => listStockedSkus(db)
+  app.get('/skus', { schema: { response: { 200: SkuListSchema, ...errorResponses } } }, async () =>
+    listStockedSkus(db)
   )
 
   // --- Policy ----------------------------------------------------------------

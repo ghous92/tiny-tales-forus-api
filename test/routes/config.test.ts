@@ -94,10 +94,7 @@ describe('GET /v1/config (public)', () => {
     }
 
     const res = await ctx.app.inject({ method: 'GET', url: '/v1/config' })
-    expect(Object.keys(res.json().values).sort()).toEqual([
-      'legal.company',
-      'orders.cancelReasons',
-    ])
+    expect(Object.keys(res.json().values).sort()).toEqual(['legal.company', 'orders.cancelReasons'])
 
     // The admin view is the unfiltered one — the rows do exist.
     const admin = await ctx.app.inject({

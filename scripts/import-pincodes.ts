@@ -130,15 +130,13 @@ export function dedupeByPincode(rows: DirectoryRow[]): NewPincodeRow[] {
       talukCounts.set(row.taluk, (talukCounts.get(row.taluk) ?? 0) + 1)
     }
 
-    const best = group
-      .slice()
-      .sort((a, b) => {
-        const byMode = (talukCounts.get(b.taluk) ?? 0) - (talukCounts.get(a.taluk) ?? 0)
-        if (byMode !== 0) return byMode
-        const byRank = officeRank(b.officeType) - officeRank(a.officeType)
-        if (byRank !== 0) return byRank
-        return a.officeName.localeCompare(b.officeName)
-      })[0]!
+    const best = group.slice().sort((a, b) => {
+      const byMode = (talukCounts.get(b.taluk) ?? 0) - (talukCounts.get(a.taluk) ?? 0)
+      if (byMode !== 0) return byMode
+      const byRank = officeRank(b.officeType) - officeRank(a.officeType)
+      if (byRank !== 0) return byRank
+      return a.officeName.localeCompare(b.officeName)
+    })[0]!
 
     result.push({
       pincode,
@@ -239,9 +237,7 @@ async function main(): Promise<void> {
   const stateFilter = stateIndex !== -1 ? (args[stateIndex + 1] ?? null) : null
 
   if (!filePath) {
-    console.error(
-      'usage: npm run db:import-pincodes -- <all-india-pincode.csv> [--state Gujarat]'
-    )
+    console.error('usage: npm run db:import-pincodes -- <all-india-pincode.csv> [--state Gujarat]')
     process.exit(1)
   }
 

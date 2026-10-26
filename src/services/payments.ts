@@ -1036,7 +1036,12 @@ async function markPaid(
         // "organic" and "campaign with every field blank" must not look alike
         // downstream.
         attribution:
-          (row.utmSource ?? row.utmMedium ?? row.utmCampaign ?? row.utmContent ?? row.gclid ?? row.oppref)
+          (row.utmSource ??
+          row.utmMedium ??
+          row.utmCampaign ??
+          row.utmContent ??
+          row.gclid ??
+          row.oppref)
             ? {
                 ...(row.utmSource ? { utmSource: row.utmSource } : {}),
                 ...(row.utmMedium ? { utmMedium: row.utmMedium } : {}),

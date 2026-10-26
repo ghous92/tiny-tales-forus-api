@@ -62,24 +62,26 @@ const DEFAULT_PACK = { density: 1.0, form: 'bottle' as Form }
  * volumetric weight is L×W×H, so the same 500 ml bills differently depending on
  * which one it ships in. Bands are `uptoMl`, first match wins.
  */
-const PACK_TABLE: Record<Form, { uptoMl: number; tareG: number; l: number; w: number; h: number }[]> =
-  {
-    jar: [
-      { uptoMl: 30, tareG: 20, l: 5, w: 5, h: 4 },
-      { uptoMl: 50, tareG: 28, l: 6, w: 6, h: 5 },
-      { uptoMl: 100, tareG: 40, l: 7, w: 7, h: 6 },
-      { uptoMl: 200, tareG: 62, l: 8, w: 8, h: 8 },
-      { uptoMl: 500, tareG: 110, l: 11, w: 11, h: 10 },
-      { uptoMl: 1000, tareG: 180, l: 13, w: 13, h: 13 },
-    ],
-    bottle: [
-      { uptoMl: 50, tareG: 25, l: 4, w: 4, h: 12 },
-      { uptoMl: 100, tareG: 32, l: 5, w: 5, h: 14 },
-      { uptoMl: 200, tareG: 45, l: 6, w: 6, h: 17 },
-      { uptoMl: 500, tareG: 72, l: 8, w: 8, h: 22 },
-      { uptoMl: 1000, tareG: 115, l: 10, w: 10, h: 26 },
-    ],
-  }
+const PACK_TABLE: Record<
+  Form,
+  { uptoMl: number; tareG: number; l: number; w: number; h: number }[]
+> = {
+  jar: [
+    { uptoMl: 30, tareG: 20, l: 5, w: 5, h: 4 },
+    { uptoMl: 50, tareG: 28, l: 6, w: 6, h: 5 },
+    { uptoMl: 100, tareG: 40, l: 7, w: 7, h: 6 },
+    { uptoMl: 200, tareG: 62, l: 8, w: 8, h: 8 },
+    { uptoMl: 500, tareG: 110, l: 11, w: 11, h: 10 },
+    { uptoMl: 1000, tareG: 180, l: 13, w: 13, h: 13 },
+  ],
+  bottle: [
+    { uptoMl: 50, tareG: 25, l: 4, w: 4, h: 12 },
+    { uptoMl: 100, tareG: 32, l: 5, w: 5, h: 14 },
+    { uptoMl: 200, tareG: 45, l: 6, w: 6, h: 17 },
+    { uptoMl: 500, tareG: 72, l: 8, w: 8, h: 22 },
+    { uptoMl: 1000, tareG: 115, l: 10, w: 10, h: 26 },
+  ],
+}
 
 export interface EstimatedPack {
   weightG: number

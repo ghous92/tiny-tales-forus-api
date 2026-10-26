@@ -72,7 +72,8 @@ export async function issueCreditNote(tx: Tx, input: IssueCreditNoteInput): Prom
   const seq = await allocateSeq(tx, input.fy)
   const document = input.buildDocument(input.fy, seq)
   const creditNoteNumber = document.creditNoteNumber
-  if (!creditNoteNumber) throw new Error('credit note document was built without a credit note number')
+  if (!creditNoteNumber)
+    throw new Error('credit note document was built without a credit note number')
 
   const [row] = await tx
     .insert(creditNotes)
@@ -93,7 +94,10 @@ export async function issueCreditNote(tx: Tx, input: IssueCreditNoteInput): Prom
 }
 
 /** The caller's own credit note for an order, or undefined (unknown order, or none issued). */
-export async function getCreditNoteByOrderId(db: Db, orderId: string): Promise<CreditNoteRow | undefined> {
+export async function getCreditNoteByOrderId(
+  db: Db,
+  orderId: string
+): Promise<CreditNoteRow | undefined> {
   const [row] = await db.select().from(creditNotes).where(eq(creditNotes.orderId, orderId)).limit(1)
   return row
 }

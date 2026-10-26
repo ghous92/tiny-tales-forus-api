@@ -140,9 +140,7 @@ export function diffEnvironments(
   snapshots: ReadonlyArray<{ name: string; config: ConfigSnapshot }>,
   defaults: ReadonlySet<string> = new Set(CONFIG_DEFAULTS.map((d) => d.key))
 ): KeyDrift[] {
-  const keys = [
-    ...new Set([...snapshots.flatMap((s) => [...s.config.keys()]), ...defaults]),
-  ].sort()
+  const keys = [...new Set([...snapshots.flatMap((s) => [...s.config.keys()]), ...defaults])].sort()
 
   const drift: KeyDrift[] = []
   for (const key of keys) {
@@ -185,7 +183,9 @@ export function undeclaredDrift(drift: readonly KeyDrift[]): KeyDrift[] {
   return drift.filter((d) => d.expected === undefined)
 }
 
-async function snapshot(connectionString: string): Promise<{ db: Db; pool: pg.Pool; config: ConfigSnapshot }> {
+async function snapshot(
+  connectionString: string
+): Promise<{ db: Db; pool: pg.Pool; config: ConfigSnapshot }> {
   const pool = new pg.Pool({ connectionString, max: 1 })
   const db = drizzle(pool) as unknown as Db
   const rows = await db.select({ key: appConfig.key, value: appConfig.value }).from(appConfig)
@@ -204,7 +204,10 @@ function parseTargets(argv: readonly string[]): Array<{ name: string; url: strin
   }
   if (targets.length > 0) return targets
   const url = process.env.DATABASE_URL_DIRECT ?? process.env.DATABASE_URL
-  if (!url) throw new Error('config:doctor: set DATABASE_URL_DIRECT (preferred) or DATABASE_URL, or pass --env name=url')
+  if (!url)
+    throw new Error(
+      'config:doctor: set DATABASE_URL_DIRECT (preferred) or DATABASE_URL, or pass --env name=url'
+    )
   return [{ name: 'local', url }]
 }
 

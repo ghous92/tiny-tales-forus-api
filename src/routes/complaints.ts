@@ -171,7 +171,10 @@ async function sendComplaintEmails(
       )
     }
   } catch (caught) {
-    log.error({ err: caught, ticketNumber: ticket.ticketNumber }, 'complaint: failed to send notification email')
+    log.error(
+      { err: caught, ticketNumber: ticket.ticketNumber },
+      'complaint: failed to send notification email'
+    )
   }
 }
 
@@ -195,7 +198,12 @@ export const complaintRoutes: FastifyPluginAsyncZod<ComplaintRoutesOptions> = as
 
   app.post(
     '/',
-    { schema: { body: ComplaintCreateSchema, response: { 201: ComplaintSchema, ...errorResponses } } },
+    {
+      schema: {
+        body: ComplaintCreateSchema,
+        response: { 201: ComplaintSchema, ...errorResponses },
+      },
+    },
     async (request, reply) => {
       // Ownership check only, when an order is named — getOrderStatus 404s
       // for a foreign/unknown id; its own return value is unused here.
@@ -234,7 +242,10 @@ export const complaintRoutes: FastifyPluginAsyncZod<ComplaintRoutesOptions> = as
 }
 
 /** Admin complaint triage, mounted at `/v1/admin/complaints`. */
-export const adminComplaintRoutes: FastifyPluginAsyncZod<ComplaintRoutesOptions> = async (app, { db }) => {
+export const adminComplaintRoutes: FastifyPluginAsyncZod<ComplaintRoutesOptions> = async (
+  app,
+  { db }
+) => {
   app.addHook('onRequest', app.authenticate)
   app.addHook('onRequest', app.requireAdmin)
 

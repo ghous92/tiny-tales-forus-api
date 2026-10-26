@@ -79,7 +79,12 @@ export interface ServerErrorCtx {
   statusCode: number
 }
 
-export type ClientEventType = 'error' | 'unhandledrejection' | 'console.error' | 'memory' | 'rerender'
+export type ClientEventType =
+  | 'error'
+  | 'unhandledrejection'
+  | 'console.error'
+  | 'memory'
+  | 'rerender'
 
 /**
  * One client-reported event — mirrors `contracts/clientErrors.ts`'s Zod shape
@@ -203,7 +208,12 @@ export type FingerprintInput =
 export function fingerprintError(input: FingerprintInput): string {
   const parts =
     input.kind === 'server'
-      ? [input.name, normalizeMessage(input.message), topStackFramePaths(input.stack, 3).join('|'), input.route]
+      ? [
+          input.name,
+          normalizeMessage(input.message),
+          topStackFramePaths(input.stack, 3).join('|'),
+          input.route,
+        ]
       : [input.type, normalizeMessage(input.message), input.urlPathname]
   return createHash('sha256').update(parts.join(' ')).digest('hex').slice(0, 12)
 }
@@ -342,7 +352,9 @@ const FALLBACK_STEPS = [
 ]
 
 function laymanSteps(method: string, path: string): string[] {
-  const rule = ROUTE_STEP_RULES.find((r) => path.startsWith(r.pathPrefix) && (!r.method || r.method === method))
+  const rule = ROUTE_STEP_RULES.find(
+    (r) => path.startsWith(r.pathPrefix) && (!r.method || r.method === method)
+  )
   return rule?.steps ?? FALLBACK_STEPS
 }
 
@@ -368,7 +380,11 @@ function clientWhatHappened(type: ClientEventType): string {
 
 // --- GitHub issue markdown -------------------------------------------------
 
-function githubIssueMarkdown(input: { whatHappened: string; laymanSteps: string[]; technicalMarkdown: string }): string {
+function githubIssueMarkdown(input: {
+  whatHappened: string
+  laymanSteps: string[]
+  technicalMarkdown: string
+}): string {
   return [
     '## What happened',
     input.whatHappened,
@@ -382,7 +398,7 @@ function githubIssueMarkdown(input: { whatHappened: string; laymanSteps: string[
     '## Instructions for the automated fixer',
     '1. Reproduce this issue first with a failing automated test.',
     '2. Make the minimal code change that fixes it — avoid unrelated refactors.',
-    "3. Open a pull request against `main` (the branch that deploys to staging) referencing this issue.",
+    '3. Open a pull request against `main` (the branch that deploys to staging) referencing this issue.',
   ].join('\n')
 }
 
@@ -450,7 +466,11 @@ function buildServerAlertCase(input: {
     statusLine: `HTTP ${ctx.statusCode}`,
     technicalDetailsHtml,
     githubTitle: `[${appEnv}] ${normalized.name}: ${route} [fp:${fingerprint}]`,
-    githubBodyMarkdown: githubIssueMarkdown({ whatHappened: whatHappenedText, laymanSteps: steps, technicalMarkdown }),
+    githubBodyMarkdown: githubIssueMarkdown({
+      whatHappened: whatHappenedText,
+      laymanSteps: steps,
+      technicalMarkdown,
+    }),
   }
 }
 
@@ -468,7 +488,8 @@ function buildClientAlertCase(input: {
   const subjectRoute = pathname ? `${ctx.source} ${pathname}` : `${ctx.source} client`
   const userAgent = ctx.userAgent ?? event.userAgent
 
-  const metaJson = event.meta && Object.keys(event.meta).length > 0 ? JSON.stringify(event.meta) : undefined
+  const metaJson =
+    event.meta && Object.keys(event.meta).length > 0 ? JSON.stringify(event.meta) : undefined
 
   const technicalDetailsHtml =
     `<ul style="margin:0 0 8px;padding-left:18px;">` +
@@ -509,7 +530,11 @@ function buildClientAlertCase(input: {
     statusLine: `Client-reported (${ctx.source}) — no HTTP status; this did not originate from a server response`,
     technicalDetailsHtml,
     githubTitle: `[${appEnv}] ${event.type}: ${subjectRoute} [fp:${fingerprint}]`,
-    githubBodyMarkdown: githubIssueMarkdown({ whatHappened: whatHappenedText, laymanSteps: steps, technicalMarkdown }),
+    githubBodyMarkdown: githubIssueMarkdown({
+      whatHappened: whatHappenedText,
+      laymanSteps: steps,
+      technicalMarkdown,
+    }),
   }
 }
 
@@ -568,7 +593,10 @@ function renderEmailHtml(
         `</ul>`
     ),
     emailSection('Technical details', alertCase.technicalDetailsHtml),
-    emailSection('Next step', buildNextStepHtml(meta.issueUrl, meta.issueCreationFailed, meta.github)),
+    emailSection(
+      'Next step',
+      buildNextStepHtml(meta.issueUrl, meta.issueCreationFailed, meta.github)
+    ),
   ]
 
   return `<div style="font-family:Arial,Helvetica,sans-serif;color:#111;max-width:640px;">${sections.join('')}</div>`
@@ -613,7 +641,8 @@ export class ErrorAlerter {
     this.github = config.github
     this.fetchImpl = config.fetchImpl ?? globalThis.fetch
     this.now = config.now ?? Date.now
-    this.enabled = (config.appEnv === 'staging' || config.appEnv === 'production') && config.brevo !== undefined
+    this.enabled =
+      (config.appEnv === 'staging' || config.appEnv === 'production') && config.brevo !== undefined
   }
 
   /**
@@ -638,7 +667,10 @@ export class ErrorAlerter {
       // reach. This exists so a bug in fingerprinting/building an alert case
       // (i.e. code that runs BEFORE `dispatch`) can never throw into caller
       // code either.
-      this.logAlertingError({ err: caught }, `${label} crashed unexpectedly — this is a bug in the alerter itself`)
+      this.logAlertingError(
+        { err: caught },
+        `${label} crashed unexpectedly — this is a bug in the alerter itself`
+      )
     })
   }
 
@@ -654,7 +686,10 @@ export class ErrorAlerter {
     })
 
     if (!this.enabled) {
-      this.log.debug({ fingerprint, route }, 'alert suppressed: alerting disabled (development, or Brevo not configured)')
+      this.log.debug(
+        { fingerprint, route },
+        'alert suppressed: alerting disabled (development, or Brevo not configured)'
+      )
       return
     }
 
@@ -682,9 +717,14 @@ export class ErrorAlerter {
         continue
       }
 
-      const cooldownMs = NOISY_CLIENT_TYPES.has(event.type) ? NOISY_CLIENT_COOLDOWN_MS : CLIENT_ERROR_COOLDOWN_MS
+      const cooldownMs = NOISY_CLIENT_TYPES.has(event.type)
+        ? NOISY_CLIENT_COOLDOWN_MS
+        : CLIENT_ERROR_COOLDOWN_MS
       // Sequential await is fine — the route caps a batch at 20 events.
-      await this.dispatch(cooldownMs, buildClientAlertCase({ event, ctx, pathname, fingerprint, appEnv: this.appEnv }))
+      await this.dispatch(
+        cooldownMs,
+        buildClientAlertCase({ event, ctx, pathname, fingerprint, appEnv: this.appEnv })
+      )
     }
   }
 
@@ -719,7 +759,10 @@ export class ErrorAlerter {
 
       await this.sendEmail(subject, htmlContent, alertCase.fingerprint)
     } catch (caught) {
-      this.logAlertingError({ err: caught, fingerprint: alertCase.fingerprint }, 'failed to process an alert')
+      this.logAlertingError(
+        { err: caught, fingerprint: alertCase.fingerprint },
+        'failed to process an alert'
+      )
     }
   }
 
@@ -754,12 +797,18 @@ export class ErrorAlerter {
       this.sentTimestamps.shift()
     }
     if (this.sentTimestamps.length >= GLOBAL_MAX_EMAILS_PER_HOUR) {
-      while (this.suppressedTimestamps.length > 0 && now - this.suppressedTimestamps[0]! >= HOUR_MS) {
+      while (
+        this.suppressedTimestamps.length > 0 &&
+        now - this.suppressedTimestamps[0]! >= HOUR_MS
+      ) {
         this.suppressedTimestamps.shift()
       }
       this.suppressedTimestamps.push(now)
       this.log.warn(
-        { suppressedLastHour: this.suppressedTimestamps.length, capPerHour: GLOBAL_MAX_EMAILS_PER_HOUR },
+        {
+          suppressedLastHour: this.suppressedTimestamps.length,
+          capPerHour: GLOBAL_MAX_EMAILS_PER_HOUR,
+        },
         'alerting: storm brake tripped — suppressing this alert email'
       )
       return true
@@ -774,7 +823,9 @@ export class ErrorAlerter {
    * logged and returns `{ failed: true }` rather than throwing — a GitHub
    * outage must never block the alert email itself.
    */
-  private async findOrCreateGithubIssue(alertCase: AlertCase): Promise<{ url: string | undefined; failed: boolean }> {
+  private async findOrCreateGithubIssue(
+    alertCase: AlertCase
+  ): Promise<{ url: string | undefined; failed: boolean }> {
     const github = this.github
     if (!github) return { url: undefined, failed: false }
     const { token, repo } = github
@@ -826,12 +877,19 @@ export class ErrorAlerter {
       const created = (await createRes.json()) as { html_url?: string }
       return { url: created.html_url, failed: false }
     } catch (err) {
-      this.logAlertingError({ err, fingerprint: alertCase.fingerprint }, 'GitHub issue creation threw')
+      this.logAlertingError(
+        { err, fingerprint: alertCase.fingerprint },
+        'GitHub issue creation threw'
+      )
       return { url: undefined, failed: true }
     }
   }
 
-  private async sendEmail(subject: string, htmlContent: string, fingerprint: string): Promise<void> {
+  private async sendEmail(
+    subject: string,
+    htmlContent: string,
+    fingerprint: string
+  ): Promise<void> {
     if (!this.brevo) return // `enabled` already gates this; defensive only.
     const { apiKey, emailFrom, emailTo } = this.brevo
     try {
@@ -851,7 +909,10 @@ export class ErrorAlerter {
       })
       if (!res.ok) {
         const text = await res.text()
-        this.logAlertingError({ status: res.status, body: text, fingerprint }, 'Brevo email send failed')
+        this.logAlertingError(
+          { status: res.status, body: text, fingerprint },
+          'Brevo email send failed'
+        )
       }
     } catch (err) {
       this.logAlertingError({ err, fingerprint }, 'Brevo email send threw')

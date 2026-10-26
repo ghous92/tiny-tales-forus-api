@@ -20,7 +20,12 @@
 
 import { desc, eq, inArray, sql } from 'drizzle-orm'
 
-import type { RatingSummary, Review, ReviewsBreakdown, ReviewsListResponse } from '../contracts/reviews.js'
+import type {
+  RatingSummary,
+  Review,
+  ReviewsBreakdown,
+  ReviewsListResponse,
+} from '../contracts/reviews.js'
 import type { Db } from '../db/client.js'
 import { reviewHelpfulVotes, reviews, type ReviewRow } from '../db/schema.js'
 import { notFound } from '../lib/errors.js'

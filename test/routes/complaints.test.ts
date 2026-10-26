@@ -204,7 +204,7 @@ describe('POST /v1/complaints', () => {
 })
 
 describe('GET /v1/complaints (history) and /v1/complaints/:ticketNumber', () => {
-  it('lists only the caller\'s own complaints, newest first', async () => {
+  it("lists only the caller's own complaints, newest first", async () => {
     await ctx.app.inject({
       method: 'POST',
       url: '/v1/complaints',
@@ -221,7 +221,7 @@ describe('GET /v1/complaints (history) and /v1/complaints/:ticketNumber', () => 
       method: 'POST',
       url: '/v1/complaints',
       headers: auth(USER_B.token),
-      payload: validComplaint({ subject: 'Someone else\'s' }),
+      payload: validComplaint({ subject: "Someone else's" }),
     })
 
     const res = await ctx.app.inject({
@@ -292,7 +292,7 @@ describe('GET /v1/admin/complaints', () => {
     expect(res.statusCode).toBe(403)
   })
 
-  it('200s every complaint for an admin, including the filer\'s userId', async () => {
+  it("200s every complaint for an admin, including the filer's userId", async () => {
     // promoteToAdmin needs the user row to exist first — one authed request upserts it.
     await ctx.app.inject({ method: 'GET', url: '/v1/complaints', headers: auth(USER_ADMIN.token) })
     await promoteToAdmin(ctx.db, USER_ADMIN.uid)
@@ -469,10 +469,14 @@ describe('notification emails (best-effort)', () => {
 
     expect(fakeFetch).toHaveBeenCalled()
     const internalCall = calls.find((c) =>
-      (c.body as { to?: Array<{ email: string }> }).to?.some((r) => r.email === 'support@tinytales.test')
+      (c.body as { to?: Array<{ email: string }> }).to?.some(
+        (r) => r.email === 'support@tinytales.test'
+      )
     )
     expect(internalCall).toBeDefined()
-    const recipients = (internalCall!.body as { to: Array<{ email: string }> }).to.map((r) => r.email)
+    const recipients = (internalCall!.body as { to: Array<{ email: string }> }).to.map(
+      (r) => r.email
+    )
     expect(recipients).toEqual(['support@tinytales.test'])
 
     await built.app.close()
@@ -492,7 +496,10 @@ describe('notification emails (best-effort)', () => {
     const built = await appWithEmail(fakeFetch)
     await built.db.insert(appConfig).values({
       key: 'legal.company',
-      value: { grievanceEmail: 'grievance@tinytales.test', nodalContactEmail: 'nodal@tinytales.test' },
+      value: {
+        grievanceEmail: 'grievance@tinytales.test',
+        nodalContactEmail: 'nodal@tinytales.test',
+      },
       description: '',
     })
 
@@ -505,7 +512,9 @@ describe('notification emails (best-effort)', () => {
     expect(res.statusCode).toBe(201)
     await new Promise((resolve) => setTimeout(resolve, 50))
 
-    const opsCall = calls.find((c) => c.body.to?.some((r) => r.email === 'grievance@tinytales.test'))
+    const opsCall = calls.find((c) =>
+      c.body.to?.some((r) => r.email === 'grievance@tinytales.test')
+    )
     expect(opsCall).toBeDefined()
     expect(opsCall!.body.to!.map((r) => r.email)).toContain('nodal@tinytales.test')
 
@@ -587,7 +596,9 @@ describe('notification emails (best-effort)', () => {
   })
 
   it('still creates the ticket when the Brevo call itself fails', async () => {
-    const fakeFetch = vi.fn(async () => new Response('boom', { status: 500 })) as unknown as typeof fetch
+    const fakeFetch = vi.fn(
+      async () => new Response('boom', { status: 500 })
+    ) as unknown as typeof fetch
     const built = await appWithEmail(fakeFetch)
     await built.db.insert(appConfig).values({
       key: 'legal.company',

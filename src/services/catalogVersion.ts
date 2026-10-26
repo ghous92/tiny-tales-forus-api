@@ -36,9 +36,6 @@ type Executor = Pick<Db, 'select'>
  * 0 is a valid ETag value meaning "no catalog yet".
  */
 export async function getCatalogVersion(db: Executor): Promise<number> {
-  const [row] = await db
-    .select({ version: catalogVersion.version })
-    .from(catalogVersion)
-    .limit(1)
+  const [row] = await db.select({ version: catalogVersion.version }).from(catalogVersion).limit(1)
   return row?.version ?? 0
 }

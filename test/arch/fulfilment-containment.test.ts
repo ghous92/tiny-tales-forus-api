@@ -90,7 +90,9 @@ describe('carrier vocabulary containment', () => {
     // keys (`NSLCode` is carried through for forensics and never mapped).
     const mapper = readFileSync('src/lib/fulfilmentStatus.ts', 'utf8')
     for (const token of ['StatusType', 'Manifested', 'Dispatched', 'EOD-\\d+', 'ST-108']) {
-      expect(mentions(mapper, token), `${token} should appear in lib/fulfilmentStatus.ts`).toBe(true)
+      expect(mentions(mapper, token), `${token} should appear in lib/fulfilmentStatus.ts`).toBe(
+        true
+      )
     }
 
     const adapter = readFileSync('src/lib/delhivery.ts', 'utf8')

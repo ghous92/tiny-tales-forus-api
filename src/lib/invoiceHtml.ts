@@ -240,7 +240,9 @@ function emailBlock(body: string): string {
 
 /** The same block, titled. */
 function emailSection(title: string, body: string): string {
-  return emailBlock(`<div style="${EMAIL_LABEL}margin-bottom:8px;">${escapeHtml(title)}</div>${body}`)
+  return emailBlock(
+    `<div style="${EMAIL_LABEL}margin-bottom:8px;">${escapeHtml(title)}</div>${body}`
+  )
 }
 
 /** One labelled column of the two-up party block. */
@@ -437,10 +439,7 @@ export function renderInvoiceEmailHtml(doc: InvoiceDocument): string {
     // it governs only the first.
     emailBlock(
       `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>` +
-        emailParty('Sold by', doc.seller.legalName, [
-          doc.seller.address,
-          doc.seller.supportEmail,
-        ]) +
+        emailParty('Sold by', doc.seller.legalName, [doc.seller.address, doc.seller.supportEmail]) +
         emailParty('Delivering to', doc.buyer.name, [
           ...buyerLines,
           displayPhone(doc.buyer.phone),

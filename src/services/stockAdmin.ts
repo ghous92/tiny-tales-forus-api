@@ -21,7 +21,13 @@ import type {
   StockChangeReason,
 } from '../contracts/stock.js'
 import type { Db } from '../db/client.js'
-import { catalogItems, pickupNodes, skuStockPolicy, storeStock, storeStockAudit } from '../db/schema.js'
+import {
+  catalogItems,
+  pickupNodes,
+  skuStockPolicy,
+  storeStock,
+  storeStockAudit,
+} from '../db/schema.js'
 import { notFound, validationFailed } from '../lib/errors.js'
 import {
   cascadeForSku,
@@ -151,7 +157,8 @@ export async function upsertStock(
 
   const { rows } = await listStock(db, { nodeId, sku })
   const row = rows[0]
-  if (!row) throw validationFailed(`Stock row for "${sku}" at node "${nodeId}" vanished after write`)
+  if (!row)
+    throw validationFailed(`Stock row for "${sku}" at node "${nodeId}" vanished after write`)
   return row
 }
 
@@ -170,9 +177,7 @@ export async function deleteStock(
       .limit(1)
     if (!existing) return { deleted: false }
 
-    await tx
-      .delete(storeStock)
-      .where(and(eq(storeStock.nodeId, nodeId), eq(storeStock.sku, sku)))
+    await tx.delete(storeStock).where(and(eq(storeStock.nodeId, nodeId), eq(storeStock.sku, sku)))
 
     // Audited as a correction to zero. Deleting the row without a trace would
     // make units disappear from the ledger with nothing to reconcile against —
@@ -503,7 +508,10 @@ export async function listStockedSkus(db: Db): Promise<{ skus: string[] }> {
 }
 
 /** Resolve the effective policy for a sku without touching the cascade. */
-export async function effectivePolicyFor(db: Db, sku: string): Promise<ReturnType<typeof resolvePolicy>> {
+export async function effectivePolicyFor(
+  db: Db,
+  sku: string
+): Promise<ReturnType<typeof resolvePolicy>> {
   const [row] = await db
     .select()
     .from(skuStockPolicy)

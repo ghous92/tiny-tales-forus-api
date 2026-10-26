@@ -168,7 +168,13 @@ function priceLane(
 
   const gross = customerFeeInr(winner.trueCostInr, context.rule.marginBps)
   // Threshold basis is pre-coupon here: no coupon is modelled in this report.
-  const outcome = resolveFee(gross, winner.chargeableWeightG, basket.valueInr, basket.valueInr, context.rule)
+  const outcome = resolveFee(
+    gross,
+    winner.chargeableWeightG,
+    basket.valueInr,
+    basket.valueInr,
+    context.rule
+  )
 
   return {
     lane: lane.label,

@@ -208,9 +208,7 @@ export const SCHEDULER_STRANGER = {
 /** Audience sweep tests mint tokens for. Must match what the app is built with. */
 export const SCHEDULER_AUDIENCE = 'tinytales-api-sweeps'
 
-export async function createTestApp(
-  options: CreateTestAppOptions = {}
-): Promise<TestContext> {
+export async function createTestApp(options: CreateTestAppOptions = {}): Promise<TestContext> {
   const { db, pglite } = await createTestDb()
 
   const tokens = new Map<string, VerifiedToken>([
@@ -231,9 +229,7 @@ export async function createTestApp(
     logger: false,
     authCacheTtlMs: options.authCacheTtlMs ?? 0,
     ...(options.analytics ? { analytics: options.analytics } : {}),
-    ...(options.googleMapsServerKey
-      ? { googleMapsServerKey: options.googleMapsServerKey }
-      : {}),
+    ...(options.googleMapsServerKey ? { googleMapsServerKey: options.googleMapsServerKey } : {}),
     ...(options.proxySharedSecret ? { proxySharedSecret: options.proxySharedSecret } : {}),
     ...(options.alerter ? { alerter: options.alerter } : {}),
     ...(options.deleteFirebaseUser ? { deleteFirebaseUser: options.deleteFirebaseUser } : {}),

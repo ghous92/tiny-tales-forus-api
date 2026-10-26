@@ -62,7 +62,11 @@ describe('X-Request-Id', () => {
 
   it('adopts an upstream uuid (local/dev caller with no edge in front)', async () => {
     const id = '3f2504e0-4f89-11d3-9a0c-0305e82c3301'
-    const res = await ctx.app.inject({ method: 'GET', url: '/livez', headers: { 'x-request-id': id } })
+    const res = await ctx.app.inject({
+      method: 'GET',
+      url: '/livez',
+      headers: { 'x-request-id': id },
+    })
     expect(res.headers['x-request-id']).toBe(id)
   })
 

@@ -16,7 +16,10 @@
 import type { FastifyBaseLogger } from 'fastify'
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod'
 
-import { ErrorEnvelopeSchema, OpsNotificationSweepResponseSchema } from '../contracts/notifications.js'
+import {
+  ErrorEnvelopeSchema,
+  OpsNotificationSweepResponseSchema,
+} from '../contracts/notifications.js'
 import type { Db } from '../db/client.js'
 import type { NotificationChannelRegistry } from '../lib/notify/registry.js'
 import {
@@ -91,10 +94,9 @@ export interface NotificationsAdminRoutesOptions {
   channels: NotificationChannelRegistry
 }
 
-export const notificationsAdminRoutes: FastifyPluginAsyncZod<NotificationsAdminRoutesOptions> = async (
-  app,
-  { db, channels }
-) => {
+export const notificationsAdminRoutes: FastifyPluginAsyncZod<
+  NotificationsAdminRoutesOptions
+> = async (app, { db, channels }) => {
   app.addHook('onRequest', app.authenticate)
   app.addHook('onRequest', app.requireAdmin)
 

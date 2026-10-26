@@ -51,7 +51,18 @@ function context(
 describe('the precedence ladder', () => {
   it('force_out beats a full shelf — a recall must not sell stock we still hold', () => {
     const ctx = context([candidate({ nodeCode: 'A', qty: 500 })], {
-      policyBySku: new Map([['SKU-1', resolvePolicy({ mode: 'force_out', lowStockAt: null, maxCascadeStores: null, maxRadiusKm: null, hubFallback: true })]]),
+      policyBySku: new Map([
+        [
+          'SKU-1',
+          resolvePolicy({
+            mode: 'force_out',
+            lowStockAt: null,
+            maxCascadeStores: null,
+            maxRadiusKm: null,
+            hubFallback: true,
+          }),
+        ],
+      ]),
     })
 
     const result = cascadeForSku('SKU-1', ctx)
@@ -63,7 +74,18 @@ describe('the precedence ladder', () => {
 
   it('the catalog flag beats force_in — a stale policy row must not resurrect a retired sku', () => {
     const ctx = context([candidate({ nodeCode: 'A' })], {
-      policyBySku: new Map([['SKU-1', resolvePolicy({ mode: 'force_in', lowStockAt: null, maxCascadeStores: null, maxRadiusKm: null, hubFallback: true })]]),
+      policyBySku: new Map([
+        [
+          'SKU-1',
+          resolvePolicy({
+            mode: 'force_in',
+            lowStockAt: null,
+            maxCascadeStores: null,
+            maxRadiusKm: null,
+            hubFallback: true,
+          }),
+        ],
+      ]),
       variantOutOfStock: new Set(['SKU-1']),
     })
 
@@ -76,7 +98,18 @@ describe('the precedence ladder', () => {
   it('force_in sells with no shelf at all, and stamps no origin to decrement', () => {
     const ctx = context([], {
       candidatesBySku: new Map(),
-      policyBySku: new Map([['SKU-1', resolvePolicy({ mode: 'force_in', lowStockAt: null, maxCascadeStores: null, maxRadiusKm: null, hubFallback: true })]]),
+      policyBySku: new Map([
+        [
+          'SKU-1',
+          resolvePolicy({
+            mode: 'force_in',
+            lowStockAt: null,
+            maxCascadeStores: null,
+            maxRadiusKm: null,
+            hubFallback: true,
+          }),
+        ],
+      ]),
     })
 
     const result = cascadeForSku('SKU-1', ctx)
@@ -91,14 +124,26 @@ describe('nearest-first ranking', () => {
   it('picks the nearest enabled shop, not the first row the database returned', () => {
     // Rajkot is ~200 km from Ahmedabad; Vejalpur is inside it. Listed
     // far-first so passing by accident is impossible.
-    const ctx = context([
-      candidate({ nodeCode: 'RJT', lat: 22.2996, lng: 70.8042 }),
-      candidate({ nodeCode: 'AHM', lat: 23.0059, lng: 72.5313 }),
-    ], {
-      policyBySku: new Map([
-        ['SKU-1', resolvePolicy({ mode: 'auto', lowStockAt: null, maxCascadeStores: null, maxRadiusKm: 5_000, hubFallback: true })],
-      ]),
-    })
+    const ctx = context(
+      [
+        candidate({ nodeCode: 'RJT', lat: 22.2996, lng: 70.8042 }),
+        candidate({ nodeCode: 'AHM', lat: 23.0059, lng: 72.5313 }),
+      ],
+      {
+        policyBySku: new Map([
+          [
+            'SKU-1',
+            resolvePolicy({
+              mode: 'auto',
+              lowStockAt: null,
+              maxCascadeStores: null,
+              maxRadiusKm: 5_000,
+              hubFallback: true,
+            }),
+          ],
+        ]),
+      }
+    )
 
     const result = cascadeForSku('SKU-1', ctx)
 
@@ -138,7 +183,16 @@ describe('nearest-first ranking', () => {
   it('an unrankable shop sorts last but is never dropped — a missing coordinate is not a missing shop', () => {
     const ctx = context([candidate({ nodeCode: 'NOCOORD', lat: null, lng: null })], {
       policyBySku: new Map([
-        ['SKU-1', resolvePolicy({ mode: 'auto', lowStockAt: null, maxCascadeStores: null, maxRadiusKm: 1, hubFallback: false })],
+        [
+          'SKU-1',
+          resolvePolicy({
+            mode: 'auto',
+            lowStockAt: null,
+            maxCascadeStores: null,
+            maxRadiusKm: 1,
+            hubFallback: false,
+          }),
+        ],
       ]),
     })
 
@@ -152,10 +206,9 @@ describe('nearest-first ranking', () => {
   })
 
   it('ranks nothing when the shopper pincode has no coordinate, but still sells', () => {
-    const ctx = context(
-      [candidate({ nodeCode: 'B' }), candidate({ nodeCode: 'A' })],
-      { destination: null }
-    )
+    const ctx = context([candidate({ nodeCode: 'B' }), candidate({ nodeCode: 'A' })], {
+      destination: null,
+    })
 
     const result = cascadeForSku('SKU-1', ctx)
 
@@ -195,7 +248,16 @@ describe('the hub fallback', () => {
   it('is skipped when the sku turns it off, and the answer is then out of stock', () => {
     const ctx = context([candidate({ nodeCode: 'HUB', nodeKind: 'hub' })], {
       policyBySku: new Map([
-        ['SKU-1', resolvePolicy({ mode: 'auto', lowStockAt: null, maxCascadeStores: null, maxRadiusKm: null, hubFallback: false })],
+        [
+          'SKU-1',
+          resolvePolicy({
+            mode: 'auto',
+            lowStockAt: null,
+            maxCascadeStores: null,
+            maxRadiusKm: null,
+            hubFallback: false,
+          }),
+        ],
       ]),
     })
 

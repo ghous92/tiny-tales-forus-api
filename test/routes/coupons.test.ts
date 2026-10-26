@@ -7,7 +7,14 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
 import { appConfig } from '../../src/db/schema.js'
-import { auth, createTestApp, promoteToAdmin, USER_A, USER_ADMIN, type TestContext } from '../helpers/app.js'
+import {
+  auth,
+  createTestApp,
+  promoteToAdmin,
+  USER_A,
+  USER_ADMIN,
+  type TestContext,
+} from '../helpers/app.js'
 
 let ctx: TestContext
 
@@ -79,7 +86,9 @@ describe('GET /v1/coupons (public)', () => {
   it('falls back to the default count when config is malformed', async () => {
     await makeAdmin()
     for (let i = 0; i < 5; i++) await createViaApi({ code: `C${i}`, sortOrder: i })
-    await ctx.db.insert(appConfig).values({ key: 'coupons.autoSuggestCount', value: 'not-a-number' })
+    await ctx.db
+      .insert(appConfig)
+      .values({ key: 'coupons.autoSuggestCount', value: 'not-a-number' })
 
     const res = await ctx.app.inject({ method: 'GET', url: '/v1/coupons' })
     expect(res.json().coupons).toHaveLength(3) // DEFAULT_AUTO_SUGGEST_COUNT
@@ -167,12 +176,20 @@ describe('admin coupon CRUD', () => {
   it('creates (201), lists, reads, patches, and deletes (204) a coupon', async () => {
     const created = await createViaApi({})
     expect(created.statusCode).toBe(201)
-    expect(created.json()).toMatchObject({ code: 'DIRECT15', label: 'Early Bird offer', active: true })
+    expect(created.json()).toMatchObject({
+      code: 'DIRECT15',
+      label: 'Early Bird offer',
+      active: true,
+    })
 
     const list = await ctx.app.inject({ method: 'GET', url: '/v1/admin/coupons', headers: A() })
     expect(list.json()).toHaveLength(1)
 
-    const got = await ctx.app.inject({ method: 'GET', url: '/v1/admin/coupons/direct15', headers: A() })
+    const got = await ctx.app.inject({
+      method: 'GET',
+      url: '/v1/admin/coupons/direct15',
+      headers: A(),
+    })
     expect(got.statusCode).toBe(200)
     expect(got.json().code).toBe('DIRECT15')
 
@@ -226,7 +243,11 @@ describe('admin coupon CRUD', () => {
   })
 
   it('404s reading/updating/deleting a missing coupon', async () => {
-    const get = await ctx.app.inject({ method: 'GET', url: '/v1/admin/coupons/GHOST', headers: A() })
+    const get = await ctx.app.inject({
+      method: 'GET',
+      url: '/v1/admin/coupons/GHOST',
+      headers: A(),
+    })
     expect(get.statusCode).toBe(404)
 
     const put = await ctx.app.inject({
@@ -237,7 +258,11 @@ describe('admin coupon CRUD', () => {
     })
     expect(put.statusCode).toBe(404)
 
-    const del = await ctx.app.inject({ method: 'DELETE', url: '/v1/admin/coupons/GHOST', headers: A() })
+    const del = await ctx.app.inject({
+      method: 'DELETE',
+      url: '/v1/admin/coupons/GHOST',
+      headers: A(),
+    })
     expect(del.statusCode).toBe(404)
   })
 })

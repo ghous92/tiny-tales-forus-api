@@ -93,7 +93,10 @@ export const WaConversationListQuerySchema = z.object({
  * Meta after the row was already written.
  */
 export const WaReplyBodySchema = z.strictObject({
-  body: z.string().min(1, 'Message is required').max(4096, 'WhatsApp messages cap at 4096 characters'),
+  body: z
+    .string()
+    .min(1, 'Message is required')
+    .max(4096, 'WhatsApp messages cap at 4096 characters'),
 })
 
 export const WaStatusBodySchema = z.strictObject({ status: z.enum(['open', 'closed']) })

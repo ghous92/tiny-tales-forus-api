@@ -310,6 +310,8 @@ export function buildInvoiceDocument(input: BuildInvoiceDocumentInput): InvoiceD
       footer: input.footerNote,
       jurisdiction: jurisdictionNote(input.jurisdiction),
     },
-    ...(gst && { placeOfSupply: { state: order.buyer.state, code: gstStateCodeFor(order.buyer.state) } }),
+    ...(gst && {
+      placeOfSupply: { state: order.buyer.state, code: gstStateCodeFor(order.buyer.state) },
+    }),
   }
 }

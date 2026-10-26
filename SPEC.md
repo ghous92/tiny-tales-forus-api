@@ -61,7 +61,7 @@ Address resource (API JSON):
 
 | Method | Path                | Behavior                                                       |
 | ------ | ------------------- | -------------------------------------------------------------- |
-| GET    | `/livez`          | no auth, `{ ok: true }`, no DB touch                           |
+| GET    | `/livez`            | no auth, `{ ok: true }`, no DB touch                           |
 | GET    | `/readyz`           | no auth, DB `select 1`, 503 if down                            |
 | GET    | `/v1/addresses`     | list caller's addresses, default first, then newest            |
 | POST   | `/v1/addresses`     | create; 201 + resource. First address forced `isDefault=true`  |

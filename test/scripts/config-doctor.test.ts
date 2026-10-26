@@ -26,7 +26,10 @@ const KNOWN = new Set([
   'shipping.serviceableStates',
 ])
 
-function env(name: string, entries: Record<string, unknown>): { name: string; config: ConfigSnapshot } {
+function env(
+  name: string,
+  entries: Record<string, unknown>
+): { name: string; config: ConfigSnapshot } {
   return {
     name,
     config: new Map(Object.entries(entries).map(([k, v]) => [k, JSON.stringify(v)])),
@@ -60,7 +63,10 @@ describe('diffEnvironments', () => {
   })
 
   it('reports a key in the database that no longer exists in the defaults', () => {
-    const drift = diffEnvironments([env('prod', { 'cart.maxLnies': 40 })], new Set(['cart.maxLines']))
+    const drift = diffEnvironments(
+      [env('prod', { 'cart.maxLnies': 40 })],
+      new Set(['cart.maxLines'])
+    )
     // A typo is inert forever and looks exactly like a working setting.
     expect(drift).toMatchObject([
       { key: 'cart.maxLines', kind: 'missing' },

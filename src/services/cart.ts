@@ -409,14 +409,7 @@ export async function mergeCart(
 
     const skipped = [...new Set(items.map((item) => item.sku).filter((sku) => skippedSet.has(sku)))]
     return {
-      cart: await loadCart(
-        tx as Db,
-        userId,
-        rule,
-        COUPON_NONE,
-        undefined,
-        resolveShipping
-      ),
+      cart: await loadCart(tx as Db, userId, rule, COUPON_NONE, undefined, resolveShipping),
       skipped,
     }
   })

@@ -246,7 +246,10 @@ export const ServiceAreasReplaceSchema = z.strictObject({
  * 4 MB caps the body at roughly the full India Post file (~155k rows), which is
  * the largest thing anyone will legitimately paste.
  */
-const csvBody = z.string().min(1).max(4 * 1024 * 1024)
+const csvBody = z
+  .string()
+  .min(1)
+  .max(4 * 1024 * 1024)
 
 export const ExceptionsImportSchema = z.strictObject({
   csv: csvBody,

@@ -203,7 +203,6 @@ export async function recordOutboundMessage(
   })
 }
 
-
 /** The stored status's rank, as SQL — the guard that keeps ticks monotonic. */
 const STATUS_RANK_SQL = sql`case ${waMessages.status}
     when 'sent' then 1

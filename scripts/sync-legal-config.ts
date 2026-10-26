@@ -40,7 +40,10 @@ const KEYS = ['legal.company', 'legal.manufacturer', 'invoice.sellerOfRecord'] a
 
 function entryFor(key: string) {
   const entry = CONFIG_DEFAULTS.find((e) => e.key === key)
-  if (!entry) throw new Error(`sync-legal-config: ${key} missing from CONFIG_DEFAULTS — seed-config.ts changed shape`)
+  if (!entry)
+    throw new Error(
+      `sync-legal-config: ${key} missing from CONFIG_DEFAULTS — seed-config.ts changed shape`
+    )
   return entry
 }
 
@@ -55,7 +58,10 @@ async function main(): Promise<void> {
   const pool = new pg.Pool({ connectionString, max: 1 })
   try {
     const db = drizzle(pool) as unknown as Db
-    const rows = await db.select().from(appConfig).where(inArray(appConfig.key, [...KEYS]))
+    const rows = await db
+      .select()
+      .from(appConfig)
+      .where(inArray(appConfig.key, [...KEYS]))
     const before = new Map(rows.map((r) => [r.key, r.value]))
 
     let changed = 0
@@ -84,13 +90,20 @@ async function main(): Promise<void> {
     }
     if (!apply) {
       // eslint-disable-next-line no-console
-      console.log(`\ndb:sync-legal-config: DRY RUN — ${changed} key(s) would change. Re-run with -- --yes to apply.`)
+      console.log(
+        `\ndb:sync-legal-config: DRY RUN — ${changed} key(s) would change. Re-run with -- --yes to apply.`
+      )
       return
     }
 
     for (const key of KEYS) {
       const entry = entryFor(key)
-      await upsertConfigEntry(db, key, { value: entry.value, description: entry.description }, undefined)
+      await upsertConfigEntry(
+        db,
+        key,
+        { value: entry.value, description: entry.description },
+        undefined
+      )
     }
     // eslint-disable-next-line no-console
     console.log(`\ndb:sync-legal-config: wrote ${KEYS.length} key(s).`)

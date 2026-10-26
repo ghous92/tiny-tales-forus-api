@@ -76,9 +76,7 @@ function parseAlerts(body: unknown): ParsedAlert[] {
   return alerts.map((raw): ParsedAlert => {
     const a = raw !== null && typeof raw === 'object' ? (raw as Record<string, unknown>) : {}
     const labels =
-      a.labels !== null && typeof a.labels === 'object'
-        ? (a.labels as Record<string, unknown>)
-        : {}
+      a.labels !== null && typeof a.labels === 'object' ? (a.labels as Record<string, unknown>) : {}
     const annotations =
       a.annotations !== null && typeof a.annotations === 'object'
         ? (a.annotations as Record<string, unknown>)
@@ -148,7 +146,11 @@ export const grafanaAlertWebhookRoutes: FastifyPluginAsyncZod<GrafanaAlertWebhoo
           if (taskEnqueuer !== undefined) {
             await taskEnqueuer.enqueue({ subject, html, dedupeKey })
           } else if (email !== undefined) {
-            await sendTransactionalEmail(email, { to: [{ email: alertEmailTo }], subject, html }, emailFetchImpl)
+            await sendTransactionalEmail(
+              email,
+              { to: [{ email: alertEmailTo }], subject, html },
+              emailFetchImpl
+            )
           } else {
             request.log.warn(
               { alert: alert.name },

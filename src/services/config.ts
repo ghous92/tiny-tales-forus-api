@@ -216,10 +216,7 @@ export async function getConfigValue<T = unknown>(db: Db, key: string): Promise<
  * would have made sixteen, and under Neon's autosuspend a cold cart read pays
  * for each one. Prefer this whenever a caller needs more than one key.
  */
-export async function getConfigValues(
-  db: Db,
-  keys: string[]
-): Promise<Map<string, unknown>> {
+export async function getConfigValues(db: Db, keys: string[]): Promise<Map<string, unknown>> {
   if (keys.length === 0) return new Map()
   const rows = await db
     .select({ key: appConfig.key, value: appConfig.value })

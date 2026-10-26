@@ -121,7 +121,9 @@ async function main(): Promise<void> {
     const existingByKey = new Map(existing.map((row) => [row.key, row.value]))
 
     /* eslint-disable no-console */
-    console.log(`db:seed-fulfilment-config: ${targets.length} keys in scope${dryRun ? ' (DRY RUN)' : ''}`)
+    console.log(
+      `db:seed-fulfilment-config: ${targets.length} keys in scope${dryRun ? ' (DRY RUN)' : ''}`
+    )
     for (const entry of targets) {
       const current = existingByKey.get(entry.key)
       console.log(

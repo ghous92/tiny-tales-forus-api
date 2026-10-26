@@ -60,9 +60,10 @@ describe('createAlertEmailTaskEnqueuer', () => {
     }
     expect(body.task.name).toBe(`${PARENT}/tasks/alert-email-abc123-firing`)
     expect(body.task.httpRequest.url).toBe('https://api.tinytales.test/v1/internal/alert-email')
-    expect(
-      JSON.parse(Buffer.from(body.task.httpRequest.body, 'base64').toString('utf8'))
-    ).toEqual({ subject: '[FIRING] tinytales-api error rate', html: '<p>boom</p>' })
+    expect(JSON.parse(Buffer.from(body.task.httpRequest.body, 'base64').toString('utf8'))).toEqual({
+      subject: '[FIRING] tinytales-api error rate',
+      html: '<p>boom</p>',
+    })
     expect(body.task.httpRequest.oidcToken.audience).toBe(CFG.audience)
   })
 

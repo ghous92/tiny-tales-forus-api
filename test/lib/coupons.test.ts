@@ -176,7 +176,14 @@ describe('resolveCouponDiscount', () => {
 
   // `waivesShipping` rides with the DISCOUNT, never with mere eligibility.
   it('carries waivesShipping through when the coupon applies', () => {
-    const result = resolveCouponDiscount(119, { code: 'REFILL10', rule: rule({ code: 'REFILL10', discountValue: 10, waivesShipping: true }) }, NOW)
+    const result = resolveCouponDiscount(
+      119,
+      {
+        code: 'REFILL10',
+        rule: rule({ code: 'REFILL10', discountValue: 10, waivesShipping: true }),
+      },
+      NOW
+    )
     expect(result.applied).toBe(true)
     expect(result.waivesShipping).toBe(true)
   })
@@ -184,21 +191,40 @@ describe('resolveCouponDiscount', () => {
   it('does NOT waive shipping when the coupon is below its minimum', () => {
     // Otherwise a shopper is told "add Rs X more to use this code" while
     // already banking the free delivery it was supposed to unlock.
-    const result = resolveCouponDiscount(50, { code: 'REFILL10', rule: rule({ code: 'REFILL10', minCartInr: 99, waivesShipping: true }) }, NOW)
+    const result = resolveCouponDiscount(
+      50,
+      { code: 'REFILL10', rule: rule({ code: 'REFILL10', minCartInr: 99, waivesShipping: true }) },
+      NOW
+    )
     expect(result.reason).toBe('below_min')
     expect(result.waivesShipping).toBe(false)
   })
 
   it('does NOT waive shipping when the coupon is inactive or expired', () => {
-    const inactive = resolveCouponDiscount(500, { code: 'REFILL10', rule: rule({ active: false, waivesShipping: true }) }, NOW)
+    const inactive = resolveCouponDiscount(
+      500,
+      { code: 'REFILL10', rule: rule({ active: false, waivesShipping: true }) },
+      NOW
+    )
     expect(inactive.waivesShipping).toBe(false)
-    const expired = resolveCouponDiscount(500, { code: 'REFILL10', rule: rule({ validTo: new Date('2026-01-01T00:00:00.000Z'), waivesShipping: true }) }, NOW)
+    const expired = resolveCouponDiscount(
+      500,
+      {
+        code: 'REFILL10',
+        rule: rule({ validTo: new Date('2026-01-01T00:00:00.000Z'), waivesShipping: true }),
+      },
+      NOW
+    )
     expect(expired.reason).toBe('expired')
     expect(expired.waivesShipping).toBe(false)
   })
 
   it('does NOT waive shipping when an eligible coupon computes to a zero discount', () => {
-    const result = resolveCouponDiscount(0, { code: 'REFILL10', rule: rule({ waivesShipping: true }) }, NOW)
+    const result = resolveCouponDiscount(
+      0,
+      { code: 'REFILL10', rule: rule({ waivesShipping: true }) },
+      NOW
+    )
     expect(result.applied).toBe(false)
     expect(result.waivesShipping).toBe(false)
   })

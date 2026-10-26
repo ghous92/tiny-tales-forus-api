@@ -25,9 +25,23 @@
 import type { LightMyRequestResponse } from 'fastify'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { appConfig, courierRateSlabs, courierServiceAreas, courierServiceExceptions, pickupNodes, pincodes } from '../../src/db/schema.js'
+import {
+  appConfig,
+  courierRateSlabs,
+  courierServiceAreas,
+  courierServiceExceptions,
+  pickupNodes,
+  pincodes,
+} from '../../src/db/schema.js'
 import { clearShippingRateLimits } from '../../src/routes/shipping.js'
-import { auth, createTestApp, promoteToAdmin, USER_A, USER_ADMIN, type TestContext } from '../helpers/app.js'
+import {
+  auth,
+  createTestApp,
+  promoteToAdmin,
+  USER_A,
+  USER_ADMIN,
+  type TestContext,
+} from '../helpers/app.js'
 
 const AHMEDABAD = '380001'
 /** Same taluk as the pickup node → Zone A. */
@@ -64,14 +78,42 @@ const SLABS = [
 /** Reference rows + a live rule, so the PUBLIC endpoints can actually answer. */
 async function seedReadWorld(): Promise<void> {
   await ctx.db.insert(pincodes).values([
-    { pincode: AHMEDABAD, officeName: 'Ahmedabad GPO', taluk: 'Ahmadabad City', district: 'Ahmadabad', state: 'Gujarat', lat: 23.02, lng: 72.57 },
-    { pincode: AHMEDABAD_SATELLITE, officeName: 'Satellite', taluk: 'Ahmadabad City', district: 'Ahmadabad', state: 'Gujarat', lat: 23.01, lng: 72.51 },
-    { pincode: SURAT, officeName: 'Nanpura', taluk: 'Surat City', district: 'Surat', state: 'Gujarat', lat: 21.18, lng: 72.82 },
+    {
+      pincode: AHMEDABAD,
+      officeName: 'Ahmedabad GPO',
+      taluk: 'Ahmadabad City',
+      district: 'Ahmadabad',
+      state: 'Gujarat',
+      lat: 23.02,
+      lng: 72.57,
+    },
+    {
+      pincode: AHMEDABAD_SATELLITE,
+      officeName: 'Satellite',
+      taluk: 'Ahmadabad City',
+      district: 'Ahmadabad',
+      state: 'Gujarat',
+      lat: 23.01,
+      lng: 72.51,
+    },
+    {
+      pincode: SURAT,
+      officeName: 'Nanpura',
+      taluk: 'Surat City',
+      district: 'Surat',
+      state: 'Gujarat',
+      lat: 21.18,
+      lng: 72.82,
+    },
   ])
 
   await ctx.db.insert(appConfig).values([
     { key: 'shipping.enabled', value: true, description: '' },
-    { key: 'shipping.freeAboveTiers', value: [{ uptoG: 2000, freeAboveInr: 249 }], description: '' },
+    {
+      key: 'shipping.freeAboveTiers',
+      value: [{ uptoG: 2000, freeAboveInr: 249 }],
+      description: '',
+    },
     { key: 'shipping.thresholdBasis', value: 'preCoupon', description: '' },
     { key: 'shipping.marginBps', value: 1000, description: '' },
     { key: 'shipping.packagingTareG', value: 60, description: '' },
@@ -83,10 +125,20 @@ async function seedReadWorld(): Promise<void> {
 async function seedViaAdmin(): Promise<void> {
   await seedReadWorld()
 
-  let res = await ctx.app.inject({ method: 'POST', url: '/v1/admin/shipping/nodes', headers: A(), payload: nodeBody() })
+  let res = await ctx.app.inject({
+    method: 'POST',
+    url: '/v1/admin/shipping/nodes',
+    headers: A(),
+    payload: nodeBody(),
+  })
   expect(res.statusCode).toBe(201)
 
-  res = await ctx.app.inject({ method: 'POST', url: '/v1/admin/shipping/couriers', headers: A(), payload: courierBody() })
+  res = await ctx.app.inject({
+    method: 'POST',
+    url: '/v1/admin/shipping/couriers',
+    headers: A(),
+    payload: courierBody(),
+  })
   expect(res.statusCode).toBe(201)
 
   res = await ctx.app.inject({
@@ -157,7 +209,12 @@ describe('auth', () => {
 
 describe('pickup nodes', () => {
   it('creates one with the schema defaults and no coordinates', async () => {
-    const res = await ctx.app.inject({ method: 'POST', url: '/v1/admin/shipping/nodes', headers: A(), payload: nodeBody() })
+    const res = await ctx.app.inject({
+      method: 'POST',
+      url: '/v1/admin/shipping/nodes',
+      headers: A(),
+      payload: nodeBody(),
+    })
 
     expect(res.statusCode).toBe(201)
     expect(res.json()).toEqual({
@@ -180,8 +237,18 @@ describe('pickup nodes', () => {
   })
 
   it('rejects a duplicate code', async () => {
-    await ctx.app.inject({ method: 'POST', url: '/v1/admin/shipping/nodes', headers: A(), payload: nodeBody() })
-    const res = await ctx.app.inject({ method: 'POST', url: '/v1/admin/shipping/nodes', headers: A(), payload: nodeBody({ name: 'Other' }) })
+    await ctx.app.inject({
+      method: 'POST',
+      url: '/v1/admin/shipping/nodes',
+      headers: A(),
+      payload: nodeBody(),
+    })
+    const res = await ctx.app.inject({
+      method: 'POST',
+      url: '/v1/admin/shipping/nodes',
+      headers: A(),
+      payload: nodeBody({ name: 'Other' }),
+    })
 
     expect(res.statusCode).toBe(422)
     expect(res.json().error.message).toContain('AHM-01')
@@ -198,12 +265,35 @@ describe('pickup nodes', () => {
   })
 
   it('lists by priority, then code', async () => {
-    await ctx.app.inject({ method: 'POST', url: '/v1/admin/shipping/nodes', headers: A(), payload: nodeBody({ code: 'SUR-01', priority: 5 }) })
-    await ctx.app.inject({ method: 'POST', url: '/v1/admin/shipping/nodes', headers: A(), payload: nodeBody({ code: 'AHM-02' }) })
-    await ctx.app.inject({ method: 'POST', url: '/v1/admin/shipping/nodes', headers: A(), payload: nodeBody({ code: 'AHM-01' }) })
+    await ctx.app.inject({
+      method: 'POST',
+      url: '/v1/admin/shipping/nodes',
+      headers: A(),
+      payload: nodeBody({ code: 'SUR-01', priority: 5 }),
+    })
+    await ctx.app.inject({
+      method: 'POST',
+      url: '/v1/admin/shipping/nodes',
+      headers: A(),
+      payload: nodeBody({ code: 'AHM-02' }),
+    })
+    await ctx.app.inject({
+      method: 'POST',
+      url: '/v1/admin/shipping/nodes',
+      headers: A(),
+      payload: nodeBody({ code: 'AHM-01' }),
+    })
 
-    const res = await ctx.app.inject({ method: 'GET', url: '/v1/admin/shipping/nodes', headers: A() })
-    expect(res.json().nodes.map((n: { code: string }) => n.code)).toEqual(['AHM-01', 'AHM-02', 'SUR-01'])
+    const res = await ctx.app.inject({
+      method: 'GET',
+      url: '/v1/admin/shipping/nodes',
+      headers: A(),
+    })
+    expect(res.json().nodes.map((n: { code: string }) => n.code)).toEqual([
+      'AHM-01',
+      'AHM-02',
+      'SUR-01',
+    ])
   })
 
   it('leaves the pin alone when only the name changes', async () => {
@@ -222,7 +312,11 @@ describe('pickup nodes', () => {
     })
 
     expect(res.statusCode).toBe(200)
-    expect(res.json()).toMatchObject({ name: 'Ahmedabad Warehouse (Sarkhej)', lat: 23.000357, lng: 72.5305072 })
+    expect(res.json()).toMatchObject({
+      name: 'Ahmedabad Warehouse (Sarkhej)',
+      lat: 23.000357,
+      lng: 72.5305072,
+    })
   })
 
   it('patches only what was sent, leaving the rest of the address intact', async () => {
@@ -289,7 +383,12 @@ describe('pickup nodes', () => {
   })
 
   it('keeps coordinates supplied alongside the address change', async () => {
-    await ctx.app.inject({ method: 'POST', url: '/v1/admin/shipping/nodes', headers: A(), payload: nodeBody() })
+    await ctx.app.inject({
+      method: 'POST',
+      url: '/v1/admin/shipping/nodes',
+      headers: A(),
+      payload: nodeBody(),
+    })
 
     const res = await ctx.app.inject({
       method: 'PUT',
@@ -302,26 +401,53 @@ describe('pickup nodes', () => {
   })
 
   it('404s on an unknown code, for both update and delete', async () => {
-    const put = await ctx.app.inject({ method: 'PUT', url: '/v1/admin/shipping/nodes/NOPE', headers: A(), payload: { name: 'x' } })
-    const del = await ctx.app.inject({ method: 'DELETE', url: '/v1/admin/shipping/nodes/NOPE', headers: A() })
+    const put = await ctx.app.inject({
+      method: 'PUT',
+      url: '/v1/admin/shipping/nodes/NOPE',
+      headers: A(),
+      payload: { name: 'x' },
+    })
+    const del = await ctx.app.inject({
+      method: 'DELETE',
+      url: '/v1/admin/shipping/nodes/NOPE',
+      headers: A(),
+    })
     expect(put.statusCode).toBe(404)
     expect(del.statusCode).toBe(404)
   })
 
   it('deletes', async () => {
-    await ctx.app.inject({ method: 'POST', url: '/v1/admin/shipping/nodes', headers: A(), payload: nodeBody() })
+    await ctx.app.inject({
+      method: 'POST',
+      url: '/v1/admin/shipping/nodes',
+      headers: A(),
+      payload: nodeBody(),
+    })
 
-    const res = await ctx.app.inject({ method: 'DELETE', url: '/v1/admin/shipping/nodes/AHM-01', headers: A() })
+    const res = await ctx.app.inject({
+      method: 'DELETE',
+      url: '/v1/admin/shipping/nodes/AHM-01',
+      headers: A(),
+    })
     expect(res.statusCode).toBe(204)
 
-    const list = await ctx.app.inject({ method: 'GET', url: '/v1/admin/shipping/nodes', headers: A() })
+    const list = await ctx.app.inject({
+      method: 'GET',
+      url: '/v1/admin/shipping/nodes',
+      headers: A(),
+    })
     expect(list.json().nodes).toEqual([])
   })
 })
 
 describe('couriers', () => {
   it('creates one with the cost-formula defaults', async () => {
-    const res = await ctx.app.inject({ method: 'POST', url: '/v1/admin/shipping/couriers', headers: A(), payload: courierBody() })
+    const res = await ctx.app.inject({
+      method: 'POST',
+      url: '/v1/admin/shipping/couriers',
+      headers: A(),
+      payload: courierBody(),
+    })
 
     expect(res.statusCode).toBe(201)
     expect(res.json()).toEqual({
@@ -351,18 +477,37 @@ describe('couriers', () => {
   })
 
   it('rejects an uppercase code — handles end up in URLs and ops tooling', async () => {
-    const res = await ctx.app.inject({ method: 'POST', url: '/v1/admin/shipping/couriers', headers: A(), payload: courierBody({ code: 'Delhivery' }) })
+    const res = await ctx.app.inject({
+      method: 'POST',
+      url: '/v1/admin/shipping/couriers',
+      headers: A(),
+      payload: courierBody({ code: 'Delhivery' }),
+    })
     expect(res.statusCode).toBe(422)
   })
 
   it('rejects a duplicate code', async () => {
-    await ctx.app.inject({ method: 'POST', url: '/v1/admin/shipping/couriers', headers: A(), payload: courierBody() })
-    const res = await ctx.app.inject({ method: 'POST', url: '/v1/admin/shipping/couriers', headers: A(), payload: courierBody({ name: 'Other' }) })
+    await ctx.app.inject({
+      method: 'POST',
+      url: '/v1/admin/shipping/couriers',
+      headers: A(),
+      payload: courierBody(),
+    })
+    const res = await ctx.app.inject({
+      method: 'POST',
+      url: '/v1/admin/shipping/couriers',
+      headers: A(),
+      payload: courierBody({ name: 'Other' }),
+    })
     expect(res.statusCode).toBe(422)
   })
 
   it('404s reading a courier that does not exist', async () => {
-    const res = await ctx.app.inject({ method: 'GET', url: '/v1/admin/shipping/couriers/nope', headers: A() })
+    const res = await ctx.app.inject({
+      method: 'GET',
+      url: '/v1/admin/shipping/couriers/nope',
+      headers: A(),
+    })
     expect(res.statusCode).toBe(404)
   })
 
@@ -415,7 +560,11 @@ describe('couriers', () => {
       payload: { csv: '380001,yes' },
     })
 
-    const res = await ctx.app.inject({ method: 'DELETE', url: '/v1/admin/shipping/couriers/delhivery', headers: A() })
+    const res = await ctx.app.inject({
+      method: 'DELETE',
+      url: '/v1/admin/shipping/couriers/delhivery',
+      headers: A(),
+    })
     expect(res.statusCode).toBe(204)
 
     // Orphan rate rows are invisible until someone re-creates the same code and
@@ -428,7 +577,12 @@ describe('couriers', () => {
 
 describe('rate cards', () => {
   beforeEach(async () => {
-    await ctx.app.inject({ method: 'POST', url: '/v1/admin/shipping/couriers', headers: A(), payload: courierBody() })
+    await ctx.app.inject({
+      method: 'POST',
+      url: '/v1/admin/shipping/couriers',
+      headers: A(),
+      payload: courierBody(),
+    })
   })
 
   it('replaces the card wholesale rather than merging into it', async () => {
@@ -448,7 +602,9 @@ describe('rate cards', () => {
 
     // Yesterday's zone-B rows are gone. A merge would leave them priced from a
     // contract nobody signed.
-    expect(res.json().slabs).toEqual([{ zone: 'A', uptoG: 500, rateInr: 33, addlPerG: 1000, addlRateInr: 0 }])
+    expect(res.json().slabs).toEqual([
+      { zone: 'A', uptoG: 500, rateInr: 33, addlPerG: 1000, addlRateInr: 0 },
+    ])
   })
 
   it('names a duplicate slab instead of leaking a primary-key violation', async () => {
@@ -469,7 +625,12 @@ describe('rate cards', () => {
   })
 
   it('accepts an empty card — a carrier being onboarded quotes nothing, not free', async () => {
-    await ctx.app.inject({ method: 'PUT', url: '/v1/admin/shipping/couriers/delhivery/slabs', headers: A(), payload: { slabs: SLABS } })
+    await ctx.app.inject({
+      method: 'PUT',
+      url: '/v1/admin/shipping/couriers/delhivery/slabs',
+      headers: A(),
+      payload: { slabs: SLABS },
+    })
 
     const res = await ctx.app.inject({
       method: 'PUT',
@@ -526,7 +687,11 @@ describe('cache invalidation', () => {
     await seedViaAdmin()
     expect(await serviceability(SURAT)).toMatchObject({ serviceable: true, zone: 'B' })
 
-    await ctx.app.inject({ method: 'DELETE', url: '/v1/admin/shipping/couriers/delhivery', headers: A() })
+    await ctx.app.inject({
+      method: 'DELETE',
+      url: '/v1/admin/shipping/couriers/delhivery',
+      headers: A(),
+    })
 
     expect(await serviceability(SURAT)).toMatchObject({
       serviceable: true,
@@ -576,7 +741,12 @@ describe('cache invalidation', () => {
 
 describe('serviceability CSV import', () => {
   beforeEach(async () => {
-    await ctx.app.inject({ method: 'POST', url: '/v1/admin/shipping/couriers', headers: A(), payload: courierBody() })
+    await ctx.app.inject({
+      method: 'POST',
+      url: '/v1/admin/shipping/couriers',
+      headers: A(),
+      payload: courierBody(),
+    })
   })
 
   async function importCsv(csv: string, replace = false): Promise<Record<string, unknown>> {
@@ -592,7 +762,14 @@ describe('serviceability CSV import', () => {
 
   it('skips the header row and counts the rest', async () => {
     const result = await importCsv('Pincode,Serviceable\n380001,Y\n395003,N\n360002,yes')
-    expect(result).toMatchObject({ parsed: 3, inserted: 3, updated: 0, skipped: 0, errors: [], errorsTruncated: false })
+    expect(result).toMatchObject({
+      parsed: 3,
+      inserted: 3,
+      updated: 0,
+      skipped: 0,
+      errors: [],
+      errorsTruncated: false,
+    })
   })
 
   it('treats a missing second column as serviceable', async () => {
@@ -672,7 +849,11 @@ describe('pincode CSV import', () => {
 
     expect(result).toMatchObject({ parsed: 2, inserted: 2, updated: 0, skipped: 0 })
     const rows = await ctx.db.select().from(pincodes)
-    expect(rows.find((row) => row.pincode === '395003')).toMatchObject({ taluk: 'Surat City', lat: null, lng: null })
+    expect(rows.find((row) => row.pincode === '395003')).toMatchObject({
+      taluk: 'Surat City',
+      lat: null,
+      lng: null,
+    })
   })
 
   it('upserts on re-import', async () => {
@@ -693,14 +874,18 @@ describe('pincode CSV import', () => {
     const result = await importCsv('380001,Ahmedabad GPO,,Ahmadabad,Gujarat')
 
     expect(result).toMatchObject({ parsed: 1, inserted: 0, skipped: 1 })
-    expect((result.errors as { message: string }[])[0]?.message).toContain('Zone A is derived from taluk')
+    expect((result.errors as { message: string }[])[0]?.message).toContain(
+      'Zone A is derived from taluk'
+    )
     expect(await ctx.db.select().from(pincodes)).toEqual([])
   })
 
   it('rejects a blank state — the serviceable-state fence reads that column', async () => {
     const result = await importCsv('380001,Ahmedabad GPO,Ahmadabad City,Ahmadabad,')
     expect(result).toMatchObject({ skipped: 1 })
-    expect((result.errors as { message: string }[])[0]?.message).toContain('serviceable-state fence')
+    expect((result.errors as { message: string }[])[0]?.message).toContain(
+      'serviceable-state fence'
+    )
   })
 
   it('caps the reported errors and flags the truncation', async () => {
@@ -716,7 +901,11 @@ describe('pincode CSV import', () => {
 
 describe('readiness', () => {
   async function readiness(): Promise<{ ready: boolean; problems: string[] }> {
-    const res = await ctx.app.inject({ method: 'GET', url: '/v1/admin/shipping/readiness', headers: A() })
+    const res = await ctx.app.inject({
+      method: 'GET',
+      url: '/v1/admin/shipping/readiness',
+      headers: A(),
+    })
     expect(res.statusCode).toBe(200)
     return res.json() as { ready: boolean; problems: string[] }
   }
@@ -752,7 +941,10 @@ describe('readiness', () => {
 
 describe('forward geocode', () => {
   function stubGoogle(body: unknown): void {
-    vi.stubGlobal('fetch', vi.fn(async () => ({ ok: true, json: async () => body }) as Response))
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => ({ ok: true, json: async () => body }) as Response)
+    )
   }
 
   const GOOGLE_OK = {
@@ -766,7 +958,9 @@ describe('forward geocode', () => {
     ],
   }
 
-  async function forward(address = 'Saman Product Company, Ahmedabad'): Promise<LightMyRequestResponse> {
+  async function forward(
+    address = 'Saman Product Company, Ahmedabad'
+  ): Promise<LightMyRequestResponse> {
     return ctx.app.inject({
       method: 'POST',
       url: '/v1/admin/shipping/geocode/forward',
@@ -813,7 +1007,12 @@ describe('forward geocode', () => {
     stubGoogle(GOOGLE_OK)
     ctx = await createTestApp({ googleMapsServerKey: 'test-key' })
     await makeAdmin()
-    await ctx.app.inject({ method: 'POST', url: '/v1/admin/shipping/nodes', headers: A(), payload: nodeBody() })
+    await ctx.app.inject({
+      method: 'POST',
+      url: '/v1/admin/shipping/nodes',
+      headers: A(),
+      payload: nodeBody(),
+    })
 
     await forward()
 

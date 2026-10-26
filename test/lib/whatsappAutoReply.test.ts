@@ -8,7 +8,11 @@
 
 import { describe, expect, it } from 'vitest'
 
-import type { CatalogSnapshot, CatalogProduct, CatalogVariant } from '../../src/contracts/catalog.js'
+import type {
+  CatalogSnapshot,
+  CatalogProduct,
+  CatalogVariant,
+} from '../../src/contracts/catalog.js'
 import { buildCatalogAutoReply, FALLBACK_AUTO_REPLY } from '../../src/lib/whatsapp/autoReply.js'
 
 function variant(over: Partial<CatalogVariant> = {}): CatalogVariant {

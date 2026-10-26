@@ -128,7 +128,9 @@ async function main(): Promise<void> {
     if (summary.alreadyMerged) {
       console.error('merge-cream-colors: dan-cream already exists — nothing to do')
     } else {
-      console.error(`merge-cream-colors: repointed ${summary.variantsRepointed} variants onto dan-cream`)
+      console.error(
+        `merge-cream-colors: repointed ${summary.variantsRepointed} variants onto dan-cream`
+      )
     }
   } finally {
     await pool.end()

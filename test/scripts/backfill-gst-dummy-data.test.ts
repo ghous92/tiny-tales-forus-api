@@ -19,12 +19,11 @@ beforeEach(async () => {
 })
 
 async function seedProduct(id: string, category: string): Promise<void> {
-  await db
-    .insert(categories)
-    .values({ slug: category, label: category })
-    .onConflictDoNothing()
+  await db.insert(categories).values({ slug: category, label: category }).onConflictDoNothing()
   await db.insert(products).values({ id, slug: id, name: id, category })
-  await db.insert(productVariants).values({ sku: `${id}-sku`, productId: id, size: '100ml', priceInr: 100 })
+  await db
+    .insert(productVariants)
+    .values({ sku: `${id}-sku`, productId: id, size: '100ml', priceInr: 100 })
 }
 
 describe('backfillGstDummyData', () => {

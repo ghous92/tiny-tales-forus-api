@@ -44,7 +44,9 @@ const tasks = {
 }
 
 /** A registry whose WhatsApp adapter answers however the test says. */
-function channels(send: () => Promise<{ ok: boolean; error?: string }>): NotificationChannelRegistry {
+function channels(
+  send: () => Promise<{ ok: boolean; error?: string }>
+): NotificationChannelRegistry {
   return { whatsapp_cloud: { send: async () => send() } }
 }
 
@@ -86,7 +88,13 @@ describe('sendPendingOpsNotifications enqueue intent', () => {
     // The common case by far, and the one that decides the bill: a delivered
     // notification leaves nothing for the sweep, so a task here would be a
     // guaranteed-empty Neon wake on every single paid order.
-    sendPendingOpsNotifications(db, ORDER_ID, channels(async () => ({ ok: true })), fakeLog(), tasks)
+    sendPendingOpsNotifications(
+      db,
+      ORDER_ID,
+      channels(async () => ({ ok: true })),
+      fakeLog(),
+      tasks
+    )
     await settle()
     expect(enqueued).toEqual([])
   })

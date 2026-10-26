@@ -54,7 +54,10 @@ import type { z } from 'zod'
 type Tx = Parameters<Parameters<Db['transaction']>[0]>[0]
 type ProductImages = z.infer<typeof ProductImagesSchema>
 
-const EMPTY_IMAGES: ProductImages = { main: { thumb: '', grid: '', pdp: '', zoom: '' }, gallery: [] }
+const EMPTY_IMAGES: ProductImages = {
+  main: { thumb: '', grid: '', pdp: '', zoom: '' },
+  gallery: [],
+}
 
 // --- Row → API mappers -------------------------------------------------------
 
@@ -209,7 +212,10 @@ function toAdminCategory(row: CategoryRow): AdminCategory {
 export async function listAdminProducts(db: Db): Promise<AdminProduct[]> {
   const [productRows, variantRows] = await Promise.all([
     db.select().from(products).orderBy(asc(products.sortOrder), asc(products.id)),
-    db.select().from(productVariants).orderBy(asc(productVariants.sortOrder), asc(productVariants.sizeMl)),
+    db
+      .select()
+      .from(productVariants)
+      .orderBy(asc(productVariants.sortOrder), asc(productVariants.sizeMl)),
   ])
   const byProduct = new Map<string, ProductVariantRow[]>()
   for (const v of variantRows) {
@@ -606,6 +612,10 @@ async function assertCategoryExists(tx: Tx, slug: string): Promise<void> {
 }
 
 async function assertProductExists(tx: Tx, id: string): Promise<void> {
-  const [p] = await tx.select({ id: products.id }).from(products).where(eq(products.id, id)).limit(1)
+  const [p] = await tx
+    .select({ id: products.id })
+    .from(products)
+    .where(eq(products.id, id))
+    .limit(1)
   if (!p) throw notFound(`Product "${id}" not found`)
 }

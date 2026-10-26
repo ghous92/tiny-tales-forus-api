@@ -215,7 +215,9 @@ async function main(): Promise<void> {
   const up = argv.includes('--up')
   const down = argv.includes('--down')
   if (up === down) {
-    console.error('db:live-test-sku: pass exactly one of --up | --down [--category <slug>] [--price <inr>]')
+    console.error(
+      'db:live-test-sku: pass exactly one of --up | --down [--category <slug>] [--price <inr>]'
+    )
     process.exit(1)
   }
 

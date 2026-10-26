@@ -124,7 +124,10 @@ describe('authenticate — fast path', () => {
       ).statusCode
     ).toBe(200)
 
-    await ctx.db.update(users).set({ role: 'customer' }).where(eq(users.firebaseUid, USER_ADMIN.uid))
+    await ctx.db
+      .update(users)
+      .set({ role: 'customer' })
+      .where(eq(users.firebaseUid, USER_ADMIN.uid))
 
     const after = await ctx.app.inject({
       method: 'GET',

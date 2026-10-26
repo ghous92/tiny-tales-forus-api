@@ -26,7 +26,8 @@ import { renderInvoiceEmailHtml, renderInvoicePrintHtml } from '../../src/lib/in
 const REGISTERED_SELLER: InvoiceSellerBlock = {
   legalName: 'Adix AI',
   brand: 'Tiny Tales',
-  address: '3, Qamar Makhdumi Road, near Noori Masjid, Bhuli Road, Wasseypur, Dhanbad, Jharkhand 826001',
+  address:
+    '3, Qamar Makhdumi Road, near Noori Masjid, Bhuli Road, Wasseypur, Dhanbad, Jharkhand 826001',
   gstRegistered: true,
   gstin: '20AAAAA0000A1Z5',
   supportEmail: 'hello@adix.ai',

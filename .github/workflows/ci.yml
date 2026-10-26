@@ -3,13 +3,13 @@ name: CI
 on:
   pull_request:
     paths-ignore:
-      - "**.md"
-      - "docs/**"
+      - '**.md'
+      - 'docs/**'
   push:
     branches: [main]
     paths-ignore:
-      - "**.md"
-      - "docs/**"
+      - '**.md'
+      - 'docs/**'
 
 permissions:
   contents: read

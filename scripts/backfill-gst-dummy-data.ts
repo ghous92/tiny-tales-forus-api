@@ -97,10 +97,7 @@ export async function backfillGstDummyData(
     // (services/catalogAdmin.ts): the products row and its catalog_items
     // projection must never observably disagree (ARCHITECTURE.md rule 6).
     await db.transaction(async (tx: Tx) => {
-      await tx
-        .update(products)
-        .set({ hsnCode, gstRatePct })
-        .where(eq(products.id, product.id))
+      await tx.update(products).set({ hsnCode, gstRatePct }).where(eq(products.id, product.id))
       await projectProduct(tx, product.id)
     })
     log(`updated ${product.id} (${product.category}): hsn → "${hsnCode}", rate → ${gstRatePct}%`)

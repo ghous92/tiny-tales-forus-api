@@ -103,9 +103,7 @@ describe('mapScan — NDR overrides the base table (DoD 3)', () => {
   it('does NOT override a delivered scan', () => {
     // A parcel that once carried an NDR code and then got delivered is
     // delivered. Letting the code win here would un-deliver it.
-    const result = mapScan(
-      scan({ statusType: 'DL', status: 'Delivered', statusCode: 'EOD-74' })
-    )
+    const result = mapScan(scan({ statusType: 'DL', status: 'Delivered', statusCode: 'EOD-74' }))
     expect(result.status).toBe('delivered')
     expect(result.isNdr).toBe(false)
   })
@@ -140,9 +138,9 @@ describe('mapScan — NDR overrides the base table (DoD 3)', () => {
   })
 
   it('is not fooled by casing or padding on the code', () => {
-    expect(mapScan(scan({ statusType: 'UD', status: 'Pending', statusCode: ' eod-74 ' })).status).toBe(
-      'ndr'
-    )
+    expect(
+      mapScan(scan({ statusType: 'UD', status: 'Pending', statusCode: ' eod-74 ' })).status
+    ).toBe('ndr')
   })
 })
 
