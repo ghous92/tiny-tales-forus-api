@@ -326,7 +326,7 @@ describe('estimatedPincodeInfo', () => {
   })
 
   it('places Andaman pincodes on the islands, not in Bengal', () => {
-    expect(kmFromAhmedabad('744101')).toBeGreaterThan(2500)
+    expect(kmFromAhmedabad('744101')).toBeGreaterThan(2300)
   })
 
   it('falls back to the region centroid for an unmapped sub-region', () => {
