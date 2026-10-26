@@ -58,7 +58,6 @@ import type {
 } from '../contracts/payment.js'
 import type { Db } from '../db/client.js'
 import { cartItems, paymentAttempts, payments, users, type PaymentRow } from '../db/schema.js'
-import { codSplit } from '../lib/cod.js'
 import {
   conflict,
   notFound,
@@ -67,6 +66,7 @@ import {
   signatureInvalid,
   validationFailed,
 } from '../lib/errors.js'
+import { RAZORPAY_STORE_TAG } from '../lib/brand.js'
 import { gatewayErrorDescription, type PaymentsGateway, type RazorpayApi } from '../lib/razorpay.js'
 import { getItemsBySkus, getSkusByProductId, type CatalogItem } from './catalog.js'
 
@@ -240,9 +240,6 @@ export interface OrderInvoiceSource {
   couponCode: string | null
   shippingFeeInr: number
   totalInr: number
-  paymentMode: 'prepaid' | 'cod'
-  /** Still to be collected in cash at the door; 0 on a prepaid order. */
-  codAmountInr: number
 }
 
 /**
@@ -279,8 +276,6 @@ export function orderInvoiceSourceFromRow(row: PaymentRow): OrderInvoiceSource |
     couponCode: snapshot.couponCode ?? null,
     shippingFeeInr: snapshot.shippingFeeInr ?? 0,
     totalInr: snapshot.totalInr,
-    paymentMode: row.paymentMode as 'prepaid' | 'cod',
-    codAmountInr: row.codAmountPaise / 100,
   }
 }
 
@@ -468,17 +463,12 @@ function toPaymentOrder(row: PaymentRow, keyId: string, mode: 'test' | 'live'): 
   return {
     orderId: row.orderId,
     keyId,
-    // `prepaidAmountPaise`, NOT `amountPaise`. This pair is what the client
-    // hands Razorpay Checkout, and on a COD order the gateway must only ever
-    // see the token. The order total travels beside it as `orderTotalInr`.
     amountInr: row.prepaidAmountPaise / 100,
     amountPaise: row.prepaidAmountPaise,
     currency: 'INR',
     status: row.status as PaymentOrder['status'],
     mode,
-    paymentMode: row.paymentMode as PaymentOrder['paymentMode'],
     orderTotalInr: row.amountPaise / 100,
-    codAmountInr: row.codAmountPaise / 100,
   }
 }
 
@@ -515,20 +505,6 @@ export interface OrderSurvey {
   heardAbout?: string | undefined
   /** Only ever set alongside `heardAbout === 'other'`; the contract enforces it. */
   heardAboutOther?: string | undefined
-}
-
-/**
- * A COD order's money split, as decided by the ROUTE.
- *
- * This service never evaluates eligibility itself — that needs config and a
- * count, i.e. another module's service, which ARCHITECTURE.md rule 2 forbids
- * it from importing. The route calls `assertCodAllowed` and passes the
- * already-validated token down. Absent ⇒ a prepaid order, which is what every
- * caller written before COD existed means.
- */
-export interface OrderCod {
-  /** The partial prepayment in rupees; the gateway is charged exactly this. */
-  tokenInr: number
 }
 
 export async function createOrder(
@@ -574,12 +550,6 @@ export async function createOrder(
    */
   survey?: OrderSurvey,
   /**
-   * Present ⇒ this is a cash-on-delivery order. See {@link OrderCod}: the
-   * route has already re-validated eligibility against this order's own
-   * address and the live monthly cap.
-   */
-  cod?: OrderCod,
-  /**
    * Ad-audience opt-in as ticked at checkout. Same undefined-is-not-an-answer
    * rule as `marketingWhatsappOptIn`, and itemised separately in the snapshot
    * because it is a separate purpose.
@@ -616,30 +586,14 @@ export async function createOrder(
 
   const amountPaise = toPaise(cart.totalInr)
 
-  // The split. `amountPaise` stays the ORDER TOTAL on both modes — the invoice,
-  // `Order Completed` revenue, the margin report and realised CAC all read it,
-  // and redefining it for COD would understate revenue in every one of them at
-  // once (docs/SPEC-COD.md D1). Only `codAmountPaise` is stored;
-  // `prepaid_amount_paise` is a generated column, so the token can never drift
-  // from the balance.
-  const { prepaidAmountPaise, codAmountPaise } = cod
-    ? codSplit(amountPaise, cod.tokenInr)
-    : { prepaidAmountPaise: amountPaise, codAmountPaise: 0 }
-
-  // A token that does not leave a positive balance would violate
-  // `payments_cod_mode_consistent` at insert. The eligibility rule already
-  // refuses it (`cart_below_token`); this is the belt to that braces, because
-  // the failure it prevents is a caught database error at checkout.
-  if (cod && codAmountPaise <= 0) {
-    throw validationFailed('This order is too small to pay on delivery')
-  }
-
   const rzp = await gateway.client()
   const order = await rzp.orders.create({
-    // The GATEWAY charge — the token on a COD order, the whole total otherwise.
-    amount: prepaidAmountPaise,
+    amount: amountPaise,
     currency: 'INR',
-    notes: { userId },
+    // `store` tags the order as ours: the Razorpay account is shared with
+    // another storefront, so both webhooks receive every event (see
+    // lib/brand.ts and the foreign-order guard in handleWebhook).
+    notes: { userId, store: RAZORPAY_STORE_TAG },
     // Force auto-capture regardless of the merchant dashboard's capture setting —
     // an authorized-but-not-captured payment can't be refunded (cancelOrder needs it captured).
     payment_capture: 1,
@@ -653,8 +607,6 @@ export async function createOrder(
       amountPaise,
       currency: 'INR',
       status: 'pending',
-      paymentMode: cod ? 'cod' : 'prepaid',
-      codAmountPaise,
       cartSnapshot: {
         // The cascade winner is frozen HERE, at create time, not looked up at
         // capture time — see `CartSnapshot.items[].stockNodeId` for why.
@@ -1861,13 +1813,6 @@ async function toOrders(
       paidAt: row.paidAt ? row.paidAt.toISOString() : null,
       items: toOrderItems(snapshot.items, catalogBySku),
       refund: toOrderRefund(row, refundPolicy),
-      paymentMode: row.paymentMode as Order['paymentMode'],
-      // Off the ROW, not the cart snapshot: the snapshot froze what the order
-      // cost, and this is how it is being settled — two different facts that
-      // happen to sum to the same number.
-      codAmountInr: row.codAmountPaise / 100,
-      prepaidAmountInr: row.prepaidAmountPaise / 100,
-      codCollectedAt: row.codCollectedAt ? row.codCollectedAt.toISOString() : null,
     }
   })
 }

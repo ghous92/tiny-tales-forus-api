@@ -439,66 +439,12 @@ describe('GET /v1/shipping/quote', () => {
 })
 
 describe('GET /v1/shipping/cod-preview', () => {
-  it('exposes the live token before a pincode without exposing the private policy', async () => {
-    await ctx.db.insert(appConfig).values({
-      key: 'payments.cod.enabled',
-      value: true,
-      description: '',
-    })
-
+  it('is gone: Tiny Tales is prepaid only, so there is no cash-on-delivery preview', async () => {
     const res = await ctx.app.inject({
       method: 'GET',
-      url: `/v1/shipping/cod-preview?sku=${SKU_OIL}`,
+      url: '/v1/shipping/cod-preview?sku=ANY&pincode=380015',
     })
-
-    expect(res.statusCode).toBe(200)
-    expect(res.json()).toEqual({
-      available: true,
-      pincodeRequired: true,
-      tokenInr: 49,
-      dueOnDeliveryInr: 91,
-      totalInr: 140,
-      reason: null,
-    })
-  })
-
-  it('folds the real delivery fee into the exact post-pincode balance', async () => {
-    await ctx.db.insert(appConfig).values({
-      key: 'payments.cod.enabled',
-      value: true,
-      description: '',
-    })
-
-    const res = await ctx.app.inject({
-      method: 'GET',
-      url: `/v1/shipping/cod-preview?sku=${SKU_OIL}&pincode=${SURAT}`,
-    })
-
-    expect(res.statusCode).toBe(200)
-    expect(res.json()).toEqual({
-      available: true,
-      pincodeRequired: false,
-      tokenInr: 49,
-      dueOnDeliveryInr: 150,
-      totalInr: 199,
-      reason: null,
-    })
-  })
-
-  it('fails closed when the live COD switch is off', async () => {
-    const res = await ctx.app.inject({
-      method: 'GET',
-      url: `/v1/shipping/cod-preview?sku=${SKU_OIL}`,
-    })
-
-    expect(res.statusCode).toBe(200)
-    expect(res.json()).toMatchObject({
-      available: false,
-      pincodeRequired: false,
-      tokenInr: 0,
-      dueOnDeliveryInr: 0,
-      reason: 'disabled',
-    })
+    expect(res.statusCode).toBe(404)
   })
 })
 

@@ -63,11 +63,10 @@ import type {
   Cart,
   CartLine,
   CartMergeItem,
-  CartCod,
   CartMergeResponse,
   CartShipping,
 } from '../contracts/cart.js'
-import { COD_NONE, MAX_LINES, MAX_QTY_PER_LINE, SHIPPING_NONE } from '../contracts/cart.js'
+import { MAX_LINES, MAX_QTY_PER_LINE, SHIPPING_NONE } from '../contracts/cart.js'
 import type { Db } from '../db/client.js'
 import { cartItems, type CartItemRow } from '../db/schema.js'
 import { COUPON_NONE, resolveCouponDiscount, type CouponLookup } from '../lib/coupons.js'
@@ -101,22 +100,6 @@ export type CartShippingResolver = (input: {
   couponWaivesShipping: boolean
   cartUpdatedAt: string
 }) => CartShipping
-
-/**
- * How this module asks whether the cart may be paid cash on delivery, without
- * importing the COD service. Same shape and same reason as
- * {@link CartShippingResolver}: the ROUTE loads the config, the destination and
- * the month's COD count, and binds them into one plain function.
- *
- * It takes `totalInr` because eligibility is decided on the amount the shopper
- * would actually owe — after wholesale, after the coupon, INCLUDING delivery —
- * which is the last number this file computes and the only one the cap and the
- * ceiling should be measured against.
- *
- * Defaulting to "no resolver" keeps every caller written before COD existed
- * returning {@link COD_NONE}, which is exactly "cash orders are off".
- */
-export type CartCodResolver = (input: { totalInr: number }) => CartCod
 
 /** A drizzle transaction handle — same query surface as {@link Db}. */
 type Tx = Parameters<Parameters<Db['transaction']>[0]>[0]
@@ -157,8 +140,7 @@ function toCart(
   catalogItems: CatalogItem[],
   rule: WholesaleRule,
   coupon: CouponLookup = COUPON_NONE,
-  resolveShipping?: CartShippingResolver,
-  resolveCod?: CartCodResolver
+  resolveShipping?: CartShippingResolver
 ): Cart {
   const bySku = new Map(catalogItems.map((item) => [item.sku, item]))
 
@@ -232,11 +214,6 @@ function toCart(
   // Delivery is added AFTER the discount — freight is not discountable.
   const totalInr = postCouponInr + shipping.feeInr
 
-  // Decided on the FINAL total, which is why it is resolved here rather than
-  // alongside `shipping` above: the COD ceiling and the token both apply to
-  // what the shopper actually owes, delivery included.
-  const cod = resolveCod ? resolveCod({ totalInr }) : COD_NONE
-
   return {
     items,
     count,
@@ -252,7 +229,6 @@ function toCart(
     },
     coupon: { ...couponResult, subtotalInr: couponSubtotalInr },
     shipping,
-    cod,
     updatedAt,
   }
 }
@@ -270,8 +246,7 @@ async function loadCart(
   rule: WholesaleRule,
   coupon: CouponLookup = COUPON_NONE,
   skus?: string[],
-  resolveShipping?: CartShippingResolver,
-  resolveCod?: CartCodResolver
+  resolveShipping?: CartShippingResolver
 ): Promise<Cart> {
   const allRows = await db.select().from(cartItems).where(eq(cartItems.userId, userId))
   const rows = skus ? allRows.filter((row) => skus.includes(row.sku)) : allRows
@@ -279,7 +254,7 @@ async function loadCart(
     db as Db,
     rows.map((row) => row.sku)
   )
-  return toCart(rows, catalog, rule, coupon, resolveShipping, resolveCod)
+  return toCart(rows, catalog, rule, coupon, resolveShipping)
 }
 
 /**
@@ -299,10 +274,9 @@ export async function getCart(
   rule: WholesaleRule = WHOLESALE_OFF,
   skus?: string[],
   coupon: CouponLookup = COUPON_NONE,
-  resolveShipping?: CartShippingResolver,
-  resolveCod?: CartCodResolver
+  resolveShipping?: CartShippingResolver
 ): Promise<Cart> {
-  return loadCart(db, userId, rule, coupon, skus, resolveShipping, resolveCod)
+  return loadCart(db, userId, rule, coupon, skus, resolveShipping)
 }
 
 /**
@@ -317,8 +291,7 @@ export async function putCartLine(
   sku: string,
   qty: number,
   rule: WholesaleRule = WHOLESALE_OFF,
-  resolveShipping?: CartShippingResolver,
-  resolveCod?: CartCodResolver
+  resolveShipping?: CartShippingResolver
 ): Promise<Cart> {
   await db.transaction(async (tx: Tx) => {
     const catalogItem = await getItemBySku(tx as Db, sku)
@@ -350,7 +323,7 @@ export async function putCartLine(
         set: { qty, priceInrSnapshot: catalogItem.priceInr, updatedAt: sql`now()` },
       })
   })
-  return loadCart(db, userId, rule, COUPON_NONE, undefined, resolveShipping, resolveCod)
+  return loadCart(db, userId, rule, COUPON_NONE, undefined, resolveShipping)
 }
 
 /** DELETE /v1/cart/items/:sku — remove one line; missing line -> 404. */
@@ -359,15 +332,14 @@ export async function deleteCartLine(
   userId: string,
   sku: string,
   rule: WholesaleRule = WHOLESALE_OFF,
-  resolveShipping?: CartShippingResolver,
-  resolveCod?: CartCodResolver
+  resolveShipping?: CartShippingResolver
 ): Promise<Cart> {
   const [deleted] = await db
     .delete(cartItems)
     .where(and(eq(cartItems.userId, userId), eq(cartItems.sku, sku)))
     .returning({ sku: cartItems.sku })
   if (!deleted) throw notFound(`Cart line "${sku}" not found`)
-  return loadCart(db, userId, rule, COUPON_NONE, undefined, resolveShipping, resolveCod)
+  return loadCart(db, userId, rule, COUPON_NONE, undefined, resolveShipping)
 }
 
 /** DELETE /v1/cart — clear every line for the user. */
@@ -389,8 +361,7 @@ export async function mergeCart(
   userId: string,
   items: CartMergeItem[],
   rule: WholesaleRule = WHOLESALE_OFF,
-  resolveShipping?: CartShippingResolver,
-  resolveCod?: CartCodResolver
+  resolveShipping?: CartShippingResolver
 ): Promise<CartMergeResponse> {
   const cart = await db.transaction(async (tx: Tx) => {
     const skus = items.map((item) => item.sku)
@@ -444,8 +415,7 @@ export async function mergeCart(
         rule,
         COUPON_NONE,
         undefined,
-        resolveShipping,
-        resolveCod
+        resolveShipping
       ),
       skipped,
     }

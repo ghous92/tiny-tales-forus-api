@@ -322,11 +322,7 @@ CREATE TABLE "payments" (
 	"currency" text DEFAULT 'INR' NOT NULL,
 	"status" text DEFAULT 'pending' NOT NULL,
 	"razorpay_payment_id" text,
-	"payment_mode" text DEFAULT 'prepaid' NOT NULL,
-	"cod_amount_paise" integer DEFAULT 0 NOT NULL,
-	"prepaid_amount_paise" integer GENERATED ALWAYS AS ("amount_paise" - "cod_amount_paise") STORED NOT NULL,
-	"cod_collected_at" timestamp with time zone,
-	"cod_collected_amount_paise" integer,
+	"prepaid_amount_paise" integer GENERATED ALWAYS AS ("amount_paise") STORED NOT NULL,
 	"cart_snapshot" jsonb NOT NULL,
 	"address_snapshot" jsonb NOT NULL,
 	"shipping_snapshot" jsonb,
@@ -353,11 +349,6 @@ CREATE TABLE "payments" (
 	"heard_about_other" text,
 	CONSTRAINT "payments_amount_paise_positive" CHECK ("payments"."amount_paise" > 0),
 	CONSTRAINT "payments_status_valid" CHECK ("payments"."status" in ('pending','paid','failed','refunded')),
-	CONSTRAINT "payments_payment_mode_valid" CHECK ("payments"."payment_mode" in ('prepaid','cod')),
-	CONSTRAINT "payments_cod_mode_consistent" CHECK (("payments"."payment_mode" = 'cod') = ("payments"."cod_amount_paise" > 0)),
-	CONSTRAINT "payments_cod_amounts_non_negative" CHECK ("payments"."cod_amount_paise" >= 0 and "payments"."cod_amount_paise" <= "payments"."amount_paise" and ("payments"."cod_collected_amount_paise" is null or "payments"."cod_collected_amount_paise" >= 0)),
-	CONSTRAINT "payments_cod_collection_paired" CHECK (("payments"."cod_collected_at" is null) = ("payments"."cod_collected_amount_paise" is null)),
-	CONSTRAINT "payments_cod_collection_requires_cod" CHECK ("payments"."cod_collected_at" is null or "payments"."payment_mode" = 'cod'),
 	CONSTRAINT "payments_heard_about_valid" CHECK ("payments"."heard_about" is null or "payments"."heard_about" in ('google_search','instagram','facebook','youtube','whatsapp','amazon','friend_family','other')),
 	CONSTRAINT "payments_heard_about_other_requires_other" CHECK ("payments"."heard_about_other" is null or "payments"."heard_about" is not distinct from 'other'),
 	CONSTRAINT "payments_refund_status_valid" CHECK ("payments"."refund_status" is null or "payments"."refund_status" in ('pending','processed','failed'))
@@ -725,7 +716,6 @@ CREATE INDEX "payments_user_id_created_at_idx" ON "payments" USING btree ("user_
 CREATE INDEX "payments_utm_campaign_idx" ON "payments" USING btree ("utm_campaign","created_at");--> statement-breakpoint
 CREATE INDEX "payments_heard_about_idx" ON "payments" USING btree ("heard_about","created_at");--> statement-breakpoint
 CREATE INDEX "payments_status_created_at_idx" ON "payments" USING btree ("status","created_at");--> statement-breakpoint
-CREATE INDEX "payments_cod_created_at_idx" ON "payments" USING btree ("created_at") WHERE "payments"."payment_mode" = 'cod';--> statement-breakpoint
 CREATE INDEX "pickup_nodes_active_priority_idx" ON "pickup_nodes" USING btree ("is_active","priority");--> statement-breakpoint
 CREATE INDEX "pincodes_state_taluk_idx" ON "pincodes" USING btree ("state","taluk");--> statement-breakpoint
 CREATE INDEX "product_variants_product_id_idx" ON "product_variants" USING btree ("product_id");--> statement-breakpoint

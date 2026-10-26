@@ -1,5 +1,5 @@
 {
-  "id": "72cdc66a-866c-4cb1-aa3d-6853c2209c39",
+  "id": "e16c5ed0-e956-4072-baeb-4f130c244cab",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -2704,41 +2704,15 @@
           "primaryKey": false,
           "notNull": false
         },
-        "payment_mode": {
-          "name": "payment_mode",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'prepaid'"
-        },
-        "cod_amount_paise": {
-          "name": "cod_amount_paise",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "default": 0
-        },
         "prepaid_amount_paise": {
           "name": "prepaid_amount_paise",
           "type": "integer",
           "primaryKey": false,
           "notNull": true,
           "generated": {
-            "as": "\"amount_paise\" - \"cod_amount_paise\"",
+            "as": "\"amount_paise\"",
             "type": "stored"
           }
-        },
-        "cod_collected_at": {
-          "name": "cod_collected_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "cod_collected_amount_paise": {
-          "name": "cod_collected_amount_paise",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false
         },
         "cart_snapshot": {
           "name": "cart_snapshot",
@@ -2971,22 +2945,6 @@
           "concurrently": false,
           "method": "btree",
           "with": {}
-        },
-        "payments_cod_created_at_idx": {
-          "name": "payments_cod_created_at_idx",
-          "columns": [
-            {
-              "expression": "created_at",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "where": "\"payments\".\"payment_mode\" = 'cod'",
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
         }
       },
       "foreignKeys": {
@@ -3015,26 +2973,6 @@
         "payments_status_valid": {
           "name": "payments_status_valid",
           "value": "\"payments\".\"status\" in ('pending','paid','failed','refunded')"
-        },
-        "payments_payment_mode_valid": {
-          "name": "payments_payment_mode_valid",
-          "value": "\"payments\".\"payment_mode\" in ('prepaid','cod')"
-        },
-        "payments_cod_mode_consistent": {
-          "name": "payments_cod_mode_consistent",
-          "value": "(\"payments\".\"payment_mode\" = 'cod') = (\"payments\".\"cod_amount_paise\" > 0)"
-        },
-        "payments_cod_amounts_non_negative": {
-          "name": "payments_cod_amounts_non_negative",
-          "value": "\"payments\".\"cod_amount_paise\" >= 0 and \"payments\".\"cod_amount_paise\" <= \"payments\".\"amount_paise\" and (\"payments\".\"cod_collected_amount_paise\" is null or \"payments\".\"cod_collected_amount_paise\" >= 0)"
-        },
-        "payments_cod_collection_paired": {
-          "name": "payments_cod_collection_paired",
-          "value": "(\"payments\".\"cod_collected_at\" is null) = (\"payments\".\"cod_collected_amount_paise\" is null)"
-        },
-        "payments_cod_collection_requires_cod": {
-          "name": "payments_cod_collection_requires_cod",
-          "value": "\"payments\".\"cod_collected_at\" is null or \"payments\".\"payment_mode\" = 'cod'"
         },
         "payments_heard_about_valid": {
           "name": "payments_heard_about_valid",

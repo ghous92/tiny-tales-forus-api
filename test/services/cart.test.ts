@@ -8,7 +8,7 @@
 import { eq } from 'drizzle-orm'
 import { beforeEach, describe, expect, it } from 'vitest'
 
-import { COD_NONE, SHIPPING_NONE } from '../../src/contracts/cart.js'
+import { SHIPPING_NONE } from '../../src/contracts/cart.js'
 import type { Db } from '../../src/db/client.js'
 import { cartItems, catalogItems, users } from '../../src/db/schema.js'
 import type { CouponLookup, CouponRule } from '../../src/lib/coupons.js'
@@ -114,9 +114,6 @@ describe('getCart', () => {
       // No shipping resolver passed → the block is present but inert, and
       // `totalInr` is exactly what it was before delivery fees existed.
       shipping: SHIPPING_NONE,
-      // No COD resolver passed → cash orders report themselves off, which is
-      // also how they ship (SPEC-COD §2: `payments.cod.enabled` defaults false).
-      cod: COD_NONE,
       updatedAt: new Date(0).toISOString(),
     })
   })

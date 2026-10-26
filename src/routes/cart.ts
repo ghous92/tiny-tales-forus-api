@@ -17,12 +17,10 @@ import {
   CartQuerySchema,
   CartSchema,
   CartSkuParamsSchema,
-  COD_NONE,
   ErrorEnvelopeSchema,
 } from '../contracts/cart.js'
 import type { Db } from '../db/client.js'
 import { addresses } from '../db/schema.js'
-import { evaluateCod } from '../lib/cod.js'
 import type { CouponLookup } from '../lib/coupons.js'
 import { notFound } from '../lib/errors.js'
 import { WHOLESALE_OFF, type WholesaleRule } from '../lib/pricing.js'
@@ -32,10 +30,8 @@ import {
   getCart,
   mergeCart,
   putCartLine,
-  type CartCodResolver,
   type CartShippingResolver,
 } from '../services/cart.js'
-import { countCodOrdersThisMonth, loadCodConfig } from '../services/cod.js'
 import { getConfigValues } from '../services/config.js'
 import { getCouponRuleByCode } from '../services/coupons.js'
 import { loadShippingContext, priceCartShipping } from '../services/shipping.js'
@@ -136,30 +132,6 @@ async function resolveShippingResolver(
 }
 
 /**
- * The COD half of the same idea, and bound the same way: everything that needs
- * a query — the config, the destination, how many COD orders the month has
- * already taken — is read HERE so `services/cart.ts` can call a plain function
- * (ARCHITECTURE.md rule 2).
- *
- * The month's count is read eagerly rather than inside the resolver because the
- * resolver is synchronous, and it is skipped entirely while COD is switched
- * off — which is the state this ships in and the state every cart read is in
- * until the owner flips `payments.cod.enabled`.
- */
-async function resolveCodResolver(
-  db: Db,
-  userId: string,
-  query: { addressId?: string | undefined; pincode?: string | undefined } = {}
-): Promise<CartCodResolver> {
-  const config = await loadCodConfig(db)
-  if (!config.enabled) return () => COD_NONE
-  const destPincode = await resolveDestination(db, userId, query)
-  const codOrdersThisMonth = await countCodOrdersThisMonth(db)
-  return ({ totalInr }) =>
-    evaluateCod({ config, destPincode, cartTotalInr: totalInr, codOrdersThisMonth })
-}
-
-/**
  * Resolve a client-supplied coupon code (`?coupon=CODE`) into a
  * {@link CouponLookup} for `services/cart.ts`'s coupon folding.
  *
@@ -200,8 +172,7 @@ export const cartRoutes: FastifyPluginAsyncZod<CartRoutesOptions> = async (app, 
         await resolveWholesaleRule(db),
         skus,
         await resolveCouponRule(db, request.query.coupon, request.user.id),
-        await resolveShippingResolver(db, request.user.id, request.query),
-        await resolveCodResolver(db, request.user.id, request.query)
+        await resolveShippingResolver(db, request.user.id, request.query)
       )
     }
   )
@@ -225,8 +196,7 @@ export const cartRoutes: FastifyPluginAsyncZod<CartRoutesOptions> = async (app, 
         // The write endpoints have no destination query, so they price against
         // the caller's default address. Without this the fee would blink out of
         // the cart the moment a shopper changed a quantity.
-        await resolveShippingResolver(db, request.user.id),
-        await resolveCodResolver(db, request.user.id)
+        await resolveShippingResolver(db, request.user.id)
       )
   )
 
@@ -244,8 +214,7 @@ export const cartRoutes: FastifyPluginAsyncZod<CartRoutesOptions> = async (app, 
         request.user.id,
         request.params.sku,
         await resolveWholesaleRule(db),
-        await resolveShippingResolver(db, request.user.id),
-        await resolveCodResolver(db, request.user.id)
+        await resolveShippingResolver(db, request.user.id)
       )
   )
 
@@ -275,8 +244,7 @@ export const cartRoutes: FastifyPluginAsyncZod<CartRoutesOptions> = async (app, 
         request.user.id,
         request.body.items,
         await resolveWholesaleRule(db),
-        await resolveShippingResolver(db, request.user.id),
-        await resolveCodResolver(db, request.user.id)
+        await resolveShippingResolver(db, request.user.id)
       )
   )
 }

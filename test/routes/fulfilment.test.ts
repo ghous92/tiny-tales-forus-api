@@ -487,30 +487,17 @@ describe('manifestSourceFor — package count vs unit count', () => {
     expect(source?.productDescription).toBe('Face Wash x3')
   })
 
-  it('stamps the COD balance, always — including the zero', () => {
-    // An ABSENT key would let a COD order manifest as Prepaid the day a caller
-    // forgets to pass it, and the parcel would arrive with nothing to collect.
-    const prepaid = manifestSourceFor(
+  it('manifests every order as prepaid, with nothing to collect at the door', () => {
+    const source = manifestSourceFor(
       address,
       { items: [{ sku: 'SKU1', name: 'Face Wash', qty: 1 }], goodsInr: 144 },
       { chargeableWeightG: 500 },
       {}
     )
-    expect(prepaid?.codAmountInr).toBe(0)
-
-    const cod = manifestSourceFor(
-      address,
-      { items: [{ sku: 'SKU1', name: 'Hair Oil', qty: 1 }], goodsInr: 700 },
-      { chargeableWeightG: 500 },
-      // The BALANCE after the ₹49 token, never the ₹700 total — the shopper
-      // has already paid the token through Razorpay.
-      { codAmountInr: 651 }
-    )
-    expect(cod?.codAmountInr).toBe(651)
-    // The declared value stays the goods value on both modes; it drives risk
-    // cover and the e-waybill threshold, not what the agent collects.
-    expect(cod?.declaredValueInr).toBe(700)
+    expect(source?.codAmountInr).toBe(0)
+    expect(source?.declaredValueInr).toBe(144)
   })
+
 
   it('rejects an order with no units', () => {
     expect(

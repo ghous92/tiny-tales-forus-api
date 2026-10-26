@@ -85,15 +85,6 @@ const MAX_ORDER_SKUS = 50
 export const PaymentOrderCreateSchema = z
   .strictObject({
     addressId: z.uuid(),
-    /**
-     * How the shopper wants to pay. Omitted ⇒ `'prepaid'`, which is what every
-     * client written before COD existed means and what the server must assume.
-     *
-     * A REQUEST, never a fact: the server re-evaluates eligibility against this
-     * order's own address and the live cap, and refuses with `cod_unavailable`
-     * if the answer moved since the cart screen. See docs/SPEC-COD.md D7.
-     */
-    paymentMode: z.enum(['prepaid', 'cod']).optional(),
     skus: z.array(sku).min(1, 'skus must not be empty').max(MAX_ORDER_SKUS).optional(),
     couponCode: z.string().min(1).max(64).optional(),
     /**
@@ -214,26 +205,14 @@ export const PaymentOrderCreateSchema = z
 export const PaymentOrderSchema = z.object({
   orderId: z.string(),
   keyId: z.string(),
-  /**
-   * WHAT THE GATEWAY IS CHARGING — not the order total.
-   *
-   * On a prepaid order they are the same number. On a COD order this is the
-   * ₹49 token and nothing else, because this field exists for exactly one
-   * purpose: it is handed to Razorpay Checkout. A client that renders it as
-   * "your order total" will tell a COD shopper their ₹700 order costs ₹49.
-   * `orderTotalInr` below is the total.
-   */
+  /** What the gateway charges: the whole order total (prepaid only, no COD). */
   amountInr: z.int(),
   amountPaise: z.int(),
   currency: z.literal('INR'),
   status: z.enum(['pending', 'paid', 'failed', 'refunded']),
   mode: z.enum(['test', 'live']),
-  /** How this order is being paid. `'prepaid'` on everything before COD existed. */
-  paymentMode: z.enum(['prepaid', 'cod']),
   /** The full order value — goods after coupon, plus delivery. */
   orderTotalInr: z.int(),
-  /** Collected in cash at the door. 0 on a prepaid order. */
-  codAmountInr: z.int(),
 })
 
 /** POST /v1/payments/verify body — the three fields Razorpay Checkout returns on success. */
@@ -448,21 +427,6 @@ export const OrderSchema = z.object({
   items: z.array(OrderItemSchema),
   /** Present only on a `refunded` order; null on every other status. */
   refund: OrderRefundSchema.nullable(),
-  /**
-   * How this order was paid. `'prepaid'` on every order placed before COD
-   * existed — the column defaults to it, so this is a fact about those orders
-   * and not a fallback.
-   */
-  paymentMode: z.enum(['prepaid', 'cod']),
-  /**
-   * Still to be collected in cash at the door; 0 on a prepaid order. Part of
-   * `totalInr`, never added to it — the bill identity above is unchanged.
-   */
-  codAmountInr: z.int(),
-  /** Already paid through the gateway: `totalInr − codAmountInr`. */
-  prepaidAmountInr: z.int(),
-  /** When the courier's cash actually reached us; null until it does. */
-  codCollectedAt: z.iso.datetime().nullable(),
 })
 
 /** GET /v1/payments/orders response — the caller's order history, newest first. */

@@ -8,7 +8,7 @@
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
-import { COD_NONE, SHIPPING_NONE } from '../../src/contracts/cart.js'
+import { SHIPPING_NONE } from '../../src/contracts/cart.js'
 import { appConfig, catalogItems, coupons } from '../../src/db/schema.js'
 import { auth, createTestApp, USER_A, USER_B, type TestContext } from '../helpers/app.js'
 
@@ -119,7 +119,6 @@ describe('GET /v1/cart', () => {
       shipping: SHIPPING_NONE,
       // COD seeds OFF too, so the block is present and says so — a client that
       // had to special-case a missing block would eventually render the wrong one.
-      cod: COD_NONE,
       updatedAt: new Date(0).toISOString(),
     })
   })

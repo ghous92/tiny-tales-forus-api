@@ -454,62 +454,6 @@ export const CONFIG_DEFAULTS: ConfigDefault[] = [
     description:
       'Primary key for choosing among (pickup node, courier) candidates: "cost" (default), "sla" or "reliability". The remaining keys always break ties.',
   },
-  // --- Cash on delivery (docs/SPEC-COD.md) -----------------------------------
-  //
-  // Partial-prepaid: the shopper pays a ₹49 token through Razorpay and the
-  // balance in cash at the door. The token is PART OF the order total, never on
-  // top of it — a ₹700 COD order is ₹49 now and ₹651 later, never ₹749.
-  //
-  // Every key here fails closed: anything absent or malformed falls back to the
-  // code default in lib/cod.ts, whose `enabled` is false. There is no
-  // configuration mistake that turns COD on.
-  {
-    key: 'payments.cod.enabled',
-    value: false,
-    description:
-      'Master switch for cash on delivery. Seeded OFF — COD is a risk position (break-even RTO 64.7%, and at 20% RTO the CAC ceiling drops ₹242 → ₹167), so it is turned on deliberately, not by default.',
-  },
-  {
-    key: 'payments.cod.tokenInr',
-    // ₹49 is the whole risk control. It filters exactly the population that
-    // generates RTOs — someone who will not part with ₹49 will not accept the
-    // parcel — and it covers ~38% of a return leg on the orders that fail anyway.
-    value: 49,
-    description:
-      'The partial prepayment, in rupees, charged through Razorpay at checkout. Part of the order total, not a surcharge. Raising it filters harder and converts worse.',
-  },
-  {
-    key: 'payments.cod.minCartInr',
-    value: 0,
-    description:
-      'Cart floor below which COD is not offered. 0 disables the floor (the token rule still applies: a cart at or below the token is refused).',
-  },
-  {
-    key: 'payments.cod.maxCartInr',
-    // The 1L hair oil at ₹1,400 still clears this; the cap exists to stop a
-    // multi-unit cart putting several thousand rupees of cash in a courier bag.
-    value: 2000,
-    description:
-      'Cart ceiling above which COD is not offered — caps the cash at risk in any one parcel.',
-  },
-  {
-    key: 'payments.cod.pincodes',
-    value: { mode: 'all' },
-    description:
-      'Which destinations may pay cash: {"mode":"all"} | {"mode":"allow","list":["380001",…]} | {"mode":"block","list":[…]}. Exact six-digit matches only, no prefixes. NEVER sent to a client — publishing it publishes where we think the fraud is.',
-  },
-  {
-    key: 'payments.cod.monthlyOrderCap',
-    value: 100,
-    description:
-      'Hard cap on CONFIRMED (token cleared) COD orders per calendar month, IST. At the cap, COD stops being offered until the 1st. An operations budget, not a growth target.',
-  },
-  {
-    key: 'payments.cod.killSwitchRtoPct',
-    value: 15,
-    description:
-      'The RTO rate at which ops must switch payments.cod.enabled off. Surfaced in /admin (P7.3); enforced by a human, deliberately — an automatic kill on a small sample would fire on noise.',
-  },
   {
     key: 'shipping.refundFeeAfterDispatch',
     // INERT UNTIL FULFILMENT STATE EXISTS. There is no dispatch state on an

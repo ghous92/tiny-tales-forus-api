@@ -731,48 +731,14 @@ export const payments = pgTable(
     /** Razorpay payment id — null until a payment is captured/verified against the order. */
     razorpayPaymentId: text('razorpay_payment_id'),
     /**
-     * How this order is being paid: `'prepaid'` (the whole amount through
-     * Razorpay) or `'cod'` (a ₹49 token through Razorpay, the balance in cash
-     * at the door). See docs/SPEC-COD.md.
-     *
-     * Note what `amountPaise` above does NOT become: it stays the ORDER TOTAL
-     * on both modes, never "what the gateway charged". The invoice, the
-     * `Order Completed` revenue, the margin report and realised CAC all read
-     * it, and redefining it for COD would understate revenue in every one of
-     * them at once with nothing to catch it.
-     */
-    paymentMode: text('payment_mode').notNull().default('prepaid'),
-    /**
-     * The balance due at the door, and the only amount either mode writes. 0 on
-     * every prepaid order — 0 and not null, because "nothing is owed" is a real
-     * answer and a month's SUM() should not have to coalesce.
-     */
-    codAmountPaise: integer('cod_amount_paise').notNull().default(0),
-    /**
-     * What the Razorpay order was created for: the full total on a prepaid
-     * order, the token on a COD one.
-     *
-     * GENERATED, never written. A third independent amount column plus a CHECK
-     * that the three reconcile would give every write path two knobs where the
-     * domain has one, and the first path that set a token without the matching
-     * balance would book a ₹700 order as a ₹49 one. Deriving it makes that
-     * state unrepresentable rather than merely rejected — and no existing
-     * insert had to learn a new required column.
+     * What the Razorpay order was created for. Every Tiny Tales order is
+     * prepaid (no cash on delivery), so this always equals `amountPaise`. It is
+     * kept as a generated column because the gateway-amount checks (verify,
+     * webhook, recover, refund) read it by that name.
      */
     prepaidAmountPaise: integer('prepaid_amount_paise')
       .notNull()
-      .generatedAlwaysAs(sql`"amount_paise" - "cod_amount_paise"`),
-    /**
-     * When the courier remitted the cash, and how much actually arrived.
-     *
-     * Written by remittance reconciliation only, never by the shopper-facing
-     * flow. The amount is stored separately from `codAmountPaise` because the
-     * remittance is the truth and our expectation is not: a short or split
-     * remittance has to read as a discrepancy, not get rounded into the number
-     * we hoped for.
-     */
-    codCollectedAt: timestamp('cod_collected_at', { withTimezone: true }),
-    codCollectedAmountPaise: integer('cod_collected_amount_paise'),
+      .generatedAlwaysAs(sql`"amount_paise"`),
     /** Priced cart lines + totals at order time (the amount authority). */
     cartSnapshot: jsonbSafe('cart_snapshot').notNull(),
     /** Shipping address at order time (physical-goods orders capture it at payment). */
@@ -919,43 +885,8 @@ export const payments = pgTable(
     index('payments_heard_about_idx').on(table.heardAbout, table.createdAt),
     /** The recover sweep scans by status + age. */
     index('payments_status_created_at_idx').on(table.status, table.createdAt),
-    /**
-     * The monthly COD cap read (`payments.cod.monthlyOrderCap`): confirmed COD
-     * orders inside a calendar month. Partial — prepaid rows are the
-     * overwhelming majority and none of them are ever in this answer.
-     */
-    index('payments_cod_created_at_idx')
-      .on(table.createdAt)
-      .where(sql`${table.paymentMode} = 'cod'`),
     check('payments_amount_paise_positive', sql`${table.amountPaise} > 0`),
     check('payments_status_valid', sql`${table.status} in ('pending','paid','failed','refunded')`),
-    check('payments_payment_mode_valid', sql`${table.paymentMode} in ('prepaid','cod')`),
-    /**
-     * Mode and money agree in both directions. A 'cod' row with nothing owed at
-     * the door is a prepaid order wearing the wrong label — and it would count
-     * against the monthly cap and ship with `pt: 'COD'`.
-     */
-    check(
-      'payments_cod_mode_consistent',
-      sql`(${table.paymentMode} = 'cod') = (${table.codAmountPaise} > 0)`
-    ),
-    check(
-      'payments_cod_amounts_non_negative',
-      sql`${table.codAmountPaise} >= 0 and ${table.codAmountPaise} <= ${table.amountPaise} and (${table.codCollectedAmountPaise} is null or ${table.codCollectedAmountPaise} >= 0)`
-    ),
-    /**
-     * Cash with no timestamp, or a timestamp with no cash, is half a
-     * reconciliation record — the shape that makes a remittance report silently
-     * wrong instead of obviously incomplete.
-     */
-    check(
-      'payments_cod_collection_paired',
-      sql`(${table.codCollectedAt} is null) = (${table.codCollectedAmountPaise} is null)`
-    ),
-    check(
-      'payments_cod_collection_requires_cod',
-      sql`${table.codCollectedAt} is null or ${table.paymentMode} = 'cod'`
-    ),
     /**
      * The checkout survey's pick-list, held as a CHECK rather than a pg enum
      * for the same reason as `payments_status_valid`: adding a value is a

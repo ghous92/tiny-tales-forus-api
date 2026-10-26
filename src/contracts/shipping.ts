@@ -82,41 +82,6 @@ export const ShippingQuoteSchema = z.object({
   reason: ShippingReasonSchema.nullable(),
 })
 
-/**
- * `GET /v1/shipping/cod-preview?sku=&qty=&pincode=` powers the PDP's live
- * partial-COD message. The destination is optional so the page can advertise
- * the current token before asking for a pincode without publishing the private
- * pincode policy. When omitted, `pincodeRequired` is true.
- */
-export const CodPreviewQuerySchema = z.strictObject({
-  sku: z.string().min(1).max(120),
-  qty: z.coerce.number().int().min(1).max(99).optional(),
-  pincode: pincode.optional(),
-})
-
-export const CodPreviewReasonSchema = z.enum([
-  'disabled',
-  'no_destination',
-  'pincode_not_allowed',
-  'delivery_unavailable',
-  'cart_below_min',
-  'cart_above_max',
-  'cart_below_token',
-  'cap_reached',
-])
-
-export const CodPreviewSchema = z.object({
-  available: z.boolean(),
-  /** True only when every currently knowable gate passed and a pincode is still needed. */
-  pincodeRequired: z.boolean(),
-  /** Charged now through the gateway. 0 when unavailable. */
-  tokenInr: z.int(),
-  /** Current balance estimate, or the exact balance once pincodeRequired is false. */
-  dueOnDeliveryInr: z.int(),
-  totalInr: z.int(),
-  reason: CodPreviewReasonSchema.nullable(),
-})
-
 // --- Admin simulator ---------------------------------------------------------
 
 /**

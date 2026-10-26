@@ -167,8 +167,6 @@ export function manifestSourceFor(
   extras: {
     sellerGstTin?: string | undefined
     hsnCode?: string | undefined
-    /** Rupees due at the door; 0/absent ⇒ prepaid. Off the order ROW, not a snapshot. */
-    codAmountInr?: number | undefined
   }
 ): ManifestSource | null {
   const address = (addressSnapshot ?? {}) as AddressSnapshot
@@ -231,10 +229,8 @@ export function manifestSourceFor(
     fragile: true,
     ...(extras.sellerGstTin !== undefined ? { sellerGstTin: extras.sellerGstTin } : {}),
     ...(extras.hsnCode !== undefined ? { hsnCode: extras.hsnCode } : {}),
-    // Always stamped, including the 0 — an absent key here would let a COD
-    // order manifest as prepaid if a future caller forgot to pass it, and the
-    // shipment would arrive with nothing to collect.
-    codAmountInr: Math.max(0, Math.round(extras.codAmountInr ?? 0)),
+    // Every order is prepaid: nothing is ever collected at the door.
+    codAmountInr: 0,
   }
 }
 
@@ -258,7 +254,6 @@ export function makeManifestSourceResolver(
         cartSnapshot: payments.cartSnapshot,
         shippingSnapshot: payments.shippingSnapshot,
         status: payments.status,
-        codAmountPaise: payments.codAmountPaise,
       })
       .from(payments)
       .where(eq(payments.orderId, orderId))
@@ -267,12 +262,7 @@ export function makeManifestSourceResolver(
     // Only a paid order ships. Anything else is a bug upstream and must
     // not be handed to a carrier on the strength of a stale row.
     if (order === undefined || order.status !== 'paid') return null
-    return manifestSourceFor(order.addressSnapshot, order.cartSnapshot, order.shippingSnapshot, {
-      ...extras,
-      // Paise on the row, whole rupees on the wire. A COD order that reached
-      // `paid` has had its token captured, so this is exactly the balance.
-      codAmountInr: order.codAmountPaise / 100,
-    })
+    return manifestSourceFor(order.addressSnapshot, order.cartSnapshot, order.shippingSnapshot, extras)
   }
 }
 

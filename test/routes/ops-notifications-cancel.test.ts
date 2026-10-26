@@ -50,8 +50,6 @@ function order(): OrderInvoiceSource {
     couponCode: null,
     shippingFeeInr: 0,
     totalInr: 179,
-    paymentMode: 'prepaid',
-    codAmountInr: 0,
   }
 }
 

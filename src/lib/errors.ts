@@ -24,7 +24,6 @@ export type ErrorCode =
   | 'shipping_unserviceable'
   | 'shipping_quote_stale'
   | 'out_of_service_area'
-  | 'cod_unavailable'
   | 'internal'
 
 export class ApiError extends Error {
@@ -161,19 +160,6 @@ export function shippingQuoteStale(
  */
 export function outOfServiceArea(message = "We can't deliver to this pincode yet."): ApiError {
   return new ApiError(422, 'out_of_service_area', message)
-}
-
-/**
- * 422 — the client asked to pay cash on delivery for an order that is not
- * eligible for it. Distinct from `validation_failed` because the body is
- * perfectly well formed: it is the POLICY that refuses, and the client should
- * re-read the cart's `cod` block (which carries the machine reason) and fall
- * back to prepaid rather than treat the request as a bug.
- */
-export function codUnavailable(
-  message = 'Cash on delivery is not available for this order'
-): ApiError {
-  return new ApiError(422, 'cod_unavailable', message)
 }
 
 export function conflict(message = 'This request conflicts with existing data'): ApiError {

@@ -72,7 +72,6 @@ import { requestSweep, MINUTE_MS, RECOVER_BUCKET_MS, type TaskEnqueuer } from '.
 import { createPaymentsGateway, type PaymentsGateway } from '../lib/razorpay.js'
 import { getAddress } from '../services/addresses.js'
 import { getCart, type CartShippingResolver } from '../services/cart.js'
-import { assertCodAllowed } from '../services/cod.js'
 import { checkAvailability, decrementForOrder } from '../services/stock.js'
 import {
   loadShippingContext,
@@ -922,12 +921,7 @@ export const paymentRoutes: FastifyPluginAsyncZod<PaymentRoutesOptions> = async 
 
         const context = await loadShippingContext(db, destPincode)
         let priced: PricedShipping | undefined
-        // Kept so the quote can be re-priced once the payment mode is known —
-        // see the COD re-price below. The resolver is the only place these
-        // inputs exist, and `getCart` does not hand them back.
-        let pricedFrom: Parameters<CartShippingResolver>[0] | undefined
         const resolveShipping: CartShippingResolver = (input) => {
-          pricedFrom = input
           priced = priceShipping({ context, destPincode, ...input })
           return priced.block
         }
@@ -947,29 +941,6 @@ export const paymentRoutes: FastifyPluginAsyncZod<PaymentRoutesOptions> = async 
           await resolveCouponRule(db, request.body.couponCode, request.user.id),
           resolveShipping
         )
-
-        // COD eligibility is re-evaluated HERE, against THIS order's address
-        // and the cap as it stands right now — never against whatever the cart
-        // screen was told a moment ago (docs/SPEC-COD.md D7). It runs after the
-        // cart is priced because the ceiling and the token both apply to the
-        // final total, delivery included.
-        const cod =
-          request.body.paymentMode === 'cod'
-            ? await assertCodAllowed(db, {
-                cartTotalInr: cart.totalInr,
-                destPincode,
-              })
-            : undefined
-
-        // Re-price the SNAPSHOT with the COD component now that the mode is
-        // settled. Safe to do after the cart was priced because this moves
-        // nothing the shopper saw — not the courier, not the fee, not the
-        // total (docs/SPEC-COD.md D8) — so `cart.totalInr` and the quote token
-        // below are still the ones they were shown. All it changes is
-        // `trueCostInr`, which is what the margin report reads.
-        if (cod && pricedFrom) {
-          priced = priceShipping({ context, destPincode, ...pricedFrom, isCod: true })
-        }
 
         const token = request.body.quoteToken
         const quoteStale =
@@ -1034,10 +1005,6 @@ export const paymentRoutes: FastifyPluginAsyncZod<PaymentRoutesOptions> = async 
                 heardAbout: request.body.heardAbout,
                 heardAboutOther: request.body.heardAboutOther,
               },
-          // Only the token travels down. The service does not re-derive
-          // eligibility (it may not import another module's service); the
-          // guard above is the authority.
-          cod ? { tokenInr: cod.tokenInr } : undefined,
           request.body.adAudienceOptIn
         )
 

@@ -234,60 +234,6 @@ export const SHIPPING_NONE: CartShipping = {
  * (and `shipping.feeInr` is 0 whenever shipping is off, which is why totals
  * are byte-identical to before this field existed).
  */
-/**
- * Whether this cart may be paid cash on delivery, and on what terms.
- *
- * A sibling of `wholesale`, `coupon` and `shipping`, and always present for the
- * same reason they are: a client that has to special-case a missing block will
- * eventually render the wrong one. Unavailable is a fully-formed answer, not an
- * absent field.
- *
- * `tokenInr` is PART OF `totalInr`, never on top of it — `tokenInr +
- * dueOnDeliveryInr === totalInr` whenever `available`. A ₹700 cart paid COD is
- * ₹49 now and ₹651 at the door; it is never a ₹749 order. Copy that reads
- * "₹49 booking fee" is wrong and will produce a support ticket per order.
- *
- * What is deliberately NOT here: the pincode policy. The client is told only
- * whether THIS destination qualifies. The allowlist is a fraud control, and
- * publishing it publishes the map of where we think the risk is.
- */
-export const CartCodSchema = z.object({
-  available: z.boolean(),
-  /** Charged now through the gateway. 0 when unavailable. */
-  tokenInr: z.int(),
-  /** Collected in cash at the door — `totalInr − tokenInr`. 0 when unavailable. */
-  dueOnDeliveryInr: z.int(),
-  /**
-   * Why not, as a machine value; null exactly when `available`. The COPY is the
-   * client's: "we can't take cash to your pincode yet" and "cash orders are
-   * paused today" need very different wording, and only one of them should
-   * invite the shopper to try again later.
-   */
-  reason: z
-    .enum([
-      'disabled',
-      'no_destination',
-      'pincode_not_allowed',
-      'cart_below_min',
-      'cart_above_max',
-      'cart_below_token',
-      'cap_reached',
-    ])
-    .nullable(),
-})
-
-/**
- * The COD block a cart carries when COD is switched off — and the base every
- * "no" answer is built from. Declared beside the schema so the cart service and
- * the COD service cannot drift on what "no cash orders" looks like on the wire.
- */
-export const COD_NONE: CartCod = {
-  available: false,
-  tokenInr: 0,
-  dueOnDeliveryInr: 0,
-  reason: 'disabled',
-}
-
 export const CartSchema = z.object({
   items: z.array(CartLineSchema),
   count: z.int(),
@@ -295,7 +241,6 @@ export const CartSchema = z.object({
   wholesale: CartWholesaleSchema,
   coupon: CartCouponSchema,
   shipping: CartShippingSchema,
-  cod: CartCodSchema,
   updatedAt: z.iso.datetime(),
 })
 
@@ -380,7 +325,6 @@ export type CartLine = z.infer<typeof CartLineSchema>
 export type CartWholesale = z.infer<typeof CartWholesaleSchema>
 export type CartCoupon = z.infer<typeof CartCouponSchema>
 export type CartShipping = z.infer<typeof CartShippingSchema>
-export type CartCod = z.infer<typeof CartCodSchema>
 export type Cart = z.infer<typeof CartSchema>
 export type CartQuery = z.infer<typeof CartQuerySchema>
 export type CartPutBody = z.infer<typeof CartPutBodySchema>

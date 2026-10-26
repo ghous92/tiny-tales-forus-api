@@ -172,20 +172,14 @@ async function headerImage(db: Db): Promise<{ link: string } | undefined> {
  * `{{4}}` is where this hook fires on a COD order too — `onOrderPaid` runs the
  * moment the ₹49 token clears, which for COD is nowhere near the whole total.
  * The template's surrounding text is fixed and already reads "Total: ₹{{4}}",
- * so this substitutes a richer VALUE into that one slot rather than needing a
- * second approved template: a prepaid order gets the plain total, a COD order
- * gets `"700 (₹49 paid now, ₹651 due at delivery)"`. No re-submission to Meta
- * — only the parameter content changes, not the approved body copy.
+ * and carries the plain order total (every order is prepaid).
  */
 function orderConfirmedParams(
   order: OrderInvoiceSource,
   etaCopy: string,
   header: { link: string } | undefined
 ): NotificationMessage {
-  const totalParam =
-    order.paymentMode === 'cod' && order.codAmountInr > 0
-      ? `${order.totalInr} (₹${order.totalInr - order.codAmountInr} paid now, ₹${order.codAmountInr} due at delivery)`
-      : String(order.totalInr)
+  const totalParam = String(order.totalInr)
   return {
     params: [
       oneLine(customerFirstName(order)),

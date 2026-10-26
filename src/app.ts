@@ -77,7 +77,6 @@ import { adminComplaintRoutes, complaintRoutes } from './routes/complaints.js'
 import { adminCouponsRoutes, couponRoutes } from './routes/coupons.js'
 import { fulfilmentRoutes } from './routes/fulfilment.js'
 import { internalReplenishmentRoutes } from './routes/internalReplenishment.js'
-import { codAdminRoutes } from './routes/codAdmin.js'
 import { fulfilmentAdminRoutes } from './routes/fulfilmentAdmin.js'
 import { geocodeRoutes } from './routes/geocode.js'
 import { grafanaAlertWebhookRoutes } from './routes/grafanaAlertWebhook.js'
@@ -684,7 +683,6 @@ export function buildApp(opts: BuildAppOptions): FastifyInstance {
   app.register(catalogRoutes, { db: opts.db, prefix: '/v1/catalog' })
   app.register(adminConfigRoutes, { db: opts.db, prefix: '/v1/admin/config' })
   app.register(catalogAdminRoutes, { db: opts.db, prefix: '/v1/admin/catalog' })
-  app.register(codAdminRoutes, { db: opts.db, prefix: '/v1/admin/cod' })
   app.register(cartRoutes, { db: opts.db, prefix: '/v1/cart' })
   app.register(reviewRoutes, { db: opts.db, prefix: '/v1/reviews' })
   app.register(authedReviewRoutes, { db: opts.db, prefix: '/v1/reviews' })

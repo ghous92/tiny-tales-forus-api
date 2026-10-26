@@ -21,19 +21,15 @@ import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod'
 
 import { ErrorEnvelopeSchema } from '../contracts/cart.js'
 import {
-  CodPreviewQuerySchema,
-  CodPreviewSchema,
   ServiceabilityQuerySchema,
   ServiceabilitySchema,
   ShippingQuoteQuerySchema,
   ShippingQuoteSchema,
 } from '../contracts/shipping.js'
 import type { Db } from '../db/client.js'
-import { COD_UNAVAILABLE, evaluateCod, evaluateCodBeforeDestination } from '../lib/cod.js'
 import { notFound } from '../lib/errors.js'
 import { estimatedDeliveryDate, selectShipment, type ShippingLine } from '../lib/shipping.js'
 import { getItemBySku } from '../services/catalog.js'
-import { countCodOrdersThisMonth, loadCodConfig } from '../services/cod.js'
 import { loadShippingContext, priceShipping } from '../services/shipping.js'
 
 const errorResponses = {
@@ -213,92 +209,6 @@ export const shippingRoutes: FastifyPluginAsyncZod<ShippingRoutesOptions> = asyn
         distanceKm: block.distanceKm,
         reason: block.reason,
       }
-    }
-  )
-
-  app.get(
-    '/cod-preview',
-    {
-      schema: {
-        querystring: CodPreviewQuerySchema,
-        response: { 200: CodPreviewSchema, ...errorResponses },
-      },
-    },
-    async (request, reply) => {
-      if (rateLimited(request.ip, Date.now())) {
-        return reply.code(429).send({
-          error: { code: 'limit_exceeded', message: 'Too many lookups. Try again shortly.' },
-        })
-      }
-
-      const { sku, pincode } = request.query
-      const qty = request.query.qty ?? 1
-      const item = await getItemBySku(db, sku)
-      if (!item) throw notFound(`Sku "${sku}" not found`)
-
-      const config = await loadCodConfig(db)
-      const goodsTotalInr = item.priceInr * qty
-      if (!config.enabled) {
-        return {
-          ...COD_UNAVAILABLE('disabled'),
-          pincodeRequired: false,
-          totalInr: goodsTotalInr,
-        }
-      }
-
-      const codOrdersThisMonth = await countCodOrdersThisMonth(db)
-
-      if (!pincode) {
-        const preview = evaluateCodBeforeDestination({
-          config,
-          cartTotalInr: goodsTotalInr,
-          codOrdersThisMonth,
-        })
-        return {
-          ...preview,
-          pincodeRequired: preview.available,
-          totalInr: goodsTotalInr,
-        }
-      }
-
-      const context = await loadShippingContext(db, pincode)
-      const { block } = priceShipping({
-        context,
-        destPincode: pincode,
-        lines: [
-          {
-            sku: item.sku,
-            qty,
-            weightG: item.weightG,
-            lengthCm: item.lengthCm,
-            widthCm: item.widthCm,
-            heightCm: item.heightCm,
-          },
-        ],
-        preCouponInr: goodsTotalInr,
-        postCouponInr: goodsTotalInr,
-        cartUpdatedAt: '',
-      })
-
-      if (block.reason !== null) {
-        return {
-          available: false,
-          pincodeRequired: false,
-          tokenInr: 0,
-          dueOnDeliveryInr: 0,
-          totalInr: goodsTotalInr,
-          reason: 'delivery_unavailable' as const,
-        }
-      }
-
-      const totalInr = goodsTotalInr + block.feeInr
-      const preview = evaluateCod({
-        config,
-        cartTotalInr: totalInr,
-        destPincode: pincode,
-        codOrdersThisMonth,
-      })
-      return { ...preview, pincodeRequired: false, totalInr }
     }
   )
 }
