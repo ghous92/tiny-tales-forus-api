@@ -1,0 +1,274 @@
+{
+  "products": [
+    {
+      "id": "tt-elephant-diya",
+      "slug": "elephant-diya",
+      "name": "The Elephant Diya",
+      "category": "devotional",
+      "description": "A diya holder shaped as an elephant, with a lotus bowl on its back.",
+      "images": {
+        "main": {
+          "thumb": "/img/specimens/elephant-480.webp",
+          "grid": "/img/specimens/elephant-480.webp",
+          "pdp": "/img/specimens/elephant-800.webp",
+          "zoom": "/img/specimens/elephant-1200.webp"
+        },
+        "gallery": []
+      },
+      "variants": [
+        {
+          "sku": "TT-ELEDIYA-STD",
+          "size": "Standard",
+          "in_stock": true
+        }
+      ],
+      "manufacturer_name": "Tiny Tales",
+      "manufacturer_address": "To be confirmed (seller address pending)",
+      "country_of_origin": "India",
+      "consumer_care_contact": "To be confirmed"
+    },
+    {
+      "id": "tt-shubh-labh",
+      "slug": "shubh-labh",
+      "name": "Shubh Labh",
+      "category": "devotional",
+      "description": "The two words of good fortune, set on carved lotus bases.",
+      "images": {
+        "main": {
+          "thumb": "/img/specimens/shubh-labh-480.webp",
+          "grid": "/img/specimens/shubh-labh-480.webp",
+          "pdp": "/img/specimens/shubh-labh-800.webp",
+          "zoom": "/img/specimens/shubh-labh-1200.webp"
+        },
+        "gallery": []
+      },
+      "variants": [
+        {
+          "sku": "TT-SHUBHLABH-STD",
+          "size": "Standard",
+          "in_stock": true
+        }
+      ],
+      "manufacturer_name": "Tiny Tales",
+      "manufacturer_address": "To be confirmed (seller address pending)",
+      "country_of_origin": "India",
+      "consumer_care_contact": "To be confirmed"
+    },
+    {
+      "id": "tt-old-wizard",
+      "slug": "old-wizard",
+      "name": "The Old Wizard",
+      "category": "characters",
+      "description": "An old wizard in a pointed hat, staff in hand, on a rock base.",
+      "images": {
+        "main": {
+          "thumb": "/img/specimens/wizard-480.webp",
+          "grid": "/img/specimens/wizard-480.webp",
+          "pdp": "/img/specimens/wizard-800.webp",
+          "zoom": "/img/specimens/wizard-1200.webp"
+        },
+        "gallery": []
+      },
+      "variants": [
+        {
+          "sku": "TT-WIZARD-STD",
+          "size": "Standard",
+          "in_stock": true
+        }
+      ],
+      "manufacturer_name": "Tiny Tales",
+      "manufacturer_address": "To be confirmed (seller address pending)",
+      "country_of_origin": "India",
+      "consumer_care_contact": "To be confirmed"
+    },
+    {
+      "id": "tt-dwarf-axeman",
+      "slug": "dwarf-axeman",
+      "name": "The Dwarf Axeman",
+      "category": "characters",
+      "description": "A dwarf with a braided beard, a cloak and a double-headed axe.",
+      "images": {
+        "main": {
+          "thumb": "/img/specimens/dwarf-480.webp",
+          "grid": "/img/specimens/dwarf-480.webp",
+          "pdp": "/img/specimens/dwarf-800.webp",
+          "zoom": "/img/specimens/dwarf-1200.webp"
+        },
+        "gallery": []
+      },
+      "variants": [
+        {
+          "sku": "TT-DWARF-STD",
+          "size": "Standard",
+          "in_stock": true
+        }
+      ],
+      "manufacturer_name": "Tiny Tales",
+      "manufacturer_address": "To be confirmed (seller address pending)",
+      "country_of_origin": "India",
+      "consumer_care_contact": "To be confirmed"
+    },
+    {
+      "id": "tt-cloaked-ranger",
+      "slug": "cloaked-ranger",
+      "name": "The Cloaked Ranger",
+      "category": "characters",
+      "description": "A ranger in a long cloak, sword at the hip.",
+      "images": {
+        "main": {
+          "thumb": "/img/specimens/ranger-480.webp",
+          "grid": "/img/specimens/ranger-480.webp",
+          "pdp": "/img/specimens/ranger-800.webp",
+          "zoom": "/img/specimens/ranger-1200.webp"
+        },
+        "gallery": []
+      },
+      "variants": [
+        {
+          "sku": "TT-RANGER-STD",
+          "size": "Standard",
+          "in_stock": true
+        }
+      ],
+      "manufacturer_name": "Tiny Tales",
+      "manufacturer_address": "To be confirmed (seller address pending)",
+      "country_of_origin": "India",
+      "consumer_care_contact": "To be confirmed"
+    },
+    {
+      "id": "tt-elven-archer",
+      "slug": "elven-archer",
+      "name": "The Elven Archer",
+      "category": "characters",
+      "description": "An archer with a bow held low and a quiver on the back.",
+      "images": {
+        "main": {
+          "thumb": "/img/specimens/archer-480.webp",
+          "grid": "/img/specimens/archer-480.webp",
+          "pdp": "/img/specimens/archer-800.webp",
+          "zoom": "/img/specimens/archer-1200.webp"
+        },
+        "gallery": []
+      },
+      "variants": [
+        {
+          "sku": "TT-ARCHER-STD",
+          "size": "Standard",
+          "in_stock": true
+        }
+      ],
+      "manufacturer_name": "Tiny Tales",
+      "manufacturer_address": "To be confirmed (seller address pending)",
+      "country_of_origin": "India",
+      "consumer_care_contact": "To be confirmed"
+    },
+    {
+      "id": "tt-the-lurker",
+      "slug": "the-lurker",
+      "name": "The Lurker",
+      "category": "characters",
+      "description": "A clawed creature with a red head, made to hang off the top of a monitor.",
+      "images": {
+        "main": {
+          "thumb": "/img/specimens/lurker-480.webp",
+          "grid": "/img/specimens/lurker-480.webp",
+          "pdp": "/img/specimens/lurker-800.webp",
+          "zoom": "/img/specimens/lurker-1200.webp"
+        },
+        "gallery": []
+      },
+      "variants": [
+        {
+          "sku": "TT-LURKER-STD",
+          "size": "Standard",
+          "in_stock": true
+        }
+      ],
+      "manufacturer_name": "Tiny Tales",
+      "manufacturer_address": "To be confirmed (seller address pending)",
+      "country_of_origin": "India",
+      "consumer_care_contact": "To be confirmed"
+    },
+    {
+      "id": "tt-three-wise-skulls",
+      "slug": "three-wise-skulls",
+      "name": "Three Wise Skulls",
+      "category": "characters",
+      "description": "Three skulls: see no evil, hear no evil, speak no evil.",
+      "images": {
+        "main": {
+          "thumb": "/img/specimens/skulls-480.webp",
+          "grid": "/img/specimens/skulls-480.webp",
+          "pdp": "/img/specimens/skulls-800.webp",
+          "zoom": "/img/specimens/skulls-1200.webp"
+        },
+        "gallery": []
+      },
+      "variants": [
+        {
+          "sku": "TT-SKULLS-STD",
+          "size": "Standard",
+          "in_stock": true
+        }
+      ],
+      "manufacturer_name": "Tiny Tales",
+      "manufacturer_address": "To be confirmed (seller address pending)",
+      "country_of_origin": "India",
+      "consumer_care_contact": "To be confirmed"
+    },
+    {
+      "id": "tt-three-wise-skeletons",
+      "slug": "three-wise-skeletons",
+      "name": "Three Wise Skeletons",
+      "category": "characters",
+      "description": "Three seated skeletons keeping the same three vows.",
+      "images": {
+        "main": {
+          "thumb": "/img/specimens/skeletons-480.webp",
+          "grid": "/img/specimens/skeletons-480.webp",
+          "pdp": "/img/specimens/skeletons-800.webp",
+          "zoom": "/img/specimens/skeletons-1200.webp"
+        },
+        "gallery": []
+      },
+      "variants": [
+        {
+          "sku": "TT-SKELETONS-STD",
+          "size": "Standard",
+          "in_stock": true
+        }
+      ],
+      "manufacturer_name": "Tiny Tales",
+      "manufacturer_address": "To be confirmed (seller address pending)",
+      "country_of_origin": "India",
+      "consumer_care_contact": "To be confirmed"
+    },
+    {
+      "id": "tt-family-miniature",
+      "slug": "family-miniature",
+      "name": "Your family, made tiny",
+      "category": "custom",
+      "description": "A painted miniature of your people, made to order from your photos.",
+      "images": {
+        "main": {
+          "thumb": "/img/specimens/family-480.webp",
+          "grid": "/img/specimens/family-480.webp",
+          "pdp": "/img/specimens/family-800.webp",
+          "zoom": "/img/specimens/family-1200.webp"
+        },
+        "gallery": []
+      },
+      "variants": [
+        {
+          "sku": "TT-CUSTOM-FAMILY-STD",
+          "size": "Standard",
+          "in_stock": true
+        }
+      ],
+      "manufacturer_name": "Tiny Tales",
+      "manufacturer_address": "To be confirmed (seller address pending)",
+      "country_of_origin": "India",
+      "consumer_care_contact": "To be confirmed"
+    }
+  ]
+}

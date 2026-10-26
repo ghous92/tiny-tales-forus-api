@@ -30,18 +30,14 @@ import { projectProduct } from '../src/services/catalogProjection.js'
 import { categories, products, productVariants } from '../src/db/schema.js'
 
 /**
- * Category display metadata, in home-screen order. Mirrors
- * mobile/src/lib/categories.ts (the app's five bundled categories). `imageUrl`
- * is intentionally empty: the app currently renders bundled local artwork for
- * category tiles; wiring a CDN image is a later admin-UI concern. Any product
- * category not listed here still gets a category row, labelled from its slug.
+ * Category display metadata, in storefront order: the three Tiny Tales
+ * collections. Any product category not listed here still gets a category
+ * row, labelled from its slug.
  */
 export const CATEGORY_DEFS: { slug: string; label: string }[] = [
-  { slug: 'hair oil', label: 'Hair Oil' },
-  { slug: 'hair serum', label: 'Hair Serum' },
-  { slug: 'shampoo', label: 'Shampoo' },
-  { slug: 'pomade', label: 'Pomade' },
-  { slug: 'cream', label: 'Cream' },
+  { slug: 'devotional', label: 'Devotional' },
+  { slug: 'characters', label: 'Characters' },
+  { slug: 'custom', label: 'Custom miniatures' },
 ]
 
 // --- Input validation (the full v2 shape this importer consumes) -------------
@@ -59,7 +55,8 @@ const VariantSchema = z.object({
   size: z.string().min(1),
   size_ml: z.number().int().min(0).default(0),
   color: z.string().min(1).nullish(),
-  price_inr: z.number().int().min(0),
+  /** Omitted or null ⇒ unpriced ("Coming soon"). Never invent a price. */
+  price_inr: z.number().int().min(0).nullish(),
   mrp_inr: z.number().int().min(0).default(0),
   in_stock: z.boolean().default(true),
   /** Legal Metrology "best before" — see src/db/schema.ts productVariants doc. */
@@ -167,7 +164,7 @@ export async function seedCatalog(db: Db, file: CatalogFile): Promise<SeedSummar
         size: v.size,
         sizeMl: v.size_ml,
         color: v.color ?? null,
-        priceInr: v.price_inr,
+        priceInr: v.price_inr ?? null,
         mrpInr: v.mrp_inr,
         inStock: v.in_stock,
         sortOrder: index,
