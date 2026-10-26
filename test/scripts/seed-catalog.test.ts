@@ -30,7 +30,7 @@ function catalogFile(overrides: Partial<CatalogFile> = {}): CatalogFile {
         id: 'dan-hair-oil',
         slug: 'hair-oil',
         name: 'Daniya Hair Oil',
-        category: 'hair oil',
+        category: 'characters',
         description: 'An oil.',
         bullets: ['a', 'b'],
         highlights: [{ icon: 'leaf-outline', label: 'Key', value: 'Amla' }],
@@ -68,7 +68,7 @@ function catalogFile(overrides: Partial<CatalogFile> = {}): CatalogFile {
         id: 'dan-cream',
         slug: 'cream-rose',
         name: 'Daniya Cream',
-        category: 'cream',
+        category: 'devotional',
         description: 'A cream.',
         bullets: [],
         highlights: [],
@@ -121,8 +121,8 @@ describe('seedCatalog', () => {
     await seedCatalog(db, catalogFile())
     const rows = await db.select().from(categories)
     const bySlug = Object.fromEntries(rows.map((r) => [r.slug, r]))
-    expect(bySlug['hair oil']).toMatchObject({ label: 'Hair Oil', sortOrder: 0 })
-    expect(bySlug['cream']).toMatchObject({ label: 'Cream', sortOrder: 4 })
+    expect(bySlug['characters']).toMatchObject({ label: 'Characters', sortOrder: 1 })
+    expect(bySlug['devotional']).toMatchObject({ label: 'Devotional', sortOrder: 0 })
   })
 
   it('sorts variants by size_ml (ascending) via sort_order', async () => {

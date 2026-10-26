@@ -29,7 +29,7 @@ function catalogFile(): CatalogFile {
         id: 'dan-hair-oil',
         slug: 'hair-oil',
         name: 'Daniya Hair Oil',
-        category: 'hair oil',
+        category: 'characters',
         description: 'An oil.',
         bullets: ['a', 'b'],
         highlights: [{ icon: 'leaf-outline', label: 'Key', value: 'Amla' }],
@@ -95,7 +95,7 @@ describe('GET /v1/catalog (public)', () => {
       id: 'dan-hair-oil',
       slug: 'hair-oil',
       name: 'Daniya Hair Oil',
-      category: 'hair oil',
+      category: 'characters',
       bullets: ['a', 'b'],
       is_best_seller: false,
       is_recommended: false,
@@ -119,7 +119,7 @@ describe('GET /v1/catalog (public)', () => {
     expect(p.in_stock).toBe(true)
 
     expect(body.categories).toHaveLength(1)
-    expect(body.categories[0]).toMatchObject({ slug: 'hair oil', label: 'Hair Oil', sort_order: 0 })
+    expect(body.categories[0]).toMatchObject({ slug: 'characters', label: 'Characters', sort_order: 1 })
   })
 
   it('exposes effective_price_inr with the seasonal discount applied, keeping price_inr/mrp_inr raw', async () => {
