@@ -31,12 +31,16 @@ import { upsertConfigEntry } from '../src/services/config.js'
 import { CONFIG_DEFAULTS } from './seed-config.js'
 
 /**
- * The seller-of-record set. These must agree: `legal.company`
- * carries Adix's own GSTIN, `legal.manufacturer` carries the supplier's B2B
- * GSTIN, and the published Terms are
- * generated from the same facts.
+ * The seller-of-record set. These must agree with each other and with the
+ * published Terms, which are generated from the same facts. The invoice
+ * number prefix rides along because it names the seller's series.
  */
-const KEYS = ['legal.company', 'legal.manufacturer', 'invoice.sellerOfRecord'] as const
+const KEYS = [
+  'legal.company',
+  'legal.manufacturer',
+  'invoice.sellerOfRecord',
+  'invoice.numberPrefix',
+] as const
 
 function entryFor(key: string) {
   const entry = CONFIG_DEFAULTS.find((e) => e.key === key)

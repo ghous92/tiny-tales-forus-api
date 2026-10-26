@@ -42,12 +42,12 @@ export const CONFIG_DEFAULTS: ConfigDefault[] = [
   },
   {
     key: 'pdp.deliveryPromise',
-    value: 'Ships in 1 day in Gujarat · 2–3 days across India',
+    value: 'Printed and dispatched in India · delivery across India',
     description: 'Delivery promise line shown on the product detail page.',
   },
   {
     key: 'pdp.returnPolicy',
-    value: 'Non-returnable',
+    value: 'Returns for damage on delivery only',
     description: 'Return policy line shown on the product detail page.',
   },
   {
@@ -57,7 +57,7 @@ export const CONFIG_DEFAULTS: ConfigDefault[] = [
   },
   {
     key: 'pdp.genuineSourceName',
-    value: 'Saman Products Company',
+    value: 'TinyTales',
     description: 'Manufacturer name shown in the PDP\'s "100% Genuine" disclosure.',
   },
   {
@@ -71,82 +71,63 @@ export const CONFIG_DEFAULTS: ConfigDefault[] = [
     description: 'Privacy Policy URL linked from the auth sheet legal footer.',
   },
   {
-    // Mirrors `tiny-tales-forus/mobile/src/data/legal.ts`'s `COMPANY` const — the
-    // seller of record. Server-side consumers (invoice generator, complaint
+    // The seller of record. Mirrors `tiny-tales-forus/src/data/legal.ts`'s
+    // `COMPANY` const. Server-side consumers (invoice generator, complaint
     // ticket emails) read this instead of hardcoding the entity's details a
-    // second time. `gstin` stays '' while `gstRegistered` is false.
+    // second time.
+    //
+    // TinyTales is not registered under GST (owner, 2026-10-25), so `gstin`
+    // stays '' and `gstRegistered` false: invoices carry no GSTIN and no GST
+    // lines. Registering later is a config write here, then
+    // `db:sync-legal-config`, then a storefront redeploy.
     //
     // NO PERSONAL DATA HERE. `supportEmail` is the single published contact —
     // a role mailbox, not an individual — and it is what the invoice footer
-    // and the complaint notification both use. Do not reintroduce
-    // grievanceOfficer / grievanceEmail / grievancePhone / nodalContact*:
-    // those named individuals were deliberately removed, and every consumer
-    // now resolves `supportEmail`.
+    // and the complaint notification both use.
     key: 'legal.company',
     value: {
-      legalName: 'Adix AI',
+      legalName: 'TinyTales',
       brand: 'Tiny Tales',
       address:
         '3, Qamar Makhdumi Road, near Noori Masjid, Bhuli Road, Wasseypur, Dhanbad, Jharkhand 826001',
       jurisdictionCity: 'Dhanbad',
       jurisdictionState: 'Jharkhand',
-      gstRegistered: true,
-      // REAL GSTIN (issued 2026) — replaces the structurally-valid
-      // placeholder `20AAAAA0000A1Z5` that stood here while registration was
-      // pending. `20` = Jharkhand, matching `gstStateCode` below.
-      // NOTE: `seed-config` only INSERTs; it never updates an existing row
-      // (see [[legal-company-config-drift]]), so changing this string does
-      // NOT change an already-seeded environment. Every environment's live
-      // `legal.company` row must be updated separately.
-      gstin: '20AKLPA4779M1ZY',
-      // The two digits the GSTIN starts with — decides intra- vs inter-state
-      // supply for every order. Jharkhand = 20. Must always equal
-      // `gstin.slice(0, 2)`.
+      gstRegistered: false,
+      gstin: '',
       gstStateCode: '20',
       registeredStateName: 'Jharkhand',
       supportEmail: 'hello@adix.ai',
-      // Mirrors `invoice.sellerOfRecord` below, and MUST equal it. This copy is
-      // the one the storefront and app read (`tiny-tales-forus/src/data/legal.ts`
-      // `mergeCompanyOverrides`) to decide what the published Terms say about
-      // who sold you the goods; the other copy decides what the tax invoice
-      // says. `db:sync-legal-config` writes both keys in one run; verify both
-      // afterwards and never set one by hand.
+      // Mirrors `invoice.sellerOfRecord` below, and MUST equal it.
+      // `db:sync-legal-config` writes both keys in one run.
       sellerOfRecord: 'company',
     },
     description:
-      'Seller-of-record entity details (Cosmetics Rules / E-Commerce Rules disclosures): registered office, GST status, and the single published contact mailbox. No personal names/emails/phones. Mirrors mobile/src/data/legal.ts COMPANY.',
+      'Seller-of-record entity details (E-Commerce Rules disclosures): registered office, GST status, and the single published contact mailbox. No personal names/emails/phones. Mirrors tiny-tales-forus/src/data/legal.ts COMPANY.',
   },
   {
-    // Mirrors `tiny-tales-forus/mobile/src/data/legal.ts`'s `MANUFACTURER` const
-    // (sourced there from `mobile/src/lib/config.ts` CONFIG.GENUINE_SOURCE_NAME
-    // / MANUFACTURER_ADDRESS / MANUFACTURER_LICENCE).
+    // TinyTales prints every piece itself, so the maker is the seller. The
+    // invoice's manufacturer block falls back to this row for any product
+    // that declares no maker of its own. No licence: 3D-printed collectibles
+    // need no manufacturing licence.
     key: 'legal.manufacturer',
     value: {
-      legalName: 'Saman Products Company',
+      legalName: 'TinyTales',
       address:
-        '4/B Al-Farooq Com Housing Society, Mohmadmedi Park, Sarkhej, near New Aasiana Roshan Society, Sarkhej Road, Ahmedabad, Gujarat 380051',
-      licence: 'GC1299',
-      // The manufacturer's Gujarat registration is used on its B2B invoice to
-      // Adix. It must not appear as supplier on the customer invoice while
-      // Adix buys and resells the goods on its own account.
-      gstin: '24HEBPS2767L1ZY',
-      // Gujarat. Mirrors `legal.company.gstStateCode` / `registeredStateName`
-      // and must always equal `gstin.slice(0, 2)`. Read only when
-      // `invoice.sellerOfRecord` selects the historic Saman-as-customer-seller
-      // path; in the current reseller flow this is for Saman's B2B invoice to
-      // Adix, issued from Saman's own billing system.
-      gstStateCode: '24',
-      registeredStateName: 'Gujarat',
+        '3, Qamar Makhdumi Road, near Noori Masjid, Bhuli Road, Wasseypur, Dhanbad, Jharkhand 826001',
+      licence: '',
+      gstin: '',
+      gstStateCode: '20',
+      registeredStateName: 'Jharkhand',
     },
     description:
-      'Manufacturer attribution required by the Cosmetics Rules 2020 (name, address, manufacturing licence no.), plus Saman’s Gujarat GSTIN for its B2B supply to Adix. Mirrors mobile/src/data/legal.ts MANUFACTURER.',
+      'Maker attribution printed on invoices for products that declare none of their own. TinyTales makes its own pieces.',
   },
   {
     /*
      * WHO THE INVOICE SAYS SOLD THE GOODS.
      *
-     * `company`  — Adix AI buys from the manufacturer and resells as principal
-     *              under its own registration. Current owner decision.
+     * `company`  — TinyTales makes and sells its own pieces as principal.
+     *              Current owner decision.
      * `manufacturer` — legacy vendor fulfilment: the goods are sold by the
      *              entity in `legal.manufacturer` under their GSTIN. This is
      *              retained for historic documents, not the current model.
@@ -155,12 +136,6 @@ export const CONFIG_DEFAULTS: ConfigDefault[] = [
      * (mirrored to mobile), which decides what the published Terms say about
      * who sold you the goods. Terms naming one seller while the invoice names
      * another is the failure mode both fields exist to prevent.
-     *
-     * This is not cosmetic. It changes the supplier's own GST state, and
-     * therefore whether every order is CGST/SGST or IGST — Adix is Jharkhand
-     * (`20`), the manufacturer is Gujarat (`24`). Flipping it mid-stream makes
-     * two invoices for two identical orders disagree, which is correct (the
-     * supplier genuinely changed) but must be a deliberate, dated decision.
      *
      * The legacy `manufacturer` mode requires `legal.manufacturer` to carry a `legalName`
      * exactly as it appears on the GST certificate (CGST r.46(a) — a trade
@@ -172,18 +147,18 @@ export const CONFIG_DEFAULTS: ConfigDefault[] = [
     key: 'invoice.sellerOfRecord',
     value: 'company',
     description:
-      'Which config row names the seller on a customer invoice: "company" (current Adix reseller model) or "manufacturer" (legacy vendor-fulfilment mode). Changes intra- vs inter-state GST on each invoice.',
+      'Which config row names the seller on a customer invoice: "company" (TinyTales sells its own pieces) or "manufacturer" (legacy vendor-fulfilment mode).',
   },
   {
-    // Invoice numbering: "<prefix>/<FY>/<000123>", e.g. "LAA/26-27/000142".
+    // Invoice numbering: "<prefix>/<FY>/<000123>", e.g. "TT/26-27/000142".
     // The series is gapless and restarts each Indian financial year, so this
     // prefix is effectively permanent — changing it mid-year produces two
     // series for one FY, which is exactly what an auditor asks about. Change
     // it only between financial years, if at all.
     key: 'invoice.numberPrefix',
-    value: 'LAA',
+    value: 'TT',
     description:
-      'Prefix of the invoice number series ("LAA/26-27/000142"). Change only between financial years — a mid-year change splits one FY across two series.',
+      'Prefix of the invoice number series ("TT/26-27/000142"). Change only between financial years — a mid-year change splits one FY across two series.',
   },
   {
     // Kill switch for the CUSTOMER'S EMAILED COPY only. Invoices are still
