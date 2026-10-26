@@ -85,7 +85,7 @@ jobs:
             --region asia-southeast1 \
             --service-account tinytales-api-run@tinytalesforus-prod.iam.gserviceaccount.com \
             --allow-unauthenticated \
-            --set-secrets DATABASE_URL=tinytales-api-database-url-staging:latest,RAZORPAY_WEBHOOK_SECRET=tinytales-api-razorpay-webhook-secret-test:latest \
+            --set-secrets DATABASE_URL=tinytales-api-database-url-staging:latest \
             --set-env-vars "^#^FIREBASE_PROJECT_ID=tinytalesforus-prod#APP_ENV=staging#CORS_ALLOWED_ORIGINS=http://localhost:3000,https://tinytalesforus.com,https://www.tinytalesforus.com,https://staging.tinytalesforus.com#SCHEDULER_OIDC_AUDIENCE=tinytales-api-sweeps-staging#SCHEDULER_SERVICE_ACCOUNTS=tinytales-scheduler@tinytalesforus-prod.iam.gserviceaccount.com#TASKS_QUEUE=tinytales-sweeps-staging#TASKS_PROJECT=tinytalesforus-prod#TASKS_LOCATION=asia-southeast1#TASKS_TARGET_BASE_URL=https://tinytales-api-staging-597924238682.asia-southeast1.run.app#TASKS_SERVICE_ACCOUNT=tinytales-scheduler@tinytalesforus-prod.iam.gserviceaccount.com" \
             --min-instances 0 \
             --cpu-boost \
@@ -93,6 +93,11 @@ jobs:
             # PROXY_SHARED_SECRET: append to --set-secrets above once that
             # secret exists (see comment block above this step).
             # --set-secrets ...,PROXY_SHARED_SECRET=tinytales-api-proxy-shared-secret:latest
+            # RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET, RAZORPAY_WEBHOOK_SECRET: the
+            # three are all-or-none (src/env.ts refuses to boot on a partial
+            # set). Add all three together once the key id and secret are in
+            # Secret Manager; the webhook secrets already exist as
+            # tinytales-api-razorpay-webhook-secret-{test,live}.
 
   # ── PRODUCTION ───────────────────────────────────────────────────────────────
   # Fires on a manual run with ref = a v* tag. Identical build, but migrates the
@@ -152,7 +157,7 @@ jobs:
             --region asia-southeast1 \
             --service-account tinytales-api-run@tinytalesforus-prod.iam.gserviceaccount.com \
             --allow-unauthenticated \
-            --set-secrets DATABASE_URL=tinytales-api-database-url:latest,RAZORPAY_WEBHOOK_SECRET=tinytales-api-razorpay-webhook-secret-live:latest \
+            --set-secrets DATABASE_URL=tinytales-api-database-url:latest \
             --set-env-vars "^#^FIREBASE_PROJECT_ID=tinytalesforus-prod#APP_ENV=production#CORS_ALLOWED_ORIGINS=https://tinytalesforus.com,https://www.tinytalesforus.com#SCHEDULER_OIDC_AUDIENCE=tinytales-api-sweeps#SCHEDULER_SERVICE_ACCOUNTS=tinytales-scheduler@tinytalesforus-prod.iam.gserviceaccount.com#TASKS_QUEUE=tinytales-sweeps#TASKS_PROJECT=tinytalesforus-prod#TASKS_LOCATION=asia-southeast1#TASKS_TARGET_BASE_URL=https://tinytales-api-597924238682.asia-southeast1.run.app#TASKS_SERVICE_ACCOUNT=tinytales-scheduler@tinytalesforus-prod.iam.gserviceaccount.com" \
             --min-instances 1 \
             --cpu-boost \
@@ -160,3 +165,8 @@ jobs:
             # PROXY_SHARED_SECRET: append to --set-secrets above once that
             # secret exists (see comment block above this step).
             # --set-secrets ...,PROXY_SHARED_SECRET=tinytales-api-proxy-shared-secret:latest
+            # RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET, RAZORPAY_WEBHOOK_SECRET: the
+            # three are all-or-none (src/env.ts refuses to boot on a partial
+            # set). Add all three together once the key id and secret are in
+            # Secret Manager; the webhook secrets already exist as
+            # tinytales-api-razorpay-webhook-secret-{test,live}.

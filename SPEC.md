@@ -1,9 +1,14 @@
-# laanya-api — Backend Service Spec (v1: Address CRUD)
+# tinytales-api — Backend Service Spec (v1: Address CRUD)
+
+> This is the founding spec of the service this API was forked from (Laanya's
+> backend), kept for its constraints and layering rules, which still hold.
+> Tiny Tales differences: Firebase project `tinytalesforus-prod`, prepaid only
+> (no COD), nullable prices ("Coming soon"), damage-only returns via claims,
+> and no GST registration. See the storefront repo's `docs/PLAN.md`.
 
 ## Goal
 
-Standalone backend service for Laanya (beauty & personal care ecommerce, India).
-First feature: **saved addresses with full CRUD**, authenticated via Firebase
+Standalone backend service for an ecommerce store in India. First feature: **saved addresses with full CRUD**, authenticated via Firebase
 phone auth. Architecture must cleanly extend to future APIs (orders, payments,
 returns, notifications) without restructuring.
 
@@ -14,7 +19,7 @@ returns, notifications) without restructuring.
   single source of truth for validation AND OpenAPI-ready types).
 - **DB:** Neon Postgres via Drizzle ORM (`drizzle-kit` for migrations,
   `pg` Pool against the Neon **pooled** endpoint).
-- **Auth:** Firebase Admin SDK (project `laanya-prod`), verify `Bearer <ID token>`
+- **Auth:** Firebase Admin SDK (project `tinytalesforus-prod`), verify `Bearer <ID token>`
   on every non-health route. On first authed request, upsert a `users` row from
   the token (uid + phone_number).
 - **Deploy:** Docker → GCP Cloud Run `asia-southeast1` (colocated with Neon
