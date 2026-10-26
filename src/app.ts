@@ -73,7 +73,9 @@ import { catalogRoutes } from './routes/catalog.js'
 import { catalogAdminRoutes } from './routes/catalogAdmin.js'
 import { clientErrorsRoutes } from './routes/clientErrors.js'
 import { adminConfigRoutes, configRoutes } from './routes/config.js'
+import { adminClaimRoutes, claimRoutes } from './routes/claims.js'
 import { adminComplaintRoutes, complaintRoutes } from './routes/complaints.js'
+import { restockRoutes } from './routes/restock.js'
 import { adminCouponsRoutes, couponRoutes } from './routes/coupons.js'
 import { fulfilmentRoutes } from './routes/fulfilment.js'
 import { internalReplenishmentRoutes } from './routes/internalReplenishment.js'
@@ -295,6 +297,8 @@ export interface BuildAppOptions {
    * distinct `fromName`, not a distinct credential set.
    */
   complaintEmailFetchImpl?: typeof fetch
+  /** Test seam: the clock the damage-claim window is measured against. */
+  claimsNow?: () => Date
   /**
    * Test seam for the invoices module's Brevo sender (the customer's emailed
    * copy, and the admin resend). Same credentials as `alerts`, a different
@@ -830,6 +834,13 @@ export function buildApp(opts: BuildAppOptions): FastifyInstance {
     prefix: '/v1/complaints',
   })
   app.register(adminComplaintRoutes, { db: opts.db, prefix: '/v1/admin/complaints' })
+  app.register(claimRoutes, {
+    db: opts.db,
+    ...(opts.claimsNow ? { now: opts.claimsNow } : {}),
+    prefix: '/v1/claims',
+  })
+  app.register(adminClaimRoutes, { db: opts.db, prefix: '/v1/admin/claims' })
+  app.register(restockRoutes, { db: opts.db, prefix: '/v1/restock-requests' })
   app.register(fulfilmentRoutes, {
     db: opts.db,
     ...(opts.delhivery?.webhookSecret ? { webhookSecret: opts.delhivery.webhookSecret } : {}),

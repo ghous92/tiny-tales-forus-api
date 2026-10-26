@@ -78,6 +78,7 @@ export async function createTestDb(): Promise<{ db: Db; pglite: PGlite }> {
 }
 
 export interface CreateTestAppOptions {
+  claimsNow?: () => Date
   /** Test seam for profile identify calls and authoritative commerce events. */
   analytics?: Analytics
   /**
@@ -249,6 +250,7 @@ export async function createTestApp(options: CreateTestAppOptions = {}): Promise
     ...(options.alertEmailFetchImpl ? { alertEmailFetchImpl: options.alertEmailFetchImpl } : {}),
     ...(options.whatsappInbound ? { whatsappInbound: options.whatsappInbound } : {}),
     ...(options.whatsapp ? { whatsapp: options.whatsapp } : {}),
+    ...(options.claimsNow ? { claimsNow: options.claimsNow } : {}),
     ...(options.whatsappFetch ? { whatsappFetch: options.whatsappFetch } : {}),
     ...(options.adminPushSender ? { adminPushSender: options.adminPushSender } : {}),
     ...(options.scheduler

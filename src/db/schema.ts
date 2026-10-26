@@ -1071,6 +1071,90 @@ export const complaintTickets = pgTable(
 )
 
 /**
+ * Damage claims: the ONLY return path. Tiny Tales takes no change-of-mind
+ * returns; a piece that arrives broken is reported here with photos (and an
+ * optional unboxing video) inside the `returns.damageWindowHours` window,
+ * counted from the shipment's recorded delivery.
+ *
+ * One row per (order, sku) claim. An admin decides it: a refund (through the
+ * existing refund / credit-note path) or a replacement. `sku` is a frozen copy,
+ * not a foreign key, for the same reason as complaint tickets: the claim must
+ * outlive a renamed or delisted listing.
+ */
+export const damageClaims = pgTable(
+  'damage_claims',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    /** Shopper-facing id, e.g. "TT-DC-20261026-7K3QZM". */
+    claimNumber: text('claim_number').notNull().unique(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    orderId: text('order_id')
+      .notNull()
+      .references(() => payments.orderId, { onDelete: 'restrict' }),
+    sku: text('sku').notNull(),
+    qty: integer('qty').notNull().default(1),
+    description: text('description').notNull(),
+    /** string[] of image-intake keys for the damage photos (1 to 6). */
+    photoKeys: jsonbSafe('photo_keys').notNull(),
+    /** Optional link to an unboxing video the shopper recorded. */
+    unboxingVideoUrl: text('unboxing_video_url'),
+    /** The delivery the window was measured from, frozen at submission. */
+    deliveredAt: timestamp('delivered_at', { withTimezone: true }).notNull(),
+    /** 'submitted' | 'in_review' | 'approved_refund' | 'approved_replacement' | 'rejected'. */
+    status: text('status').notNull().default('submitted'),
+    resolutionNote: text('resolution_note'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+    resolvedAt: timestamp('resolved_at', { withTimezone: true }),
+  },
+  (table) => [
+    index('damage_claims_user_id_created_at_idx').on(table.userId, table.createdAt.desc()),
+    index('damage_claims_status_created_at_idx').on(table.status, table.createdAt),
+    /** One live claim per order line; a rejected claim does not block a corrected one. */
+    uniqueIndex('damage_claims_open_per_line_idx')
+      .on(table.orderId, table.sku)
+      .where(sql`${table.status} in ('submitted','in_review')`),
+    check(
+      'damage_claims_status_valid',
+      sql`${table.status} in ('submitted','in_review','approved_refund','approved_replacement','rejected')`
+    ),
+    check('damage_claims_qty_positive', sql`${table.qty} > 0`),
+  ]
+)
+
+/**
+ * "Notify me" requests for a piece that is unpriced or out of stock. Either a
+ * signed-in shopper (userId) or an email address; drained when the piece
+ * becomes purchasable (`notifiedAt` set once a message has gone out).
+ */
+export const restockRequests = pgTable(
+  'restock_requests',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    sku: text('sku').notNull(),
+    userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }),
+    email: text('email'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    notifiedAt: timestamp('notified_at', { withTimezone: true }),
+  },
+  (table) => [
+    index('restock_requests_sku_pending_idx')
+      .on(table.sku)
+      .where(sql`${table.notifiedAt} is null`),
+    /** Asking twice is one request, per person and piece. */
+    uniqueIndex('restock_requests_user_sku_idx')
+      .on(table.userId, table.sku)
+      .where(sql`${table.userId} is not null and ${table.notifiedAt} is null`),
+    uniqueIndex('restock_requests_email_sku_idx')
+      .on(table.email, table.sku)
+      .where(sql`${table.email} is not null and ${table.notifiedAt} is null`),
+    check('restock_requests_who', sql`${table.userId} is not null or ${table.email} is not null`),
+  ]
+)
+
+/**
  * Issued customer invoices (docs/SPEC-INVOICES.md). One row per paid order,
  * minted exactly once inside the `paid` transition's transaction and NEVER
  * rewritten afterwards — an issued invoice is a document that has left the
@@ -2238,3 +2322,5 @@ export const adminPushDevices = pgTable(
 )
 
 export type AdminPushDeviceRow = typeof adminPushDevices.$inferSelect
+export type DamageClaimRow = typeof damageClaims.$inferSelect
+export type RestockRequestRow = typeof restockRequests.$inferSelect

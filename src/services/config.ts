@@ -55,7 +55,13 @@ export const MAX_CONFIG_KEYS = 500
  * addresses (`fulfilment.pickupLocationName`), no cost model
  * (`shipping.marginBps`, `wholesale.*`), no carrier tuning.
  */
-export const PUBLIC_CONFIG_KEYS = ['legal.company', 'orders.cancelReasons'] as const
+export const PUBLIC_CONFIG_KEYS = [
+  'legal.company',
+  'orders.cancelReasons',
+  // The storefront states the damage-reporting window on the returns page and
+  // the claim form, so it must read the same number the API enforces.
+  'returns.damageWindowHours',
+] as const
 
 /** A drizzle transaction handle — same query surface as {@link Db}. */
 type Tx = Parameters<Parameters<Db['transaction']>[0]>[0]

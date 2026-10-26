@@ -454,6 +454,15 @@ export const CONFIG_DEFAULTS: ConfigDefault[] = [
     description:
       'Primary key for choosing among (pickup node, courier) candidates: "cost" (default), "sla" or "reliability". The remaining keys always break ties.',
   },
+  // --- Returns: damage only ---------------------------------------------------
+  {
+    key: 'returns.damageWindowHours',
+    // PENDING OWNER CONFIRMATION (docs/PLAN.md open question 6). 48 hours from
+    // the recorded delivery is the proposed window.
+    value: 48,
+    description:
+      'Hours after the recorded delivery within which a damaged piece can be reported. Tiny Tales takes damage claims only, no change-of-mind returns.',
+  },
   {
     key: 'shipping.refundFeeAfterDispatch',
     // INERT UNTIL FULFILMENT STATE EXISTS. There is no dispatch state on an

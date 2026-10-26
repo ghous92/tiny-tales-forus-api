@@ -235,6 +235,27 @@ CREATE TABLE "credit_notes" (
 	CONSTRAINT "credit_notes_seq_positive" CHECK ("credit_notes"."seq" > 0)
 );
 --> statement-breakpoint
+CREATE TABLE "damage_claims" (
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"claim_number" text NOT NULL,
+	"user_id" uuid NOT NULL,
+	"order_id" text NOT NULL,
+	"sku" text NOT NULL,
+	"qty" integer DEFAULT 1 NOT NULL,
+	"description" text NOT NULL,
+	"photo_keys" jsonb NOT NULL,
+	"unboxing_video_url" text,
+	"delivered_at" timestamp with time zone NOT NULL,
+	"status" text DEFAULT 'submitted' NOT NULL,
+	"resolution_note" text,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"resolved_at" timestamp with time zone,
+	CONSTRAINT "damage_claims_claim_number_unique" UNIQUE("claim_number"),
+	CONSTRAINT "damage_claims_status_valid" CHECK ("damage_claims"."status" in ('submitted','in_review','approved_refund','approved_replacement','rejected')),
+	CONSTRAINT "damage_claims_qty_positive" CHECK ("damage_claims"."qty" > 0)
+);
+--> statement-breakpoint
 CREATE TABLE "invoice_counters" (
 	"fy" text PRIMARY KEY NOT NULL,
 	"next_seq" integer DEFAULT 1 NOT NULL
@@ -466,6 +487,16 @@ CREATE TABLE "products" (
 	CONSTRAINT "products_gst_rate_pct_valid" CHECK ("products"."gst_rate_pct" in (0, 5, 12, 18, 28))
 );
 --> statement-breakpoint
+CREATE TABLE "restock_requests" (
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"sku" text NOT NULL,
+	"user_id" uuid,
+	"email" text,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"notified_at" timestamp with time zone,
+	CONSTRAINT "restock_requests_who" CHECK ("restock_requests"."user_id" is not null or "restock_requests"."email" is not null)
+);
+--> statement-breakpoint
 CREATE TABLE "review_helpful_votes" (
 	"review_id" uuid NOT NULL,
 	"user_id" uuid NOT NULL,
@@ -662,6 +693,8 @@ ALTER TABLE "courier_service_exceptions" ADD CONSTRAINT "courier_service_excepti
 ALTER TABLE "credit_notes" ADD CONSTRAINT "credit_notes_invoice_number_invoices_invoice_number_fk" FOREIGN KEY ("invoice_number") REFERENCES "public"."invoices"("invoice_number") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "credit_notes" ADD CONSTRAINT "credit_notes_order_id_payments_order_id_fk" FOREIGN KEY ("order_id") REFERENCES "public"."payments"("order_id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "credit_notes" ADD CONSTRAINT "credit_notes_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "damage_claims" ADD CONSTRAINT "damage_claims_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "damage_claims" ADD CONSTRAINT "damage_claims_order_id_payments_order_id_fk" FOREIGN KEY ("order_id") REFERENCES "public"."payments"("order_id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "invoices" ADD CONSTRAINT "invoices_order_id_payments_order_id_fk" FOREIGN KEY ("order_id") REFERENCES "public"."payments"("order_id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "invoices" ADD CONSTRAINT "invoices_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "ndr_actions" ADD CONSTRAINT "ndr_actions_shipment_id_shipments_id_fk" FOREIGN KEY ("shipment_id") REFERENCES "public"."shipments"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
@@ -673,6 +706,7 @@ ALTER TABLE "pickup_node_skus" ADD CONSTRAINT "pickup_node_skus_node_id_pickup_n
 ALTER TABLE "pickup_node_skus" ADD CONSTRAINT "pickup_node_skus_sku_catalog_items_sku_fk" FOREIGN KEY ("sku") REFERENCES "public"."catalog_items"("sku") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "product_variants" ADD CONSTRAINT "product_variants_product_id_products_id_fk" FOREIGN KEY ("product_id") REFERENCES "public"."products"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "products" ADD CONSTRAINT "products_category_categories_slug_fk" FOREIGN KEY ("category") REFERENCES "public"."categories"("slug") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "restock_requests" ADD CONSTRAINT "restock_requests_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "review_helpful_votes" ADD CONSTRAINT "review_helpful_votes_review_id_reviews_id_fk" FOREIGN KEY ("review_id") REFERENCES "public"."reviews"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "review_helpful_votes" ADD CONSTRAINT "review_helpful_votes_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "reviews" ADD CONSTRAINT "reviews_product_id_products_id_fk" FOREIGN KEY ("product_id") REFERENCES "public"."products"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
@@ -704,6 +738,9 @@ CREATE UNIQUE INDEX "credit_notes_fy_seq_idx" ON "credit_notes" USING btree ("fy
 CREATE INDEX "credit_notes_issued_at_idx" ON "credit_notes" USING btree ("issued_at" DESC NULLS LAST);--> statement-breakpoint
 CREATE INDEX "credit_notes_invoice_number_idx" ON "credit_notes" USING btree ("invoice_number");--> statement-breakpoint
 CREATE INDEX "credit_notes_order_id_idx" ON "credit_notes" USING btree ("order_id");--> statement-breakpoint
+CREATE INDEX "damage_claims_user_id_created_at_idx" ON "damage_claims" USING btree ("user_id","created_at" DESC NULLS LAST);--> statement-breakpoint
+CREATE INDEX "damage_claims_status_created_at_idx" ON "damage_claims" USING btree ("status","created_at");--> statement-breakpoint
+CREATE UNIQUE INDEX "damage_claims_open_per_line_idx" ON "damage_claims" USING btree ("order_id","sku") WHERE "damage_claims"."status" in ('submitted','in_review');--> statement-breakpoint
 CREATE UNIQUE INDEX "invoices_fy_seq_idx" ON "invoices" USING btree ("fy","seq");--> statement-breakpoint
 CREATE INDEX "invoices_issued_at_idx" ON "invoices" USING btree ("issued_at" DESC NULLS LAST);--> statement-breakpoint
 CREATE INDEX "invoices_user_id_idx" ON "invoices" USING btree ("user_id");--> statement-breakpoint
@@ -724,6 +761,9 @@ CREATE INDEX "product_variants_product_id_idx" ON "product_variants" USING btree
 CREATE UNIQUE INDEX "product_variants_product_size_color_idx" ON "product_variants" USING btree ("product_id","size","color");--> statement-breakpoint
 CREATE INDEX "products_category_idx" ON "products" USING btree ("category");--> statement-breakpoint
 CREATE INDEX "products_sort_order_idx" ON "products" USING btree ("sort_order");--> statement-breakpoint
+CREATE INDEX "restock_requests_sku_pending_idx" ON "restock_requests" USING btree ("sku") WHERE "restock_requests"."notified_at" is null;--> statement-breakpoint
+CREATE UNIQUE INDEX "restock_requests_user_sku_idx" ON "restock_requests" USING btree ("user_id","sku") WHERE "restock_requests"."user_id" is not null and "restock_requests"."notified_at" is null;--> statement-breakpoint
+CREATE UNIQUE INDEX "restock_requests_email_sku_idx" ON "restock_requests" USING btree ("email","sku") WHERE "restock_requests"."email" is not null and "restock_requests"."notified_at" is null;--> statement-breakpoint
 CREATE INDEX "reviews_product_id_helpful_idx" ON "reviews" USING btree ("product_id","helpful_count" DESC NULLS LAST,"created_at" DESC NULLS LAST);--> statement-breakpoint
 CREATE UNIQUE INDEX "reviews_one_per_user_product" ON "reviews" USING btree ("product_id","user_id") WHERE "reviews"."user_id" is not null;--> statement-breakpoint
 CREATE UNIQUE INDEX "shipment_events_dedupe_hash_idx" ON "shipment_events" USING btree ("dedupe_hash");--> statement-breakpoint
