@@ -5,7 +5,7 @@
  *
  * Everything here runs BEFORE the payload is trusted. `verifySignature` is the
  * security boundary of the whole feature: the phone number in `from` resolves
- * straight to a Laanya account (accounts are Firebase phone-auth), so a route
+ * straight to a Tiny Tales account (accounts are Firebase phone-auth), so a route
  * that parsed an unverified body would let anyone read another shopper's cart
  * and orders by POSTing their number. Verify first, parse second — in that
  * order, on every request, with no "trusted source" bypass.
@@ -15,18 +15,18 @@ import { createHmac, timingSafeEqual } from 'node:crypto'
 
 /**
  * The `wa.me` deep link prefills a message ending in an opaque ref code —
- * `...Daniya Cream 500ml [LNY-4F2A9C]` — and that code is what ties a chat back
+ * `...Daniya Cream 500ml [TT-4F2A9C]` — and that code is what ties a chat back
  * to a session, a PDP and later an order. Without it this is the
  * unattributable channel the whole design was trying not to build.
  *
  * Deliberately loose on length (4–16) and case-insensitive (the `i` flag covers
- * the `LNY-` prefix too, not just the body): the code is minted by the web
+ * the `TT-` prefix too, not just the body): the code is minted by the web
  * client, and a webhook that silently dropped attribution because the client
  * lower-cased its links would be invisible — no error, just a channel that
  * looks unattributable again, which is the exact failure this feature exists
  * to avoid.
  */
-const REF_CODE_RE = /\[(LNY-[A-Za-z0-9]{4,16})\]/i
+const REF_CODE_RE = /\[(TT-[A-Za-z0-9]{4,16})\]/i
 
 /** Meta's `X-Hub-Signature-256` header value looks like `sha256=<hex>`. */
 const SIGNATURE_PREFIX = 'sha256='
@@ -63,8 +63,8 @@ export function verifySignature(rawBody: Buffer, header: string | undefined, app
 /**
  * Pull the ref code out of a prefilled first message, or null.
  *
- * Returns the code WITHOUT its brackets, uppercased, so `LNY-4f2a9c` and
- * `LNY-4F2A9C` are the same attribution row.
+ * Returns the code WITHOUT its brackets, uppercased, so `TT-4f2a9c` and
+ * `TT-4F2A9C` are the same attribution row.
  */
 export function extractRefCode(text: string): string | null {
   const match = REF_CODE_RE.exec(text)

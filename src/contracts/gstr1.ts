@@ -131,7 +131,7 @@ export const Gstr1ExportQuerySchema = z
       .optional(),
     /**
      * An Indian financial year, `"26-27"` — 1 April to 31 March, the same
-     * form the invoice number series uses (`LAA/26-27/000142`). Shorthand for
+     * form the invoice number series uses (`TT/26-27/000142`). Shorthand for
      * the `from`/`to` pair, and the ordinary way to ask for `report=annual`:
      * hand-typing `2026-04-01`/`2027-03-31` is how a year quietly loses its
      * first or last day.

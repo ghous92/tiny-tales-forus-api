@@ -11,7 +11,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { auth, createTestApp, USER_A, type TestContext } from '../helpers/app.js'
 
 const SECRET = 'test-proxy-shared-secret-0123456789abcdef'
-const HEADER = 'x-laanya-proxy-auth'
+const HEADER = 'x-tinytales-proxy-auth'
 
 describe('proxy gate unset (default/dev state)', () => {
   let ctx: TestContext

@@ -89,7 +89,7 @@ export interface CreateTestAppOptions {
   /**
    * Proxy-gate shared secret (see `src/app.ts`). Left unset by default so
    * every other test suite keeps hitting routes without the
-   * `X-Laanya-Proxy-Auth` header, exactly like today's ungated deploy;
+   * `X-TinyTales-Proxy-Auth` header, exactly like today's ungated deploy;
    * proxy-gate tests pass one explicitly.
    */
   proxySharedSecret?: string
@@ -196,7 +196,7 @@ export interface CreateTestAppOptions {
 /** The allowlisted machine identity used by sweep tests. */
 export const SCHEDULER_SA = {
   token: 'test-oidc-token-scheduler',
-  email: 'laanya-scheduler@laanya-prod.iam.gserviceaccount.com',
+  email: 'tinytales-scheduler@tinytalesforus-prod.iam.gserviceaccount.com',
 } as const
 
 /** A correctly-signed token from an identity that is NOT on the allowlist. */
@@ -206,7 +206,7 @@ export const SCHEDULER_STRANGER = {
 } as const
 
 /** Audience sweep tests mint tokens for. Must match what the app is built with. */
-export const SCHEDULER_AUDIENCE = 'laanya-api-sweeps'
+export const SCHEDULER_AUDIENCE = 'tinytales-api-sweeps'
 
 export async function createTestApp(
   options: CreateTestAppOptions = {}

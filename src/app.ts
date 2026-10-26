@@ -156,7 +156,7 @@ export interface BuildAppOptions {
   allowedOrigins?: string[]
   /**
    * Which deployment this process is (`env.APP_ENV`). Echoed on every response
-   * as `X-Laanya-Env` so clients can display the environment the server says
+   * as `X-TinyTales-Env` so clients can display the environment the server says
    * they reached instead of the one they assume. Defaults to 'development'.
    */
   appEnv?: 'development' | 'staging' | 'production'
@@ -251,8 +251,8 @@ export interface BuildAppOptions {
   /**
    * `env.PROXY_SHARED_SECRET`. When set, registers an `onRequest` proxy gate
    * (see below) that rejects any request not carrying a matching
-   * `X-Laanya-Proxy-Auth` header — i.e. anything that didn't come through the
-   * laanya-shop Cloudflare edge Worker. Unset (default): the gate is not
+   * `X-TinyTales-Proxy-Auth` header — i.e. anything that didn't come through the
+   * tiny-tales-forus Cloudflare edge Worker. Unset (default): the gate is not
    * registered at all and the app behaves exactly as it does today.
    */
   proxySharedSecret?: string | undefined
@@ -438,7 +438,7 @@ export function buildApp(opts: BuildAppOptions): FastifyInstance {
   // an operator debugging a 500 needs to know which deployment produced it just
   // as much as one reading a 200 does.
   app.addHook('onSend', async (request, reply) => {
-    void reply.header('X-Laanya-Env', appEnv)
+    void reply.header('X-TinyTales-Env', appEnv)
     // Echo the correlation id back so a client can attach it to a crash report
     // (docs/OBSERVABILITY.md P1). Without this the id exists only in server
     // logs, and "which API call preceded this crash" stays unanswerable from
@@ -477,7 +477,7 @@ export function buildApp(opts: BuildAppOptions): FastifyInstance {
   const complaintEmail: EmailSenderConfig | undefined = (() => {
     const { brevoApiKey, emailFrom } = opts.alerts ?? {}
     return brevoApiKey && emailFrom
-      ? { apiKey: brevoApiKey, fromEmail: emailFrom, fromName: 'Laanya Support' }
+      ? { apiKey: brevoApiKey, fromEmail: emailFrom, fromName: 'Tiny Tales Support' }
       : undefined
   })()
 
@@ -487,7 +487,7 @@ export function buildApp(opts: BuildAppOptions): FastifyInstance {
   const invoiceEmail: EmailSenderConfig | undefined = (() => {
     const { brevoApiKey, emailFrom } = opts.alerts ?? {}
     return brevoApiKey && emailFrom
-      ? { apiKey: brevoApiKey, fromEmail: emailFrom, fromName: 'Laanya' }
+      ? { apiKey: brevoApiKey, fromEmail: emailFrom, fromName: 'Tiny Tales' }
       : undefined
   })()
 
@@ -498,7 +498,7 @@ export function buildApp(opts: BuildAppOptions): FastifyInstance {
   const alertEmail: EmailSenderConfig | undefined = (() => {
     const { brevoApiKey, emailFrom } = opts.alerts ?? {}
     return brevoApiKey && emailFrom
-      ? { apiKey: brevoApiKey, fromEmail: emailFrom, fromName: 'Laanya Monitoring' }
+      ? { apiKey: brevoApiKey, fromEmail: emailFrom, fromName: 'Tiny Tales Monitoring' }
       : undefined
   })()
 
@@ -588,9 +588,9 @@ export function buildApp(opts: BuildAppOptions): FastifyInstance {
   // must run first: everything downstream (CORS, auth, every route) should
   // only ever see traffic that already cleared it.
   //
-  // Rejects any request that didn't arrive through the laanya-shop Cloudflare
-  // edge Worker (which proxies `www.laanya.shop/api/*` here and injects the
-  // `X-Laanya-Proxy-Auth` header checked below). Optional: unset
+  // Rejects any request that didn't arrive through the tiny-tales-forus Cloudflare
+  // edge Worker (which proxies `www.tinytalesforus.com/api/*` here and injects the
+  // `X-TinyTales-Proxy-Auth` header checked below). Optional: unset
   // `proxySharedSecret` (default) registers nothing, so the app behaves
   // exactly as it does today and the run.app URL stays open — the state the
   // service is in until clients finish migrating to the edge URL.
@@ -607,7 +607,7 @@ export function buildApp(opts: BuildAppOptions): FastifyInstance {
       const path = request.url.split('?', 1)[0]
       if (path === '/livez' || path === '/readyz') return
 
-      const header = request.headers['x-laanya-proxy-auth']
+      const header = request.headers['x-tinytales-proxy-auth']
       const provided = typeof header === 'string' ? Buffer.from(header, 'utf8') : undefined
 
       // Length check BEFORE timingSafeEqual: unlike most comparisons,
@@ -645,14 +645,14 @@ export function buildApp(opts: BuildAppOptions): FastifyInstance {
       },
       methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
       allowedHeaders: ['Authorization', 'Content-Type'],
-      // Without this the browser hides X-Laanya-Env from cross-origin JS, so the
+      // Without this the browser hides X-TinyTales-Env from cross-origin JS, so the
       // admin SPA — which is always cross-origin to this API — could set the
       // header and still be unable to read it back.
       // X-Request-Id is exposed for the same reason: the onSend hook always
       // sets it, but a cross-origin caller cannot read an unlisted header, so
       // without this the admin SPA's error reports would carry no correlation
       // id even though the server sent one.
-      exposedHeaders: ['X-Laanya-Env', 'X-Request-Id'],
+      exposedHeaders: ['X-TinyTales-Env', 'X-Request-Id'],
       credentials: false,
       maxAge: 86400,
     })
@@ -701,7 +701,7 @@ export function buildApp(opts: BuildAppOptions): FastifyInstance {
   app.register(stockRoutes, { db: opts.db, prefix: '/v1/stock' })
   app.register(stockAdminRoutes, { db: opts.db, prefix: '/v1/admin/stock' })
   app.register(mediaAdminRoutes, {
-    imageIntakeBaseUrl: opts.imageIntake?.baseUrl ?? 'https://cdn.laanya.shop',
+    imageIntakeBaseUrl: opts.imageIntake?.baseUrl ?? 'https://image-intake.adix-ai.workers.dev',
     uploadToken: opts.imageIntake?.uploadToken,
     ...(opts.mediaUploadFetchImpl ? { fetchImpl: opts.mediaUploadFetchImpl } : {}),
     prefix: '/v1/admin/media',
@@ -883,7 +883,7 @@ export function buildApp(opts: BuildAppOptions): FastifyInstance {
     config: whatsappInboundConfig,
     ...(opts.whatsappFetch ? { fetchImpl: opts.whatsappFetch } : {}),
     ...(adminPushSender ? { pushSender: adminPushSender } : {}),
-    adminBaseUrl: opts.adminBaseUrl ?? 'https://www.laanya.shop',
+    adminBaseUrl: opts.adminBaseUrl ?? 'https://www.tinytalesforus.com',
     prefix: '/v1/whatsapp',
   })
   app.register(whatsappAdminRoutes, {

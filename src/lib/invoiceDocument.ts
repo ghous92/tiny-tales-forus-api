@@ -88,7 +88,7 @@ export interface ProductLegalInfo {
 }
 
 export interface BuildInvoiceDocumentInput {
-  /** From `invoice.numberPrefix` config, e.g. "LAA". */
+  /** From `invoice.numberPrefix` config, e.g. "TT". */
   numberPrefix: string
   fy: string
   seq: number

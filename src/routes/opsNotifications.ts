@@ -54,7 +54,7 @@ export const ORDER_CONFIRMED_CUSTOMER_KIND = 'order_confirmed_customer'
 /**
  * Parcel delivered, to the shopper. UTILITY — tied to an order they placed.
  *
- * DELIVERED, not shipped. The approved template (`laanya_order_delivered`) is
+ * DELIVERED, not shipped. The approved template (`tinytales_order_delivered`) is
  * written around the parcel having arrived and links a usage guide; there is no
  * approved dispatch template, and repurposing this one for pickup would tell a
  * shopper their order had arrived while it sat on a van.
@@ -254,7 +254,7 @@ function cityFrom(address: Record<string, unknown>): string {
   return typeof address.city === 'string' ? address.city : ''
 }
 
-/** `https://laanya.shop` + `/admin/orders/<orderId>` — the `{{6}}` deep link (SPEC §3). No trailing slash assumed on the input. */
+/** `https://tinytalesforus.com` + `/admin/orders/<orderId>` — the `{{6}}` deep link (SPEC §3). No trailing slash assumed on the input. */
 function adminOrderLink(adminOrigin: string, orderId: string): string {
   return `${adminOrigin.replace(/\/+$/, '')}/admin/orders/${encodeURIComponent(orderId)}`
 }

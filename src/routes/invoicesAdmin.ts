@@ -185,7 +185,7 @@ export const adminInvoiceRoutes: FastifyPluginAsyncZod<AdminInvoiceRoutesOptions
       const rows = await listInvoicesForExport(db, request.query)
       return reply
         .header('content-type', 'text/csv; charset=utf-8')
-        .header('content-disposition', 'attachment; filename="laanya-invoices.csv"')
+        .header('content-disposition', 'attachment; filename="tinytales-invoices.csv"')
         .send(toCsv(rows))
     }
   )
@@ -247,7 +247,7 @@ export const adminInvoiceRoutes: FastifyPluginAsyncZod<AdminInvoiceRoutesOptions
         .header('content-type', 'text/csv; charset=utf-8')
         .header(
           'content-disposition',
-          `attachment; filename="laanya-gstr1-${report}${who}${suffix}.csv"`
+          `attachment; filename="tinytales-gstr1-${report}${who}${suffix}.csv"`
         )
         .send(csv)
     }
@@ -288,7 +288,7 @@ export const adminInvoiceRoutes: FastifyPluginAsyncZod<AdminInvoiceRoutesOptions
         .header('content-type', 'text/csv; charset=utf-8')
         .header(
           'content-disposition',
-          `attachment; filename="laanya-itc-freight-${result.report}${suffix}.csv"`
+          `attachment; filename="tinytales-itc-freight-${result.report}${suffix}.csv"`
         )
         .send(result.csv)
     }

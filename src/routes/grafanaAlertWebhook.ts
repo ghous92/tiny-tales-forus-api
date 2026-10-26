@@ -1,7 +1,7 @@
 /**
  * `POST /v1/webhooks/grafana-alert` — Grafana Cloud's unified-alerting webhook
  * contact point lands here when the ERROR-severity log alert rule fires (or
- * resolves) for `laanya-api`.
+ * resolves) for `tinytales-api`.
  *
  * Unauthenticated at the Fastify level, unlike everything else that touches
  * an internal boundary in this codebase: Grafana cannot produce a Google OIDC
@@ -85,7 +85,7 @@ function parseAlerts(body: unknown): ParsedAlert[] {
         : {}
     return {
       status: stringField(a, 'status') || 'firing',
-      name: stringField(labels, 'alertname') || 'laanya-api alert',
+      name: stringField(labels, 'alertname') || 'tinytales-api alert',
       fingerprint: stringField(a, 'fingerprint') || randomUUID(),
       summary: stringField(annotations, 'summary'),
       description: stringField(annotations, 'description'),
@@ -95,7 +95,7 @@ function parseAlerts(body: unknown): ParsedAlert[] {
 
 function renderEmail(alert: ParsedAlert): { subject: string; html: string } {
   const verb = alert.status === 'resolved' ? 'RESOLVED' : 'FIRING'
-  const subject = `[${verb}] ${alert.name} — laanya-api`
+  const subject = `[${verb}] ${alert.name} — tinytales-api`
   const html = `
     <div style="font-family:sans-serif;font-size:14px;color:#111">
       <p style="font-weight:bold;font-size:16px">${escapeHtml(verb)}: ${escapeHtml(alert.name)}</p>

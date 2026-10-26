@@ -19,21 +19,21 @@
 #   DRY_RUN=1 scripts/provision-schedulers.sh prod    # print, change nothing
 #
 # Prerequisites: `gcloud auth login` with rights to create service accounts,
-# IAM bindings and scheduler jobs in `laanya-prod`.
+# IAM bindings and scheduler jobs in `tinytalesforus-prod`.
 
 set -euo pipefail
 
 ENVIRONMENT="${1:-}"
-PROJECT="laanya-prod"
+PROJECT="tinytalesforus-prod"
 # Cloud Run and Cloud Scheduler both live here. NOT asia-south1 — that region
 # is empty and querying it is how you conclude there are no jobs at all.
 REGION="asia-southeast1"
-SA_NAME="laanya-scheduler"
+SA_NAME="tinytales-scheduler"
 SA_EMAIL="${SA_NAME}@${PROJECT}.iam.gserviceaccount.com"
 
 # AUDIENCE must match SCHEDULER_OIDC_AUDIENCE in deploy.yml EXACTLY, and the two
 # environments deliberately differ. An arbitrary stable string rather than the
-# service URL: the API answers on the run.app host, on www.laanya.shop/api and
+# service URL: the API answers on the run.app host, on www.tinytalesforus.com/api and
 # on localhost, and an audience tied to one of them silently accepts tokens
 # minted for the others. Distinct per environment because both services trust
 # the SAME service account — with one shared audience, a staging job's token
@@ -41,14 +41,14 @@ SA_EMAIL="${SA_NAME}@${PROJECT}.iam.gserviceaccount.com"
 # spurious manifest sweep books real parcels.
 case "$ENVIRONMENT" in
   staging)
-    SERVICE="laanya-api-staging"
-    PREFIX="laanya-sweep-staging"
-    AUDIENCE="laanya-api-sweeps-staging"
+    SERVICE="tinytales-api-staging"
+    PREFIX="tinytales-sweep-staging"
+    AUDIENCE="tinytales-api-sweeps-staging"
     ;;
   prod)
-    SERVICE="laanya-api"
-    PREFIX="laanya-sweep"
-    AUDIENCE="laanya-api-sweeps"
+    SERVICE="tinytales-api"
+    PREFIX="tinytales-sweep"
+    AUDIENCE="tinytales-api-sweeps"
     ;;
   *)
     echo "usage: $0 <staging|prod>" >&2
@@ -83,7 +83,7 @@ echo
 
 # ── 1. The scheduler's own identity ────────────────────────────────────────
 # A dedicated service account, not the Cloud Run runtime one
-# (`laanya-api-run@`). The API's allowlist is `SCHEDULER_SERVICE_ACCOUNTS`, and
+# (`tinytales-api-run@`). The API's allowlist is `SCHEDULER_SERVICE_ACCOUNTS`, and
 # an identity that both runs the service and calls its privileged internal
 # routes collapses two trust boundaries into one for no gain.
 if gcloud iam service-accounts describe "$SA_EMAIL" --project="$PROJECT" >/dev/null 2>&1; then
@@ -92,7 +92,7 @@ else
   echo "creating service account: $SA_EMAIL"
   run gcloud iam service-accounts create "$SA_NAME" \
     --project="$PROJECT" \
-    --display-name="Cloud Scheduler → laanya-api background sweeps"
+    --display-name="Cloud Scheduler → tinytales-api background sweeps"
 fi
 
 # `roles/run.invoker` is belt-and-braces here: the service currently allows

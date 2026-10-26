@@ -52,7 +52,7 @@ describe('auth gate', () => {
   it.each([
     ['POST', '/v1/complaints'],
     ['GET', '/v1/complaints'],
-    ['GET', '/v1/complaints/LNY-20260101-ABCDEF'],
+    ['GET', '/v1/complaints/TT-20260101-ABCDEF'],
   ] as const)('401s %s %s without a token', async (method, url) => {
     const res = await ctx.app.inject({ method, url })
     expect(res.statusCode).toBe(401)
@@ -70,7 +70,7 @@ describe('POST /v1/complaints', () => {
     })
     expect(res.statusCode).toBe(201)
     const body = res.json()
-    expect(body.ticketNumber).toMatch(/^LNY-\d{8}-[A-Z0-9]{6}$/)
+    expect(body.ticketNumber).toMatch(/^TT-\d{8}-[A-Z0-9]{6}$/)
     expect(body.status).toBe('open')
     expect(body.orderId).toBeNull()
     expect(body.resolutionNote).toBeNull()
@@ -125,7 +125,7 @@ describe('POST /v1/complaints', () => {
 
   it('201s and stores a `sku` the catalog knows', async () => {
     await ctx.db.insert(catalogItems).values({
-      sku: 'LAANYA-ALOE-100',
+      sku: 'TT-ALOE-100',
       productId: 'aloe-gel',
       name: 'Aloe Vera Gel',
       size: '100g',
@@ -140,15 +140,15 @@ describe('POST /v1/complaints', () => {
       method: 'POST',
       url: '/v1/complaints',
       headers: auth(USER_A.token),
-      payload: validComplaint({ sku: 'LAANYA-ALOE-100' }),
+      payload: validComplaint({ sku: 'TT-ALOE-100' }),
     })
     expect(res.statusCode).toBe(201)
-    expect(res.json().sku).toBe('LAANYA-ALOE-100')
+    expect(res.json().sku).toBe('TT-ALOE-100')
   })
 
   it('accepts a `sku` that is no longer active — shoppers complain about delisted bottles', async () => {
     await ctx.db.insert(catalogItems).values({
-      sku: 'LAANYA-DISCONTINUED',
+      sku: 'TT-DISCONTINUED',
       productId: 'old-cream',
       name: 'Discontinued Cream',
       size: '50g',
@@ -163,10 +163,10 @@ describe('POST /v1/complaints', () => {
       method: 'POST',
       url: '/v1/complaints',
       headers: auth(USER_A.token),
-      payload: validComplaint({ sku: 'LAANYA-DISCONTINUED' }),
+      payload: validComplaint({ sku: 'TT-DISCONTINUED' }),
     })
     expect(res.statusCode).toBe(201)
-    expect(res.json().sku).toBe('LAANYA-DISCONTINUED')
+    expect(res.json().sku).toBe('TT-DISCONTINUED')
   })
 
   it('404s when `sku` names a product that does not exist', async () => {
@@ -275,7 +275,7 @@ describe('GET /v1/complaints (history) and /v1/complaints/:ticketNumber', () => 
   it('404s an unknown ticket number', async () => {
     const res = await ctx.app.inject({
       method: 'GET',
-      url: '/v1/complaints/LNY-20260101-ZZZZZZ',
+      url: '/v1/complaints/TT-20260101-ZZZZZZ',
       headers: auth(USER_A.token),
     })
     expect(res.statusCode).toBe(404)
@@ -409,7 +409,7 @@ describe('PATCH /v1/admin/complaints/:ticketNumber', () => {
     await makeAdmin()
     const res = await ctx.app.inject({
       method: 'PATCH',
-      url: '/v1/admin/complaints/LNY-20260101-ZZZZZZ',
+      url: '/v1/admin/complaints/TT-20260101-ZZZZZZ',
       headers: auth(USER_ADMIN.token),
       payload: { status: 'in_progress' },
     })
@@ -419,7 +419,7 @@ describe('PATCH /v1/admin/complaints/:ticketNumber', () => {
 
 describe('notification emails (best-effort)', () => {
   const BREVO_API_KEY = 'test_brevo_key_fake'
-  const EMAIL_FROM = 'no-reply@laanya.test'
+  const EMAIL_FROM = 'no-reply@tinytales.test'
 
   /** A fresh app wired with fake Brevo credentials and a recording fetch stub. */
   async function appWithEmail(fetchImpl: typeof fetch) {
@@ -452,7 +452,7 @@ describe('notification emails (best-effort)', () => {
     await built.db.insert(appConfig).values({
       key: 'legal.company',
       // The ONE published contact: a role mailbox, never a named individual.
-      value: { supportEmail: 'support@laanya.test' },
+      value: { supportEmail: 'support@tinytales.test' },
       description: '',
     })
 
@@ -469,11 +469,11 @@ describe('notification emails (best-effort)', () => {
 
     expect(fakeFetch).toHaveBeenCalled()
     const internalCall = calls.find((c) =>
-      (c.body as { to?: Array<{ email: string }> }).to?.some((r) => r.email === 'support@laanya.test')
+      (c.body as { to?: Array<{ email: string }> }).to?.some((r) => r.email === 'support@tinytales.test')
     )
     expect(internalCall).toBeDefined()
     const recipients = (internalCall!.body as { to: Array<{ email: string }> }).to.map((r) => r.email)
-    expect(recipients).toEqual(['support@laanya.test'])
+    expect(recipients).toEqual(['support@tinytales.test'])
 
     await built.app.close()
   })
@@ -492,7 +492,7 @@ describe('notification emails (best-effort)', () => {
     const built = await appWithEmail(fakeFetch)
     await built.db.insert(appConfig).values({
       key: 'legal.company',
-      value: { grievanceEmail: 'grievance@laanya.test', nodalContactEmail: 'nodal@laanya.test' },
+      value: { grievanceEmail: 'grievance@tinytales.test', nodalContactEmail: 'nodal@tinytales.test' },
       description: '',
     })
 
@@ -505,9 +505,9 @@ describe('notification emails (best-effort)', () => {
     expect(res.statusCode).toBe(201)
     await new Promise((resolve) => setTimeout(resolve, 50))
 
-    const opsCall = calls.find((c) => c.body.to?.some((r) => r.email === 'grievance@laanya.test'))
+    const opsCall = calls.find((c) => c.body.to?.some((r) => r.email === 'grievance@tinytales.test'))
     expect(opsCall).toBeDefined()
-    expect(opsCall!.body.to!.map((r) => r.email)).toContain('nodal@laanya.test')
+    expect(opsCall!.body.to!.map((r) => r.email)).toContain('nodal@tinytales.test')
 
     await built.app.close()
   })
@@ -522,11 +522,11 @@ describe('notification emails (best-effort)', () => {
     const built = await appWithEmail(fakeFetch)
     await built.db.insert(appConfig).values({
       key: 'legal.company',
-      value: { supportEmail: 'support@laanya.test' },
+      value: { supportEmail: 'support@tinytales.test' },
       description: '',
     })
     await built.db.insert(catalogItems).values({
-      sku: 'LAANYA-ALOE-100',
+      sku: 'TT-ALOE-100',
       productId: 'aloe-gel',
       name: 'Aloe Vera Gel',
       size: '100g',
@@ -542,16 +542,16 @@ describe('notification emails (best-effort)', () => {
       method: 'POST',
       url: '/v1/complaints',
       headers: auth(USER_A.token),
-      payload: validComplaint({ sku: 'LAANYA-ALOE-100' }),
+      payload: validComplaint({ sku: 'TT-ALOE-100' }),
     })
     expect(res.statusCode).toBe(201)
     await new Promise((resolve) => setTimeout(resolve, 50))
 
-    const opsCall = calls.find((c) => c.body.to?.some((r) => r.email === 'support@laanya.test'))
+    const opsCall = calls.find((c) => c.body.to?.some((r) => r.email === 'support@tinytales.test'))
     expect(opsCall).toBeDefined()
     // Both the human-readable name and the raw sku ops need to search by.
     expect(opsCall!.body.htmlContent).toContain('Aloe Vera Gel (100g)')
-    expect(opsCall!.body.htmlContent).toContain('LAANYA-ALOE-100')
+    expect(opsCall!.body.htmlContent).toContain('TT-ALOE-100')
 
     await built.app.close()
   })
@@ -591,7 +591,7 @@ describe('notification emails (best-effort)', () => {
     const built = await appWithEmail(fakeFetch)
     await built.db.insert(appConfig).values({
       key: 'legal.company',
-      value: { supportEmail: 'support@laanya.test' },
+      value: { supportEmail: 'support@tinytales.test' },
       description: '',
     })
 

@@ -11,7 +11,7 @@
  * `development` — the API server defaulting to the least-privileged mode is
  * correct, but a seed script inheriting that default would run happily against
  * a production `DATABASE_URL` on any machine that never set the variable. The
- * same reasoning the admin SPA uses for `X-Laanya-Env`: silence is not evidence
+ * same reasoning the admin SPA uses for `X-TinyTales-Env`: silence is not evidence
  * of safety, so silence gets refused.
  *
  * `ALLOW_NON_DEV_SEED=1` is the escape hatch for the one legitimate case —

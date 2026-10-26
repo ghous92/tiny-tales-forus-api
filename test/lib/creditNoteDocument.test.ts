@@ -16,7 +16,7 @@ import {
 
 const REGISTERED_SELLER: InvoiceSellerBlock = {
   legalName: 'Adix AI',
-  brand: 'Laanya',
+  brand: 'Tiny Tales',
   address: '3, Qamar Makhdumi Road, near Noori Masjid, Bhuli Road, Wasseypur, Dhanbad, Jharkhand 826001',
   gstRegistered: true,
   gstin: '20AAAAA0000A1Z5',
@@ -25,7 +25,7 @@ const REGISTERED_SELLER: InvoiceSellerBlock = {
 
 const UNREGISTERED_SELLER: InvoiceSellerBlock = {
   legalName: 'Adix AI',
-  brand: 'Laanya',
+  brand: 'Tiny Tales',
   address: '4/B Al-Farooq CHS, Sarkhej, Ahmedabad, Gujarat 380051',
   gstRegistered: false,
   gstin: '',

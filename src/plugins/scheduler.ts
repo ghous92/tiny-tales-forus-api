@@ -35,7 +35,7 @@ import { forbidden, schedulerDisabled, unauthorized } from '../lib/errors.js'
 
 /** The claims we consume from a verified Google OIDC ID token. */
 export interface VerifiedOidcToken {
-  /** The calling service account's email, e.g. `laanya-scheduler@laanya-prod.iam.gserviceaccount.com`. */
+  /** The calling service account's email, e.g. `tinytales-scheduler@tinytalesforus-prod.iam.gserviceaccount.com`. */
   email: string
   /** Google sets this true for service-account identities; a false value is rejected. */
   emailVerified: boolean
@@ -98,7 +98,7 @@ export interface SchedulerPluginOptions {
    * The `aud` claim every accepted token must carry, matching Cloud Scheduler's
    * `--oidc-token-audience`. Set explicitly rather than defaulting to the
    * request URL: the service answers on three hostnames (the `*.run.app` URL,
-   * `www.laanya.shop/api`, and localhost in dev) and an audience derived from
+   * `www.tinytalesforus.com/api`, and localhost in dev) and an audience derived from
    * whichever one the caller happened to use would accept a token minted for
    * any of them. Absent ⇒ the gate is closed.
    */

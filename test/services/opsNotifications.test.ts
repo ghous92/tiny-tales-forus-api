@@ -68,7 +68,7 @@ describe('enqueueOpsNotification', () => {
       orderId: ORDER_ID,
       channel: 'whatsapp_cloud',
       target: '919900000001',
-      message: { params: [ORDER_ID, 'Asha', 'Surat', '2 items', '179', 'https://laanya.shop/admin/orders/x'] },
+      message: { params: [ORDER_ID, 'Asha', 'Surat', '2 items', '179', 'https://tinytalesforus.com/admin/orders/x'] },
     })
     expect(row).not.toBeNull()
     expect(row?.status).toBe('pending')

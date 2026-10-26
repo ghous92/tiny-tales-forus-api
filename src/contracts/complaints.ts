@@ -9,7 +9,7 @@
  * ```
  * complaint_tickets:
  *   id               uuid pk
- *   ticket_number    text unique     -- shopper-facing tracking id, e.g. "LNY-20260725-7K3QZM"
+ *   ticket_number    text unique     -- shopper-facing tracking id, e.g. "TT-20260725-7K3QZM"
  *   user_id          uuid fk -> users(id)
  *   order_id         text null fk -> payments(order_id)
  *   sku              text null       -- seller-sku the complaint is about (frozen, not an FK)

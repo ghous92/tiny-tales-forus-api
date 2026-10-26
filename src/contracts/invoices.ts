@@ -20,7 +20,7 @@
  *
  * The original rationale, kept because it states why the choice mattered:
  *
- * Adix AI (brand: Laanya) sells as PRINCIPAL — the seller of record — goods
+ * Adix AI (brand: Tiny Tales) sells as PRINCIPAL — the seller of record — goods
  * manufactured by a separately licensed entity. It was NOT registered under GST
  * (`legal.company.gstRegistered: false`) when this was written. That single fact
  * decided the whole shape of the document:
@@ -67,7 +67,7 @@
  *
  * ```
  * invoices:
- *   invoice_number  text pk          -- "LAA/26-27/000142"
+ *   invoice_number  text pk          -- "TT/26-27/000142"
  *   order_id        text unique fk -> payments(order_id) on delete restrict
  *   user_id         uuid fk -> users(id) on delete restrict
  *   fy              text             -- "26-27" (Indian FY, 1 Apr–31 Mar)

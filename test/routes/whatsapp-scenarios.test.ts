@@ -14,7 +14,7 @@
  * The dimensions crossed below:
  *
  *   entry      : ref code / no code / lower-case code / malformed code / code mid-sentence
- *   identity   : phone matches a Laanya account / stranger
+ *   identity   : phone matches a Tiny Tales account / stranger
  *   message    : text / image+caption / image, no caption / unsupported type
  *   delivery   : single / batched / Meta retry / two entries in one envelope
  *   signature  : valid / forged / absent / body tampered / webhook unconfigured
@@ -178,7 +178,7 @@ async function record(label: string, waPhone: string) {
   }
   const rows = await messagesFor(thread.id)
   const lines = rows.map((row) => {
-    const who = row.direction === 'inbound' ? 'shopper' : 'laanya '
+    const who = row.direction === 'inbound' ? 'shopper' : 'tinytales '
     const flag = row.status === 'failed' ? ' [NOT DELIVERED]' : ''
     return `  ${who} | ${row.body || `(${row.msgType}, no text)`}${flag}`
   })
@@ -225,11 +225,11 @@ describe('scenario: a stranger on a PDP asks whether the business is real', () =
       id: 'wamid.S1a',
       from: STRANGER,
       name: 'Priya',
-      text: 'Hi, I want to know about Daniya Multi-Purpose Body Cream 500ml [LNY-4F2A9C]',
+      text: 'Hi, I want to know about Daniya Multi-Purpose Body Cream 500ml [TT-4F2A9C]',
     })
 
     const thread = await threadFor(STRANGER)
-    expect(thread).toMatchObject({ refCode: 'LNY-4F2A9C', profileName: 'Priya', status: 'open' })
+    expect(thread).toMatchObject({ refCode: 'TT-4F2A9C', profileName: 'Priya', status: 'open' })
     // The ref code is stripped: the shopper never wrote it and must not read it.
     const first = (await messagesFor(thread!.id))[0]
     expect(first?.body).toBe('Hi, I want to know about Daniya Multi-Purpose Body Cream 500ml')
@@ -247,7 +247,7 @@ describe('scenario: a stranger on a PDP asks whether the business is real', () =
 
     const reply = await operatorReplies(
       waiting!.id,
-      'Yes — sold by Laanya, manufactured by Saman Products (licence GC1299). We deliver to 380015 in 2 days. Prepaid only right now.'
+      'Yes — sold by Tiny Tales, manufactured by Saman Products (licence GC1299). We deliver to 380015 in 2 days. Prepaid only right now.'
     )
     expect(reply.statusCode).toBe(200)
     expect(reply.json().ok).toBe(true)
@@ -303,20 +303,20 @@ describe('scenario: ref-code permutations from the wa.me prefill', () => {
   const cases: Array<{ label: string; text: string; expected: string | null; body: string }> = [
     {
       label: 'code at the end (the standard prefill)',
-      text: 'Tell me about Daniya Hair Oil 200ml [LNY-9A1B2C]',
-      expected: 'LNY-9A1B2C',
+      text: 'Tell me about Daniya Hair Oil 200ml [TT-9A1B2C]',
+      expected: 'TT-9A1B2C',
       body: 'Tell me about Daniya Hair Oil 200ml',
     },
     {
       label: 'lower-case link',
       text: 'price for shampoo 1L [lny-7d3e5f]',
-      expected: 'LNY-7D3E5F',
+      expected: 'TT-7D3E5F',
       body: 'price for shampoo 1L',
     },
     {
       label: 'code mid-sentence (shopper typed around it)',
-      text: 'hi [LNY-ABCD12] is this available',
-      expected: 'LNY-ABCD12',
+      text: 'hi [TT-ABCD12] is this available',
+      expected: 'TT-ABCD12',
       body: 'hi is this available',
     },
     {
@@ -327,9 +327,9 @@ describe('scenario: ref-code permutations from the wa.me prefill', () => {
     },
     {
       label: 'malformed code is not attribution',
-      text: 'hello [LNY-] there',
+      text: 'hello [TT-] there',
       expected: null,
-      body: 'hello [LNY-] there',
+      body: 'hello [TT-] there',
     },
     {
       label: 'wrong prefix is not ours',

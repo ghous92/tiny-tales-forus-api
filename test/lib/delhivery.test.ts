@@ -23,7 +23,7 @@ import {
 const CONFIG: CarrierConfig = {
   baseUrl: 'https://staging-express.delhivery.com',
   apiToken: 'test-token',
-  clientName: 'LAANYA',
+  clientName: 'TINYTALES',
   mode: 'staging',
 }
 
@@ -247,7 +247,7 @@ describe('manifest request encoding', () => {
 
     await adapter.manifest({
       referenceNo: 'order_1',
-      pickupLocationName: 'LAANYA-AHM',
+      pickupLocationName: 'TT-AHM',
       consigneeName: 'Asha Rao',
       consigneePhone: '9876543210',
       address: '12B Sunrise, MG Road',
@@ -271,7 +271,7 @@ describe('manifest request encoding', () => {
     const form = new URLSearchParams(init.body as string)
     expect(form.get('format')).toBe('json')
     const payload = JSON.parse(form.get('data') ?? '{}')
-    expect(payload.pickup_location.name).toBe('LAANYA-AHM')
+    expect(payload.pickup_location.name).toBe('TT-AHM')
     expect(payload.shipments[0].payment_mode).toBe('Prepaid')
     expect(payload.shipments[0].cod_amount).toBe('0')
     expect(payload.shipments[0].fragile_shipment).toBe(true)
@@ -287,7 +287,7 @@ describe('manifest request encoding', () => {
     const adapter = createDelhiveryAdapter(CONFIG, { fetchImpl })
     await adapter.manifest({
       referenceNo: 'order_cod',
-      pickupLocationName: 'LAANYA-AHM',
+      pickupLocationName: 'TT-AHM',
       consigneeName: 'Asha Rao',
       consigneePhone: '9876543210',
       address: '12B Sunrise, MG Road',

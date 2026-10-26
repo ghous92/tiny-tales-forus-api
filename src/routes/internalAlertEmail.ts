@@ -9,7 +9,7 @@
  * is what buys the retry-on-failure behavior the alert path needs.
  *
  * A send failure throws (→ 500), which Cloud Tasks retries per the
- * `laanya-sweeps` queue's `MAX_ATTEMPTS`; unlike the sweep debounce, there is
+ * `tinytales-sweeps` queue's `MAX_ATTEMPTS`; unlike the sweep debounce, there is
  * no daily backstop cron for this path, so the queue's own retry is the only
  * safety net and must not be swallowed.
  */

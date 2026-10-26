@@ -453,8 +453,8 @@ function quoteSigningKey(): Buffer {
     process.env.SHIPPING_QUOTE_SECRET ??
     process.env.RAZORPAY_KEY_SECRET ??
     process.env.PROXY_SHARED_SECRET ??
-    'laanya-dev-unsigned'
-  return createHmac('sha256', base).update('laanya-shipping-quote-v1').digest()
+    'tinytales-dev-unsigned'
+  return createHmac('sha256', base).update('tinytales-shipping-quote-v1').digest()
 }
 
 function quoteMac(payload: QuoteTokenPayload, expiresAt: number): string {

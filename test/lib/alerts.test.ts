@@ -55,7 +55,7 @@ function createFetchMock() {
   const state = {
     brevo: { ok: true, status: 200, text: '' },
     githubSearch: { ok: true, status: 200, body: { items: [] as Array<{ html_url: string }> } },
-    githubCreate: { ok: true, status: 201, body: { html_url: 'https://github.com/acme/laanya-api/issues/1' } },
+    githubCreate: { ok: true, status: 201, body: { html_url: 'https://github.com/acme/tinytales-api/issues/1' } },
   }
 
   const impl = vi.fn(async (url: string | URL | Request, init?: RequestInit) => {
@@ -95,8 +95,8 @@ async function flush(): Promise<void> {
   await new Promise((resolve) => setTimeout(resolve, 0))
 }
 
-const BREVO = { apiKey: 'brevo-test-key', emailFrom: 'alerts@laanya.shop', emailTo: 'oncall@laanya.shop' }
-const GITHUB = { token: 'gh-test-token', repo: 'acme/laanya-api' }
+const BREVO = { apiKey: 'brevo-test-key', emailFrom: 'alerts@tinytalesforus.com', emailTo: 'oncall@tinytalesforus.com' }
+const GITHUB = { token: 'gh-test-token', repo: 'acme/tinytales-api' }
 
 // --- fingerprintError ---------------------------------------------------------
 
@@ -346,7 +346,7 @@ describe('Brevo email payload', () => {
       subject: string
       htmlContent: string
     }
-    expect(body.sender).toEqual({ email: BREVO.emailFrom, name: 'Laanya Alerts' })
+    expect(body.sender).toEqual({ email: BREVO.emailFrom, name: 'Tiny Tales Alerts' })
     expect(body.to).toEqual([{ email: BREVO.emailTo }])
     expect(body.subject).toContain('🚨')
     expect(body.subject).toContain('[staging]')
@@ -430,7 +430,7 @@ describe('GitHub issue integration', () => {
     await flush()
 
     const createCalls = calls.filter(
-      (c) => c.url === 'https://api.github.com/repos/acme/laanya-api/issues' && c.init?.method === 'POST'
+      (c) => c.url === 'https://api.github.com/repos/acme/tinytales-api/issues' && c.init?.method === 'POST'
     )
     expect(createCalls).toHaveLength(1)
     const createBody = JSON.parse(createCalls[0]!.init!.body as string) as {
@@ -444,7 +444,7 @@ describe('GitHub issue integration', () => {
 
     const firstEmail = calls.find((c) => c.url === 'https://api.brevo.com/v3/smtp/email')
     const firstEmailBody = JSON.parse(firstEmail!.init!.body as string) as { htmlContent: string }
-    expect(firstEmailBody.htmlContent).toContain('https://github.com/acme/laanya-api/issues/1')
+    expect(firstEmailBody.htmlContent).toContain('https://github.com/acme/tinytales-api/issues/1')
 
     // Search now reports the issue just created as open, for the same fingerprint.
     state.githubSearch = { ok: true, status: 200, body: { items: [{ html_url: state.githubCreate.body.html_url }] } }
@@ -454,7 +454,7 @@ describe('GitHub issue integration', () => {
     await flush()
 
     const createCallsAfter = calls.filter(
-      (c) => c.url === 'https://api.github.com/repos/acme/laanya-api/issues' && c.init?.method === 'POST'
+      (c) => c.url === 'https://api.github.com/repos/acme/tinytales-api/issues' && c.init?.method === 'POST'
     )
     // Still just the one creation — the second alert found and reused the existing issue.
     expect(createCallsAfter).toHaveLength(1)
@@ -466,7 +466,7 @@ describe('GitHub issue integration', () => {
       headers: {
         authorization: `Bearer ${GITHUB.token}`,
         accept: 'application/vnd.github+json',
-        'user-agent': 'laanya-api-alerter',
+        'user-agent': 'tinytales-api-alerter',
       },
     })
   })
@@ -521,12 +521,12 @@ describe('notifyClientEvents', () => {
     const alerter = new ErrorAlerter({ appEnv: 'production', log: logger, brevo: BREVO, fetchImpl: impl, now: () => 1_000 })
 
     alerter.notifyClientEvents(
-      [{ type: 'error', message: 'crash', url: 'https://laanya.shop/checkout?ref=a' }],
+      [{ type: 'error', message: 'crash', url: 'https://tinytalesforus.com/checkout?ref=a' }],
       { ip: '1.2.3.4', source: 'web' }
     )
     await flush()
     alerter.notifyClientEvents(
-      [{ type: 'error', message: 'crash', url: 'https://laanya.shop/checkout?ref=b' }],
+      [{ type: 'error', message: 'crash', url: 'https://tinytalesforus.com/checkout?ref=b' }],
       { ip: '1.2.3.4', source: 'web' }
     )
     await flush()

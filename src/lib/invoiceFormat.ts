@@ -84,7 +84,7 @@ export function istMonthBounds(month: string): { start: Date; end: Date } {
  * `financialYearOf` writes it (`"26-27"`), in IST.
  *
  * Two-digit years are resolved into the 2000s, which is the same assumption
- * the invoice number series already bakes in — `LAA/26-27/000142` is not
+ * the invoice number series already bakes in — `TT/26-27/000142` is not
  * ambiguous to anyone reading it, and a series that outlives the century has
  * larger problems than this function.
  */
@@ -103,7 +103,7 @@ export function istDayAfter(day: string): Date {
 }
 
 /**
- * `"LAA/26-27/000142"`. Zero-padded to six digits so the series sorts
+ * `"TT/26-27/000142"`. Zero-padded to six digits so the series sorts
  * lexicographically for its whole plausible life and every number is the same
  * width on a printed page.
  */
@@ -112,7 +112,7 @@ export function formatInvoiceNumber(prefix: string, fy: string, seq: number): st
 }
 
 /**
- * `"LAA/CN/26-27/000001"`. Own series (`credit_note_counters`), so its
+ * `"TT/CN/26-27/000001"`. Own series (`credit_note_counters`), so its
  * sequence has no relation to the invoice numbered in the same fy.
  */
 export function formatCreditNoteNumber(prefix: string, fy: string, seq: number): string {

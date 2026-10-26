@@ -54,7 +54,7 @@ export interface NotificationHeaderImage {
  *
  * WhatsApp URL buttons are approved as a static prefix plus at most ONE
  * variable, and the send supplies only that variable — never the whole URL. So
- * a template approved as `https://laanya.shop/{{1}}` takes `account/orders/A123`
+ * a template approved as `https://tinytalesforus.com/{{1}}` takes `account/orders/A123`
  * here. Sending an absolute URL produces a 132000 that reads as if the button
  * itself were wrong.
  *

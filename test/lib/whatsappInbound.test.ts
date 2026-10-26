@@ -68,14 +68,14 @@ describe('verifySignature', () => {
 })
 
 describe('ref codes', () => {
-  const text = 'Hi, I want to know about Daniya Cream 500ml [LNY-4F2A9C]'
+  const text = 'Hi, I want to know about Daniya Cream 500ml [TT-4F2A9C]'
 
   it('extracts the code without its brackets', () => {
-    expect(extractRefCode(text)).toBe('LNY-4F2A9C')
+    expect(extractRefCode(text)).toBe('TT-4F2A9C')
   })
 
   it('uppercases so one entry point is one attribution row', () => {
-    expect(extractRefCode('hello [lny-4f2a9c]')).toBe('LNY-4F2A9C')
+    expect(extractRefCode('hello [lny-4f2a9c]')).toBe('TT-4F2A9C')
   })
 
   it('returns null when there is no code', () => {
@@ -140,7 +140,7 @@ describe('parseInboundMessages', () => {
           from: '919876543210',
           type: 'text',
           timestamp: '1788600000',
-          text: { body: 'Do you deliver to 380015? [LNY-4F2A9C]' },
+          text: { body: 'Do you deliver to 380015? [TT-4F2A9C]' },
         },
         [{ profile: { name: 'Priya' } }]
       )
@@ -151,7 +151,7 @@ describe('parseInboundMessages', () => {
       from: '919876543210',
       msgType: 'text',
       body: 'Do you deliver to 380015?',
-      refCode: 'LNY-4F2A9C',
+      refCode: 'TT-4F2A9C',
       profileName: 'Priya',
       timestampSec: 1788600000,
     })

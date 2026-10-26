@@ -7,7 +7,7 @@
  *
  * REFILL10 is different in kind from the other two: it is not a sample, it is a
  * PRODUCTION DEPENDENCY of the approved WhatsApp template
- * `laanya_refill_reminder`, which prints the code in its body. Seed it before
+ * `tinytales_refill_reminder`, which prints the code in its body. Seed it before
  * enabling `notify.replenishmentTemplate`, never after.
  *
  * The core logic (`seedCouponDefaults`) takes a `Db` and is unit-testable
@@ -74,7 +74,7 @@ export const COUPON_DEFAULTS: CouponDefault[] = [
   },
   {
     // Referenced BY NAME in the approved WhatsApp template
-    // `laanya_refill_reminder`, whose body reads "Use Code: *REFILL10* at
+    // `tinytales_refill_reminder`, whose body reads "Use Code: *REFILL10* at
     // checkout!". The template is live copy going to real shoppers, so this row
     // is not optional decoration — without it every recipient who follows the
     // reminder hits a rejected code, having been told by us to use it.

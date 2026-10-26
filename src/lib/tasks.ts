@@ -159,7 +159,7 @@ export interface CloudTasksConfig {
   /** Base URL of the API the task will call back into, no trailing slash. */
   targetBaseUrl: string
   /**
-   * The identity the task authenticates AS — `laanya-scheduler@…`, the same one
+   * The identity the task authenticates AS — `tinytales-scheduler@…`, the same one
    * Cloud Scheduler uses, so `plugins/scheduler.ts` verifies task callers with
    * no change at all: same allowlist, same audience, same hook.
    */

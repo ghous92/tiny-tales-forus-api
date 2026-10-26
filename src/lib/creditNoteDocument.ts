@@ -15,7 +15,7 @@ import type { InvoiceDocument } from '../contracts/invoices.js'
 import { amountInWords, formatCreditNoteNumber } from './invoiceFormat.js'
 
 export interface BuildCreditNoteDocumentInput {
-  /** From `invoice.numberPrefix` config, e.g. "LAA" — same prefix the invoice used. */
+  /** From `invoice.numberPrefix` config, e.g. "TT" — same prefix the invoice used. */
   numberPrefix: string
   fy: string
   seq: number

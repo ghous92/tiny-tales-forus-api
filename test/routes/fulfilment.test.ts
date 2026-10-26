@@ -98,7 +98,7 @@ describe('customer delivery milestones', () => {
     await react('out_for_delivery')
     expect(await ctx.db.select().from(opsNotifications)).toHaveLength(0)
     await ctx.db.insert(appConfig).values([
-      { key: 'notify.orderOutForDeliveryCustomerTemplate', value: 'laanya_order_out_for_delivery' },
+      { key: 'notify.orderOutForDeliveryCustomerTemplate', value: 'tinytales_order_out_for_delivery' },
       { key: 'notify.orderOutForDeliveryCustomerLocale', value: 'en' },
     ])
     await react('out_for_delivery')
@@ -126,7 +126,7 @@ describe('customer delivery milestones', () => {
       })
       .where(eq(payments.orderId, ORDER_ID))
     await ctx.db.insert(appConfig).values([
-      { key: 'notify.orderOutForDeliveryCustomerTemplate', value: 'laanya_order_out_for_delivery' },
+      { key: 'notify.orderOutForDeliveryCustomerTemplate', value: 'tinytales_order_out_for_delivery' },
       { key: 'notify.orderOutForDeliveryCustomerLocale', value: 'en' },
     ])
     const send = vi.fn(async () => ({ ok: true, providerMessageId: 'wamid.1' }))
@@ -150,7 +150,7 @@ describe('customer delivery milestones', () => {
       '919876543210',
       expect.objectContaining({
         params: ['Priya', ORDER_ID],
-        template: { name: 'laanya_order_out_for_delivery', locale: 'en' },
+        template: { name: 'tinytales_order_out_for_delivery', locale: 'en' },
       })
     )
   })

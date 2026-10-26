@@ -29,7 +29,7 @@ let db: Db
 
 const ORDER_ID = 'order_CANCELNOTIFY'
 const TARGET = '919900000001'
-const ADMIN_ORIGIN = 'https://laanya.shop'
+const ADMIN_ORIGIN = 'https://tinytalesforus.com'
 
 /** A silent logger — these paths log on failure, and a failure is the test's business. */
 const log = { error: vi.fn() } as unknown as FastifyBaseLogger

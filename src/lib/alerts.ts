@@ -272,7 +272,7 @@ const ROUTE_STEP_RULES: RouteStepRule[] = [
     method: 'POST',
     pathPrefix: '/v1/payments',
     steps: [
-      'Open the Laanya app and sign in.',
+      'Open the Tiny Tales app and sign in.',
       'Add any item to your bag.',
       'Go to checkout and tap Pay.',
       'The error happens at this point — the payment screen fails.',
@@ -281,7 +281,7 @@ const ROUTE_STEP_RULES: RouteStepRule[] = [
   {
     pathPrefix: '/v1/payments',
     steps: [
-      'Open the Laanya app and sign in.',
+      'Open the Tiny Tales app and sign in.',
       'Go to your orders to check on a payment.',
       'The error happens while the app checks the payment status.',
     ],
@@ -289,7 +289,7 @@ const ROUTE_STEP_RULES: RouteStepRule[] = [
   {
     pathPrefix: '/v1/addresses',
     steps: [
-      'Open the Laanya app and sign in.',
+      'Open the Tiny Tales app and sign in.',
       'Go to "My Addresses" (or add a new delivery address at checkout).',
       'The error happens while saving, loading, or deleting an address.',
     ],
@@ -297,7 +297,7 @@ const ROUTE_STEP_RULES: RouteStepRule[] = [
   {
     pathPrefix: '/v1/cart',
     steps: [
-      'Open the Laanya app and sign in.',
+      'Open the Tiny Tales app and sign in.',
       'Add, remove, or update the quantity of an item in the shopping bag.',
       'The error happens while updating the bag.',
     ],
@@ -305,7 +305,7 @@ const ROUTE_STEP_RULES: RouteStepRule[] = [
   {
     pathPrefix: '/v1/catalog',
     steps: [
-      'Open the Laanya app (signed in or not).',
+      'Open the Tiny Tales app (signed in or not).',
       'Browse products, or open a product page.',
       'The error happens while loading the product catalog.',
     ],
@@ -313,7 +313,7 @@ const ROUTE_STEP_RULES: RouteStepRule[] = [
   {
     pathPrefix: '/v1/me',
     steps: [
-      'Open the Laanya app and sign in.',
+      'Open the Tiny Tales app and sign in.',
       'Go to "My Profile" and view or edit your name, email, or other details.',
       'The error happens while loading or saving the profile.',
     ],
@@ -321,7 +321,7 @@ const ROUTE_STEP_RULES: RouteStepRule[] = [
   {
     pathPrefix: '/v1/config',
     steps: [
-      'Open the Laanya app (signed in or not).',
+      'Open the Tiny Tales app (signed in or not).',
       'The app quietly checks for the latest settings in the background — a shopper would not tap anything for this.',
       'The error happens during that background check.',
     ],
@@ -329,7 +329,7 @@ const ROUTE_STEP_RULES: RouteStepRule[] = [
   {
     pathPrefix: '/v1/geocode',
     steps: [
-      'Open the Laanya app and tap to pick a delivery location on the map.',
+      'Open the Tiny Tales app and tap to pick a delivery location on the map.',
       'The app tries to turn the map pin into an address.',
       'The error happens at this point — the address may not auto-fill.',
     ],
@@ -782,7 +782,7 @@ export class ErrorAlerter {
     const headers = {
       authorization: `Bearer ${token}`,
       accept: 'application/vnd.github+json',
-      'user-agent': 'laanya-api-alerter',
+      'user-agent': 'tinytales-api-alerter',
     }
 
     try {
@@ -843,7 +843,7 @@ export class ErrorAlerter {
           accept: 'application/json',
         },
         body: JSON.stringify({
-          sender: { email: emailFrom, name: 'Laanya Alerts' },
+          sender: { email: emailFrom, name: 'Tiny Tales Alerts' },
           to: [{ email: emailTo }],
           subject,
           htmlContent,

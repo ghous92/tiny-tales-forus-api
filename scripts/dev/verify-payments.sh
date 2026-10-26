@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# End-to-end smoke test of the payments module against a RUNNING laanya-api,
+# End-to-end smoke test of the payments module against a RUNNING tinytales-api,
 # using the real Razorpay TEST-mode API (via the razorpay CLI) plus a locally
 # signed webhook. No Checkout UI and no real money involved.
 #
@@ -12,7 +12,7 @@
 #
 # Usage:
 #   scripts/dev/verify-payments.sh                       # http://localhost:8080
-#   scripts/dev/verify-payments.sh https://laanya-api-staging-69070121252.asia-southeast1.run.app
+#   scripts/dev/verify-payments.sh https://tinytales-api-staging-69070121252.asia-southeast1.run.app
 #
 # Webhook secret: taken from $RAZORPAY_WEBHOOK_SECRET if set (use this when the
 # local server's .env differs from Secret Manager), else fetched from Secret
@@ -26,7 +26,7 @@ set -euo pipefail
 
 API=${1:-http://localhost:8080}
 DIR=$(cd "$(dirname "$0")" && pwd)
-PROJECT=laanya-prod
+PROJECT=tinytalesforus-prod
 
 command -v jq >/dev/null || { echo "jq is required" >&2; exit 1; }
 

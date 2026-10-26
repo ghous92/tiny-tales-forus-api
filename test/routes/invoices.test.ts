@@ -53,7 +53,7 @@ const KEY_ID = 'rzp_test_fake123'
 const KEY_SECRET = 'test_key_secret_fake'
 const WEBHOOK_SECRET = 'test_webhook_secret_fake'
 const BREVO_API_KEY = 'brevo_test_fake'
-const EMAIL_FROM = 'no-reply@laanya.test'
+const EMAIL_FROM = 'no-reply@tinytales.test'
 
 const SKU_A = 'AH-82U3-T29Q'
 const SKU_B = '04-JPDR-6Z6N'
@@ -198,7 +198,7 @@ beforeEach(async () => {
       key: 'legal.company',
       value: {
         legalName: 'Adix AI',
-        brand: 'Laanya',
+        brand: 'Tiny Tales',
         address: '4/B Al-Farooq CHS, Sarkhej, Ahmedabad, Gujarat 380051',
         jurisdictionCity: 'Ahmedabad',
         jurisdictionState: 'Gujarat',
@@ -727,12 +727,12 @@ describe('/v1/admin/invoices', () => {
       method: 'POST',
       url: `/v1/admin/invoices/${encodeURIComponent(`LAA/${FY}/000001`)}/email`,
       headers: auth(USER_ADMIN.token),
-      payload: { to: 'ops@laanya.test' },
+      payload: { to: 'ops@tinytales.test' },
     })
     expect(res.statusCode).toBe(200)
     expect(res.json().emailStatus).toBe('sent')
-    expect(res.json().emailTo).toBe('ops@laanya.test')
-    expect(emailCalls.some((c) => c.to.some((r) => r.email === 'ops@laanya.test'))).toBe(true)
+    expect(res.json().emailTo).toBe('ops@tinytales.test')
+    expect(emailCalls.some((c) => c.to.some((r) => r.email === 'ops@tinytales.test'))).toBe(true)
 
     // The document itself is immutable — only the delivery record moved.
     const [row] = await db.select().from(invoices)
@@ -782,7 +782,7 @@ describe('/v1/admin/invoices', () => {
     expect(res.headers['content-type']).toContain('text/csv')
     // Report and period both in the name: these files are mailed to a CA and
     // four identically-named exports are indistinguishable in a downloads folder.
-    expect(res.headers['content-disposition']).toContain('laanya-gstr1-b2cs-2026-08.csv')
+    expect(res.headers['content-disposition']).toContain('tinytales-gstr1-b2cs-2026-08.csv')
     // b2cs is the default section.
     expect(res.body).toContain('Place Of Supply')
   })
@@ -839,7 +839,7 @@ describe('/v1/admin/invoices', () => {
     })
     expect(res.statusCode).toBe(200)
     expect(res.headers['content-type']).toContain('text/csv')
-    expect(res.headers['content-disposition']).toContain('laanya-itc-freight-summary-2026-08.csv')
+    expect(res.headers['content-disposition']).toContain('tinytales-itc-freight-summary-2026-08.csv')
     expect(res.body).toContain('Freight GST (modelled ITC)')
     // The banner rides in the data so it cannot be lost between here and the CA.
     expect(res.body).toContain('Not a GSTR-3B figure')

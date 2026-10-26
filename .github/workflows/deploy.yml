@@ -2,8 +2,8 @@ name: Deploy
 
 # Two release paths, one pipeline, gated by the trigger:
 #
-#   manual run, ref = main    → deploy STAGING (laanya-api-staging, Neon staging branch)
-#   manual run, ref = v* tag  → deploy PROD    (laanya-api,         Neon main branch)
+#   manual run, ref = main    → deploy STAGING (tinytales-api-staging, Neon staging branch)
+#   manual run, ref = v* tag  → deploy PROD    (tinytales-api,         Neon main branch)
 #
 # Manual only (workflow_dispatch) — no push/tag auto-fires this anymore. Pick the
 # branch or tag from the "Run workflow" ref dropdown in the Actions tab; the
@@ -36,8 +36,8 @@ jobs:
 
   # ── STAGING ────────────────────────────────────────────────────────────────
   # Fires on a manual run with ref = main. Builds the image, migrates the Neon *staging*
-  # branch, and deploys the laanya-api-staging Cloud Run service. Auth reuses the
-  # laanya-prod Firebase project (staging validates against the same tokens);
+  # branch, and deploys the tinytales-api-staging Cloud Run service. Auth reuses the
+  # tinytalesforus-prod Firebase project (staging validates against the same tokens);
   # only the database differs.
   deploy-staging:
     needs: check
@@ -47,7 +47,7 @@ jobs:
       contents: read
       id-token: write # OIDC token for Workload Identity Federation
     env:
-      IMAGE: asia-southeast1-docker.pkg.dev/laanya-prod/laanya/laanya-api:${{ github.sha }}
+      IMAGE: asia-southeast1-docker.pkg.dev/tinytalesforus-prod/tinytales/tinytales-api:${{ github.sha }}
     steps:
       - uses: actions/checkout@v4
 
@@ -55,7 +55,7 @@ jobs:
         uses: google-github-actions/auth@v3
         with:
           workload_identity_provider: projects/69070121252/locations/global/workloadIdentityPools/github/providers/github-oidc
-          service_account: laanya-api-deploy@laanya-prod.iam.gserviceaccount.com
+          service_account: tinytales-api-deploy@tinytalesforus-prod.iam.gserviceaccount.com
 
       - uses: google-github-actions/setup-gcloud@v2
 
@@ -92,16 +92,16 @@ jobs:
       # config mistake, same rule as Razorpay) — it does NOT silently ignore the
       # stragglers. Both groups are now complete:
       #   * Email trio (BREVO_API_KEY + ALERT_EMAIL_FROM + ALERT_EMAIL_TO) —
-      #     secret laanya-api-brevo-api-key created 2026-07-22, sender
+      #     secret tinytales-api-brevo-api-key created 2026-07-22, sender
       #     hello@adix.ai verified in Brevo. Email alerting is live.
       #   * GitHub pair (ALERT_GITHUB_TOKEN + ALERT_GITHUB_REPO) — secret
-      #     laanya-api-alerts-github-token created 2026-07-22 (fine-grained PAT).
+      #     tinytales-api-alerts-github-token created 2026-07-22 (fine-grained PAT).
       #     Labels auto-fix-candidate/auto-fix/staging/production already exist
       #     on this repo. GitHub issue creation on alert is live.
       # PROXY_SHARED_SECRET is the only alert-adjacent secret still pending —
       # see below.
       #
-      # This allow-list intentionally includes staging.laanya.shop; the prod job
+      # This allow-list intentionally includes staging.tinytalesforus.com; the prod job
       # below does NOT. The staging admin UI may call the staging API, but the
       # staging UI must never be able to reach production.
       #
@@ -114,10 +114,10 @@ jobs:
       # prod credential there dispatches a real pickup van.
       # PROXY_SHARED_SECRET (proxy gate, see src/env.ts / src/app.ts) is
       # deliberately NOT in --set-secrets below yet. Uncomment the flag once:
-      #   1. `gcloud secrets create laanya-api-proxy-shared-secret` has been run
+      #   1. `gcloud secrets create tinytales-api-proxy-shared-secret` has been run
       #      (adding the flag before the secret exists fails every deploy), AND
       #   2. mobile/admin clients and the Razorpay webhook URL have all moved
-      #      to https://www.laanya.shop/api — enabling the gate closes the
+      #      to https://www.tinytalesforus.com/api — enabling the gate closes the
       #      direct run.app path, so this must happen strictly after cutover.
       # TASKS_* turns on the event-driven sweep triggers
       # (docs/WIP-EVENT-DRIVEN-SWEEPS.md). All five vars or none — src/env.ts
@@ -129,7 +129,7 @@ jobs:
       # collision produces is deliberately read as "already covered" — the
       # losing environment's drain would silently never run.
       #
-      # TASKS_SERVICE_ACCOUNT is laanya-scheduler@, the SAME identity Cloud
+      # TASKS_SERVICE_ACCOUNT is tinytales-scheduler@, the SAME identity Cloud
       # Scheduler uses, so SCHEDULER_OIDC_AUDIENCE/SCHEDULER_SERVICE_ACCOUNTS
       # above authenticate task callers with no second allowlist to drift.
       # The audience is taken from SCHEDULER_OIDC_AUDIENCE, not duplicated.
@@ -140,24 +140,24 @@ jobs:
       # with it — a stale value fails as tasks that dispatch and 404.
       - name: Deploy to Cloud Run (staging)
         run: |
-          gcloud run deploy laanya-api-staging \
+          gcloud run deploy tinytales-api-staging \
             --image "$IMAGE" \
-            --project laanya-prod \
+            --project tinytalesforus-prod \
             --region asia-southeast1 \
-            --service-account laanya-api-run@laanya-prod.iam.gserviceaccount.com \
+            --service-account tinytales-api-run@tinytalesforus-prod.iam.gserviceaccount.com \
             --allow-unauthenticated \
-            --set-secrets DATABASE_URL=laanya-api-database-url-staging:latest,RAZORPAY_KEY_ID=RAZORPAY_KEY_ID:latest,RAZORPAY_KEY_SECRET=RAZORPAY_KEY_SECRET:latest,RAZORPAY_WEBHOOK_SECRET=RAZORPAY_WEBHOOK_SECRET:latest,GOOGLE_MAPS_SERVER_KEY=GOOGLE_MAPS_SERVER_KEY:latest,BREVO_API_KEY=laanya-api-brevo-api-key:latest,ALERT_GITHUB_TOKEN=laanya-api-alerts-github-token:latest,RUDDERSTACK_WRITE_KEY=laanya-api-rudderstack-write-key:latest,DELHIVERY_API_TOKEN=laanya-api-delhivery-api-token:latest,DELHIVERY_WEBHOOK_SECRET=laanya-api-delhivery-webhook-secret:latest,WHATSAPP_ACCESS_TOKEN=laanya-api-whatsapp-access-token-live:latest,GRAFANA_ALERT_WEBHOOK_SECRET=laanya-api-grafana-alert-webhook-secret:latest,IMAGE_INTAKE_UPLOAD_TOKEN=laanya-api-image-intake-upload-token:latest \
-            --set-env-vars "^#^FIREBASE_PROJECT_ID=laanya-prod#APP_ENV=staging#CORS_ALLOWED_ORIGINS=http://localhost:3000,https://laanya.shop,https://www.laanya.shop,https://staging.laanya.shop#ALERT_EMAIL_FROM=hello@adix.ai#ALERT_EMAIL_TO=gsnz86@gmail.com#ALERT_GITHUB_REPO=ghous92/laanya-api#RUDDERSTACK_DATA_PLANE_URL=https://adixhellokzqkb.dataplane.rudderstack.com#DELHIVERY_BASE_URL=https://staging-express.delhivery.com#DELHIVERY_CLIENT_NAME=ADIXAIB2C-B2C#WHATSAPP_PHONE_NUMBER_ID=927479007124972#WHATSAPP_TEMPLATE_ORDER_PAID=order_paid_ops#WHATSAPP_TEMPLATE_LOCALE=en#SCHEDULER_OIDC_AUDIENCE=laanya-api-sweeps-staging#SCHEDULER_SERVICE_ACCOUNTS=laanya-scheduler@laanya-prod.iam.gserviceaccount.com#TASKS_QUEUE=laanya-sweeps-staging#TASKS_PROJECT=laanya-prod#TASKS_LOCATION=asia-southeast1#TASKS_TARGET_BASE_URL=https://laanya-api-staging-69070121252.asia-southeast1.run.app#TASKS_SERVICE_ACCOUNT=laanya-scheduler@laanya-prod.iam.gserviceaccount.com" \
+            --set-secrets DATABASE_URL=tinytales-api-database-url-staging:latest,RAZORPAY_KEY_ID=RAZORPAY_KEY_ID:latest,RAZORPAY_KEY_SECRET=RAZORPAY_KEY_SECRET:latest,RAZORPAY_WEBHOOK_SECRET=RAZORPAY_WEBHOOK_SECRET:latest,GOOGLE_MAPS_SERVER_KEY=GOOGLE_MAPS_SERVER_KEY:latest,BREVO_API_KEY=tinytales-api-brevo-api-key:latest,ALERT_GITHUB_TOKEN=tinytales-api-alerts-github-token:latest,RUDDERSTACK_WRITE_KEY=tinytales-api-rudderstack-write-key:latest,DELHIVERY_API_TOKEN=tinytales-api-delhivery-api-token:latest,DELHIVERY_WEBHOOK_SECRET=tinytales-api-delhivery-webhook-secret:latest,WHATSAPP_ACCESS_TOKEN=tinytales-api-whatsapp-access-token-live:latest,GRAFANA_ALERT_WEBHOOK_SECRET=tinytales-api-grafana-alert-webhook-secret:latest,IMAGE_INTAKE_UPLOAD_TOKEN=tinytales-api-image-intake-upload-token:latest \
+            --set-env-vars "^#^FIREBASE_PROJECT_ID=tinytalesforus-prod#APP_ENV=staging#CORS_ALLOWED_ORIGINS=http://localhost:3000,https://tinytalesforus.com,https://www.tinytalesforus.com,https://staging.tinytalesforus.com#ALERT_EMAIL_FROM=hello@adix.ai#ALERT_EMAIL_TO=gsnz86@gmail.com#ALERT_GITHUB_REPO=ghous92/tinytales-api#RUDDERSTACK_DATA_PLANE_URL=https://adixhellokzqkb.dataplane.rudderstack.com#DELHIVERY_BASE_URL=https://staging-express.delhivery.com#DELHIVERY_CLIENT_NAME=ADIXAIB2C-B2C#WHATSAPP_PHONE_NUMBER_ID=927479007124972#WHATSAPP_TEMPLATE_ORDER_PAID=order_paid_ops#WHATSAPP_TEMPLATE_LOCALE=en#SCHEDULER_OIDC_AUDIENCE=tinytales-api-sweeps-staging#SCHEDULER_SERVICE_ACCOUNTS=tinytales-scheduler@tinytalesforus-prod.iam.gserviceaccount.com#TASKS_QUEUE=tinytales-sweeps-staging#TASKS_PROJECT=tinytalesforus-prod#TASKS_LOCATION=asia-southeast1#TASKS_TARGET_BASE_URL=https://tinytales-api-staging-69070121252.asia-southeast1.run.app#TASKS_SERVICE_ACCOUNT=tinytales-scheduler@tinytalesforus-prod.iam.gserviceaccount.com" \
             --min-instances 0 \
             --cpu-boost \
             --port 8080
             # PROXY_SHARED_SECRET: append to --set-secrets above once that
             # secret exists (see comment block above this step).
-            # --set-secrets ...,PROXY_SHARED_SECRET=laanya-api-proxy-shared-secret:latest
+            # --set-secrets ...,PROXY_SHARED_SECRET=tinytales-api-proxy-shared-secret:latest
 
   # ── PRODUCTION ───────────────────────────────────────────────────────────────
   # Fires on a manual run with ref = a v* tag. Identical build, but migrates the
-  # Neon *main* branch and deploys the prod laanya-api service with min-instances
+  # Neon *main* branch and deploys the prod tinytales-api service with min-instances
   # 1 (one instance kept warm to avoid cold starts). Cutting a release is still
   # `git tag vX.Y.Z && git push --tags`, then trigger this workflow manually
   # with that tag selected as the ref.
@@ -169,7 +169,7 @@ jobs:
       contents: read
       id-token: write # OIDC token for Workload Identity Federation
     env:
-      IMAGE: asia-southeast1-docker.pkg.dev/laanya-prod/laanya/laanya-api:${{ github.sha }}
+      IMAGE: asia-southeast1-docker.pkg.dev/tinytalesforus-prod/tinytales/tinytales-api:${{ github.sha }}
     steps:
       - uses: actions/checkout@v4
 
@@ -177,7 +177,7 @@ jobs:
         uses: google-github-actions/auth@v3
         with:
           workload_identity_provider: projects/69070121252/locations/global/workloadIdentityPools/github/providers/github-oidc
-          service_account: laanya-api-deploy@laanya-prod.iam.gserviceaccount.com
+          service_account: tinytales-api-deploy@tinytalesforus-prod.iam.gserviceaccount.com
 
       - uses: google-github-actions/setup-gcloud@v2
 
@@ -213,10 +213,10 @@ jobs:
       #
       # PROXY_SHARED_SECRET (proxy gate, see src/env.ts / src/app.ts) is
       # deliberately NOT in --set-secrets below yet. Uncomment the flag once:
-      #   1. `gcloud secrets create laanya-api-proxy-shared-secret` has been run
+      #   1. `gcloud secrets create tinytales-api-proxy-shared-secret` has been run
       #      (adding the flag before the secret exists fails every deploy), AND
       #   2. mobile/admin clients and the Razorpay webhook URL have all moved
-      #      to https://www.laanya.shop/api — enabling the gate closes the
+      #      to https://www.tinytalesforus.com/api — enabling the gate closes the
       #      direct run.app path, so this must happen strictly after cutover.
       # DELHIVERY_CLIENT_NAME is "ADIX AI B2C" here and "ADIXAIB2C-B2C" on
       # staging — the two accounts genuinely carry different client names, so
@@ -228,7 +228,7 @@ jobs:
       #   -> Bad Request! Invalid count for client <NAME>
       #
       # DELHIVERY_* use `-live`-suffixed secrets, deliberately NOT the bare
-      # `laanya-api-delhivery-api-token` / `-webhook-secret` that the staging
+      # `tinytales-api-delhivery-api-token` / `-webhook-secret` that the staging
       # job above pins at `:latest`. Those two hold the UAT credentials. Adding
       # a prod version to them instead would silently repoint staging at
       # production Delhivery, where a manifest call books a real pickup against
@@ -272,21 +272,21 @@ jobs:
       # lets the retry sweep drain rows that already failed on the old one.
       # The values below name `order_paid_ops` (6 body params, language `en`,
       # UTILITY), submitted to the Adix AI WABA on 2026-08-15. Do NOT put
-      # `laanya_order_delivered` here: it is a 2-param customer-facing delivery
+      # `tinytales_order_delivered` here: it is a 2-param customer-facing delivery
       # notice, and sending it with 6 params fails with Meta error 132000.
       - name: Deploy to Cloud Run (prod)
         run: |
-          gcloud run deploy laanya-api \
+          gcloud run deploy tinytales-api \
             --image "$IMAGE" \
-            --project laanya-prod \
+            --project tinytalesforus-prod \
             --region asia-southeast1 \
-            --service-account laanya-api-run@laanya-prod.iam.gserviceaccount.com \
+            --service-account tinytales-api-run@tinytalesforus-prod.iam.gserviceaccount.com \
             --allow-unauthenticated \
-            --set-secrets DATABASE_URL=laanya-api-database-url:latest,RAZORPAY_KEY_ID=laanya-api-razorpay-key-id-live-v2:latest,RAZORPAY_KEY_SECRET=laanya-api-razorpay-key-secret-live-v2:latest,RAZORPAY_WEBHOOK_SECRET=laanya-api-razorpay-webhook-secret-live-v2:latest,GOOGLE_MAPS_SERVER_KEY=GOOGLE_MAPS_SERVER_KEY:latest,BREVO_API_KEY=laanya-api-brevo-api-key:latest,ALERT_GITHUB_TOKEN=laanya-api-alerts-github-token:latest,RUDDERSTACK_WRITE_KEY=laanya-api-rudderstack-write-key:latest,DELHIVERY_API_TOKEN=laanya-api-delhivery-api-token-live:latest,DELHIVERY_WEBHOOK_SECRET=laanya-api-delhivery-webhook-secret-live:latest,WHATSAPP_ACCESS_TOKEN=laanya-api-whatsapp-access-token-live:latest,WHATSAPP_APP_SECRET=laanya-api-whatsapp-app-secret-live:2,WHATSAPP_VERIFY_TOKEN=laanya-api-whatsapp-verify-token-live:latest,GRAFANA_ALERT_WEBHOOK_SECRET=laanya-api-grafana-alert-webhook-secret-live:latest,IMAGE_INTAKE_UPLOAD_TOKEN=laanya-api-image-intake-upload-token:latest,OPENAI_ADS_CONVERSIONS_API_KEY=laanya-api-openai-ads-conversions-api-key:latest \
-            --set-env-vars "^#^FIREBASE_PROJECT_ID=laanya-prod#APP_ENV=production#ALERT_EMAIL_FROM=hello@adix.ai#ALERT_EMAIL_TO=gsnz86@gmail.com#ALERT_GITHUB_REPO=ghous92/laanya-api#RUDDERSTACK_DATA_PLANE_URL=https://adixhellokzqkb.dataplane.rudderstack.com#DELHIVERY_BASE_URL=https://track.delhivery.com#DELHIVERY_CLIENT_NAME=ADIX AI B2C#WHATSAPP_PHONE_NUMBER_ID=927479007124972#WHATSAPP_TEMPLATE_ORDER_PAID=order_paid_ops#WHATSAPP_TEMPLATE_LOCALE=en#SCHEDULER_OIDC_AUDIENCE=laanya-api-sweeps#SCHEDULER_SERVICE_ACCOUNTS=laanya-scheduler@laanya-prod.iam.gserviceaccount.com#TASKS_QUEUE=laanya-sweeps#TASKS_PROJECT=laanya-prod#TASKS_LOCATION=asia-southeast1#TASKS_TARGET_BASE_URL=https://laanya-api-h57blldwiq-as.a.run.app#TASKS_SERVICE_ACCOUNT=laanya-scheduler@laanya-prod.iam.gserviceaccount.com#OPENAI_ADS_PIXEL_ID=2G5GikW8eeREBWdmE63VcL" \
+            --set-secrets DATABASE_URL=tinytales-api-database-url:latest,RAZORPAY_KEY_ID=tinytales-api-razorpay-key-id-live-v2:latest,RAZORPAY_KEY_SECRET=tinytales-api-razorpay-key-secret-live-v2:latest,RAZORPAY_WEBHOOK_SECRET=tinytales-api-razorpay-webhook-secret-live-v2:latest,GOOGLE_MAPS_SERVER_KEY=GOOGLE_MAPS_SERVER_KEY:latest,BREVO_API_KEY=tinytales-api-brevo-api-key:latest,ALERT_GITHUB_TOKEN=tinytales-api-alerts-github-token:latest,RUDDERSTACK_WRITE_KEY=tinytales-api-rudderstack-write-key:latest,DELHIVERY_API_TOKEN=tinytales-api-delhivery-api-token-live:latest,DELHIVERY_WEBHOOK_SECRET=tinytales-api-delhivery-webhook-secret-live:latest,WHATSAPP_ACCESS_TOKEN=tinytales-api-whatsapp-access-token-live:latest,WHATSAPP_APP_SECRET=tinytales-api-whatsapp-app-secret-live:2,WHATSAPP_VERIFY_TOKEN=tinytales-api-whatsapp-verify-token-live:latest,GRAFANA_ALERT_WEBHOOK_SECRET=tinytales-api-grafana-alert-webhook-secret-live:latest,IMAGE_INTAKE_UPLOAD_TOKEN=tinytales-api-image-intake-upload-token:latest,OPENAI_ADS_CONVERSIONS_API_KEY=tinytales-api-openai-ads-conversions-api-key:latest \
+            --set-env-vars "^#^FIREBASE_PROJECT_ID=tinytalesforus-prod#APP_ENV=production#ALERT_EMAIL_FROM=hello@adix.ai#ALERT_EMAIL_TO=gsnz86@gmail.com#ALERT_GITHUB_REPO=ghous92/tinytales-api#RUDDERSTACK_DATA_PLANE_URL=https://adixhellokzqkb.dataplane.rudderstack.com#DELHIVERY_BASE_URL=https://track.delhivery.com#DELHIVERY_CLIENT_NAME=ADIX AI B2C#WHATSAPP_PHONE_NUMBER_ID=927479007124972#WHATSAPP_TEMPLATE_ORDER_PAID=order_paid_ops#WHATSAPP_TEMPLATE_LOCALE=en#SCHEDULER_OIDC_AUDIENCE=tinytales-api-sweeps#SCHEDULER_SERVICE_ACCOUNTS=tinytales-scheduler@tinytalesforus-prod.iam.gserviceaccount.com#TASKS_QUEUE=tinytales-sweeps#TASKS_PROJECT=tinytalesforus-prod#TASKS_LOCATION=asia-southeast1#TASKS_TARGET_BASE_URL=https://tinytales-api-h57blldwiq-as.a.run.app#TASKS_SERVICE_ACCOUNT=tinytales-scheduler@tinytalesforus-prod.iam.gserviceaccount.com#OPENAI_ADS_PIXEL_ID=2G5GikW8eeREBWdmE63VcL" \
             --min-instances 1 \
             --cpu-boost \
             --port 8080
             # PROXY_SHARED_SECRET: append to --set-secrets above once that
             # secret exists (see comment block above this step).
-            # --set-secrets ...,PROXY_SHARED_SECRET=laanya-api-proxy-shared-secret:latest
+            # --set-secrets ...,PROXY_SHARED_SECRET=tinytales-api-proxy-shared-secret:latest

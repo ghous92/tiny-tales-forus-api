@@ -67,4 +67,4 @@ jobs:
 
       # Nothing else runs here on purpose. The push above triggers
       # deploy.yml's `deploy-prod` job (on: push: tags: ['v*']), which builds
-      # the image, migrates the Neon main branch, and deploys laanya-api.
+      # the image, migrates the Neon main branch, and deploys tinytales-api.

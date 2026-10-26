@@ -27,11 +27,11 @@ import { createTestDb } from '../helpers/app.js'
 
 const SELLER = {
   legalName: 'ADIX AI',
-  brand: 'Laanya',
+  brand: 'Tiny Tales',
   address: 'Dhanbad, Jharkhand 826001',
   gstRegistered: true,
   gstin: '20AAAAA0000A1Z5',
-  supportEmail: 'support@laanya.test',
+  supportEmail: 'support@tinytales.test',
 } as const
 
 const BUYER = {

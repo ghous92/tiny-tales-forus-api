@@ -7,7 +7,7 @@
  *                  before it is parsed
  *
  * **The security posture, stated once.** A WhatsApp number resolves directly to
- * a Laanya account, because accounts are Firebase phone-auth. An unverified
+ * a Tiny Tales account, because accounts are Firebase phone-auth. An unverified
  * POST naming someone else's number would therefore be a way to read their
  * cart, orders and address book. So: verify `X-Hub-Signature-256` over the RAW
  * body, on every request, before parsing — and when it fails, answer 403 and

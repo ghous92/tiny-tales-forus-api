@@ -37,10 +37,10 @@ function randomTicketSuffix(): string {
   return suffix
 }
 
-/** "LNY-20260725-7K3QZM" — date-prefixed for readability, random suffix for uniqueness. */
+/** "TT-20260725-7K3QZM" — date-prefixed for readability, random suffix for uniqueness. */
 function generateTicketNumber(now: Date): string {
   const datePart = now.toISOString().slice(0, 10).replace(/-/g, '')
-  return `LNY-${datePart}-${randomTicketSuffix()}`
+  return `TT-${datePart}-${randomTicketSuffix()}`
 }
 
 function toComplaint(row: ComplaintTicketRow): Complaint {

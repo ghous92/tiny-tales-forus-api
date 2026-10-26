@@ -206,7 +206,7 @@ export const appConfigAudit = pgTable(
 
 /**
  * Catalog read model (SPEC-V2.md §3): one row per sku, synced from the
- * laanya-shop mobile catalog via `scripts/catalog-sync.ts`. Price authority
+ * tiny-tales-forus mobile catalog via `scripts/catalog-sync.ts`. Price authority
  * for cart/payments — never trust client-sent prices.
  */
 export const catalogItems = pgTable(
@@ -395,7 +395,7 @@ export const products = pgTable(
      */
     manufacturerLicence: text('manufacturer_licence').notNull().default(''),
     /**
-     * Marketing brand, e.g. "Laanya" / "Daniya". `''` ⇒ the store-wide
+     * Marketing brand, e.g. "Tiny Tales" / "Daniya". `''` ⇒ the store-wide
      * `legal.company.brand`, which is what every product carried before this
      * column existed.
      *
@@ -585,7 +585,7 @@ export const coupons = pgTable(
      * Waive the delivery fee outright while this coupon is APPLIED, regardless
      * of `shipping.freeAboveTiers`. Exists because retention copy can promise
      * free delivery to a shopper whose refill cart never clears the threshold
-     * — `laanya_refill_reminder` says "10% OFF + Free Express Shipping", and
+     * — `tinytales_refill_reminder` says "10% OFF + Free Express Shipping", and
      * ten of fourteen active SKUs sit under the ₹249 tier, so without this the
      * message is a promise the pricing engine cannot keep.
      *
@@ -1073,7 +1073,7 @@ export const complaintTickets = pgTable(
   'complaint_tickets',
   {
     id: uuid('id').primaryKey().defaultRandom(),
-    /** Shopper-facing tracking id, e.g. "LNY-20260725-7K3QZM". Generated in the service; retried on the rare collision. */
+    /** Shopper-facing tracking id, e.g. "TT-20260725-7K3QZM". Generated in the service; retried on the rare collision. */
     ticketNumber: text('ticket_number').notNull().unique(),
     userId: uuid('user_id')
       .notNull()
@@ -1142,7 +1142,7 @@ export const complaintTickets = pgTable(
 export const invoices = pgTable(
   'invoices',
   {
-    /** Human-facing document number, e.g. "LAA/26-27/000142". PK — one per order. */
+    /** Human-facing document number, e.g. "TT/26-27/000142". PK — one per order. */
     invoiceNumber: text('invoice_number').primaryKey(),
     /**
      * `onDelete: 'restrict'`, not cascade: the invoice is the record of a sale
@@ -1230,7 +1230,7 @@ export const invoiceCounters = pgTable('invoice_counters', {
 export const creditNotes = pgTable(
   'credit_notes',
   {
-    /** e.g. "LAA/CN/26-27/000001". PK — one per issuance. */
+    /** e.g. "TT/CN/26-27/000001". PK — one per issuance. */
     creditNoteNumber: text('credit_note_number').primaryKey(),
     /**
      * `onDelete: 'restrict'`, same reasoning as `invoices.invoice_number`: the
@@ -2160,7 +2160,7 @@ export const waConversations = pgTable(
     /** Display name Meta supplies in `contacts[].profile.name`; null when absent. */
     profileName: text('profile_name'),
     /**
-     * The FIRST ref code seen on this thread (`LNY-4F2A9C`), from the `wa.me`
+     * The FIRST ref code seen on this thread (`TT-4F2A9C`), from the `wa.me`
      * deep-link prefill. First, not last: it is the entry point that earned the
      * conversation, and overwriting it on a later message would re-attribute
      * the thread to whichever page the shopper happened to revisit.

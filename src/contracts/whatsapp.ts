@@ -61,7 +61,7 @@ export const WaConversationListSchema = z.object({
   conversations: z.array(WaConversationSummarySchema),
   /** Open threads with an unanswered inbound — the nav badge. */
   waiting: z.int(),
-  /** Threads from numbers with no Laanya account. */
+  /** Threads from numbers with no Tiny Tales account. */
   anonymous: z.int(),
 })
 

@@ -17,11 +17,11 @@ const EnvSchema = z.object({
   DATABASE_URL: z.string().min(1, 'DATABASE_URL is required'),
   /** Neon direct (unpooled) connection string — migrations only. Optional; falls back to DATABASE_URL. */
   DATABASE_URL_DIRECT: z.string().min(1).optional(),
-  /** Firebase project whose ID tokens we accept (`laanya-prod`). */
+  /** Firebase project whose ID tokens we accept (`tinytalesforus-prod`). */
   FIREBASE_PROJECT_ID: z.string().min(1, 'FIREBASE_PROJECT_ID is required'),
   /**
    * Which deployment this process IS. Echoed on every response as
-   * `X-Laanya-Env` so a browser client can report the environment the SERVER
+   * `X-TinyTales-Env` so a browser client can report the environment the SERVER
    * says it reached rather than the one the client believes it is pointed at.
    *
    * This distinction is the whole point. Staging and production share a
@@ -55,12 +55,12 @@ const EnvSchema = z.object({
   /**
    * Comma-separated browser origins allowed to call the API cross-origin
    * (the admin SPA). Server-to-server and same-origin callers don't need this.
-   * Defaults to local dev + the laanya.shop admin origins. Set per-env in
+   * Defaults to local dev + the tinytalesforus.com admin origins. Set per-env in
    * Cloud Run to override (e.g. add a staging web origin).
    */
   CORS_ALLOWED_ORIGINS: z
     .string()
-    .default('http://localhost:3000,https://laanya.shop,https://www.laanya.shop')
+    .default('http://localhost:3000,https://tinytalesforus.com,https://www.tinytalesforus.com')
     .transform((s) =>
       s
         .split(',')
@@ -92,7 +92,7 @@ const EnvSchema = z.object({
    */
   GOOGLE_MAPS_SERVER_KEY: z.string().min(1).optional(),
   /**
-   * RudderStack source `laanya-backend`. BOTH must be set or server-side
+   * RudderStack source `tinytales-api`. BOTH must be set or server-side
    * analytics is an inert no-op — a supported state, not a broken boot, which
    * is what lets tests and local development run without an account.
    *
@@ -111,8 +111,8 @@ const EnvSchema = z.object({
    * Conversions API sender is an inert no-op — same supported-unconfigured
    * state as RudderStack above.
    *
-   * The pixel id is NOT secret: it ships in the laanya-shop bundle as
-   * `NEXT_PUBLIC_LAANYA_OPENAI_PIXEL_ID` so the browser pixel can initialise.
+   * The pixel id is NOT secret: it ships in the tiny-tales-forus bundle as
+   * `NEXT_PUBLIC_TINYTALES_OPENAI_PIXEL_ID` so the browser pixel can initialise.
    * OPENAI_ADS_CONVERSIONS_API_KEY IS a secret, and of the same class as
    * `RUDDERSTACK_WRITE_KEY`: it authorises `order_created`, which fabricates
    * conversions that oCPC bidding then optimises spend toward. Secret Manager
@@ -123,16 +123,16 @@ const EnvSchema = z.object({
   OPENAI_ADS_CONVERSIONS_API_KEY: z.string().min(1).optional(),
   /**
    * Shared secret proving a request reached this service through the
-   * laanya-shop Cloudflare edge Worker (which forwards `www.laanya.shop/api/*`
+   * tiny-tales-forus Cloudflare edge Worker (which forwards `www.tinytalesforus.com/api/*`
    * here with the `/api` prefix stripped) rather than direct to the public
    * `*.run.app` URL. When set, every request must carry a matching
-   * `X-Laanya-Proxy-Auth` header — injected by the edge Worker, never by a
+   * `X-TinyTales-Proxy-Auth` header — injected by the edge Worker, never by a
    * browser or mobile client — or `buildApp`'s proxy gate rejects it.
    *
    * OPTIONAL and unset by default (open: the run.app URL answers direct
    * traffic same as today) — this is the migration/dev state, true until
    * mobile/admin clients and the Razorpay webhook URL have all moved to
-   * `https://www.laanya.shop/api`. Once they have, setting this variable (and
+   * `https://www.tinytalesforus.com/api`. Once they have, setting this variable (and
    * the matching `API_PROXY_SECRET` in the Worker) is what makes the public
    * run.app URL useless to anyone calling it directly.
    */
@@ -240,7 +240,7 @@ const EnvSchema = z.object({
    *
    * The four outbound vars degrade gracefully: absent, a message simply does
    * not go out. These two are a security boundary. A WhatsApp number resolves
-   * straight to a Laanya account (Firebase phone auth), so an inbound webhook
+   * straight to a Tiny Tales account (Firebase phone auth), so an inbound webhook
    * that skipped signature verification would let anyone read another shopper's
    * cart and orders by POSTing their number. Absent therefore means the webhook
    * answers 503 and accepts nothing — CLOSED, not degraded.
@@ -269,7 +269,7 @@ const EnvSchema = z.object({
    *
    * `SCHEDULER_OIDC_AUDIENCE` is an arbitrary stable string that must match
    * each job's `--oidc-token-audience` EXACTLY. Deliberately not the service
-   * URL: the API answers on the `*.run.app` host, on `www.laanya.shop/api`, and
+   * URL: the API answers on the `*.run.app` host, on `www.tinytalesforus.com/api`, and
    * on localhost, and an audience derived from the request would accept a token
    * minted for any of them.
    */
@@ -312,12 +312,12 @@ const EnvSchema = z.object({
   /**
    * Where the task calls back in, no trailing slash. Explicit rather than
    * derived from the request: the API answers on the `*.run.app` host, on
-   * `www.laanya.shop/api` and on localhost, and a task minted against whichever
+   * `www.tinytalesforus.com/api` and on localhost, and a task minted against whichever
    * host happened to serve the failing request would be routed by accident.
    */
   TASKS_TARGET_BASE_URL: z.string().url().optional(),
   /**
-   * The identity the task authenticates AS — `laanya-scheduler@…`. The same
+   * The identity the task authenticates AS — `tinytales-scheduler@…`. The same
    * service account Cloud Scheduler uses, so `SCHEDULER_OIDC_AUDIENCE` and
    * `SCHEDULER_SERVICE_ACCOUNTS` cover task callers with no second allowlist
    * to keep in sync. Two identities for one trust boundary is how one of them
@@ -331,7 +331,7 @@ const EnvSchema = z.object({
    * custom domain; override for local dev against the Worker's *.workers.dev
    * host if needed.
    */
-  IMAGE_INTAKE_BASE_URL: z.string().url().default('https://cdn.laanya.shop'),
+  IMAGE_INTAKE_BASE_URL: z.string().url().default('https://image-intake.adix-ai.workers.dev'),
   /**
    * Shared secret the Worker's `/api/*` gate checks as `x-upload-token`
    * (`UPLOAD_TOKEN` in its own env). Optional so admin media upload degrades

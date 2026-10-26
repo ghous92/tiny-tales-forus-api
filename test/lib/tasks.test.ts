@@ -164,14 +164,14 @@ describe('requestSweep', () => {
 
 describe('createCloudTasksEnqueuer', () => {
   const CFG = {
-    project: 'laanya-prod',
+    project: 'tinytalesforus-prod',
     location: 'asia-southeast1',
-    queue: 'laanya-sweeps',
-    targetBaseUrl: 'https://api.laanya.test',
-    serviceAccountEmail: 'laanya-scheduler@laanya-prod.iam.gserviceaccount.com',
-    audience: 'laanya-sweeps-prod',
+    queue: 'tinytales-sweeps',
+    targetBaseUrl: 'https://api.tinytales.test',
+    serviceAccountEmail: 'tinytales-scheduler@tinytalesforus-prod.iam.gserviceaccount.com',
+    audience: 'tinytales-sweeps-prod',
   }
-  const PARENT = 'projects/laanya-prod/locations/asia-southeast1/queues/laanya-sweeps'
+  const PARENT = 'projects/tinytalesforus-prod/locations/asia-southeast1/queues/tinytales-sweeps'
 
   const INPUT: TaskEnqueueInput = {
     kind: 'invoice-emails',
@@ -223,7 +223,7 @@ describe('createCloudTasksEnqueuer', () => {
     expect(body.task.name).toBe(`${PARENT}/tasks/${INPUT.name}`)
     expect(body.task.scheduleTime).toBe('2026-08-23T10:05:00.000Z')
     expect(body.task.httpRequest.url).toBe(
-      'https://api.laanya.test/v1/internal/sweeps/invoice-emails'
+      'https://api.tinytales.test/v1/internal/sweeps/invoice-emails'
     )
     expect(body.task.httpRequest.httpMethod).toBe('POST')
     // Same identity and audience Cloud Scheduler uses, which is what lets

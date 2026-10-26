@@ -1,6 +1,6 @@
 /**
  * ChatGPT Ads Conversions API — the server half of the OpenAI Ads conversion
- * stream. The browser half is `laanya-shop`'s `lib/openaiAds.ts`.
+ * stream. The browser half is `tiny-tales-forus`'s `lib/openaiAds.ts`.
  *
  * WHY BOTH. Same split as Meta. The browser pixel is the only side that holds
  * `oppref`, OpenAI's click identifier, which it reads from the landing-page URL

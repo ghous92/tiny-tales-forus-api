@@ -9,10 +9,10 @@
 #   scripts/dev/rzp.sh orders fetch order_xxxxxxxxxxxx
 #
 # Requires: gcloud authed as an account with secretAccessor on the
-# RAZORPAY_* secrets in laanya-prod (adixaiservice@gmail.com).
+# RAZORPAY_* secrets in tinytalesforus-prod (adixaiservice@gmail.com).
 set -euo pipefail
 
-PROJECT=laanya-prod
+PROJECT=tinytalesforus-prod
 
 KEY_ID=$(gcloud secrets versions access latest --secret=RAZORPAY_KEY_ID --project "$PROJECT")
 KEY_SECRET=$(gcloud secrets versions access latest --secret=RAZORPAY_KEY_SECRET --project "$PROJECT")
@@ -20,8 +20,8 @@ KEY_SECRET=$(gcloud secrets versions access latest --secret=RAZORPAY_KEY_SECRET 
 if [[ "$KEY_ID" == *PLACEHOLDER* || "$KEY_SECRET" == *PLACEHOLDER* ]]; then
   echo "Razorpay secrets in Secret Manager are still placeholders." >&2
   echo "Add real TEST keys first (values from dashboard.razorpay.com):" >&2
-  echo '  printf %s "rzp_test_..." | gcloud secrets versions add RAZORPAY_KEY_ID --data-file=- --project=laanya-prod' >&2
-  echo '  printf %s "<key secret>" | gcloud secrets versions add RAZORPAY_KEY_SECRET --data-file=- --project=laanya-prod' >&2
+  echo '  printf %s "rzp_test_..." | gcloud secrets versions add RAZORPAY_KEY_ID --data-file=- --project=tinytalesforus-prod' >&2
+  echo '  printf %s "<key secret>" | gcloud secrets versions add RAZORPAY_KEY_SECRET --data-file=- --project=tinytalesforus-prod' >&2
   exit 1
 fi
 

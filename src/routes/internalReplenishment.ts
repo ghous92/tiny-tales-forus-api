@@ -214,7 +214,7 @@ async function enqueueReplenishment(
   const headline = headlineLine(order)
   const productLabel = headline ? await productLabelFor(db, headline.sku) : 'your last order'
 
-  // REQUIRED: `laanya_refill_reminder` was approved WITH an image header,
+  // REQUIRED: `tinytales_refill_reminder` was approved WITH an image header,
   // so a send without one is 132000. Left undefined when unset, which makes
   // the failure legible in `last_error` rather than silent.
   const headerUrl = await getConfigValue<unknown>(db, 'notify.customerHeaderImageUrl')

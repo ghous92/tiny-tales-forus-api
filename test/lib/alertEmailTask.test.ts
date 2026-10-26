@@ -13,14 +13,14 @@ import { createAlertEmailTaskEnqueuer } from '../../src/lib/alertEmailTask.js'
 import type { CloudTasksConfig } from '../../src/lib/tasks.js'
 
 const CFG: CloudTasksConfig = {
-  project: 'laanya-prod',
+  project: 'tinytalesforus-prod',
   location: 'asia-southeast1',
-  queue: 'laanya-sweeps',
-  targetBaseUrl: 'https://api.laanya.test',
-  serviceAccountEmail: 'laanya-scheduler@laanya-prod.iam.gserviceaccount.com',
-  audience: 'laanya-sweeps-prod',
+  queue: 'tinytales-sweeps',
+  targetBaseUrl: 'https://api.tinytales.test',
+  serviceAccountEmail: 'tinytales-scheduler@tinytalesforus-prod.iam.gserviceaccount.com',
+  audience: 'tinytales-sweeps-prod',
 }
-const PARENT = 'projects/laanya-prod/locations/asia-southeast1/queues/laanya-sweeps'
+const PARENT = 'projects/tinytalesforus-prod/locations/asia-southeast1/queues/tinytales-sweeps'
 
 beforeEach(() => {
   vi.resetModules()
@@ -44,7 +44,7 @@ describe('createAlertEmailTaskEnqueuer', () => {
     ) as unknown as typeof fetch
 
     await createAlertEmailTaskEnqueuer(CFG, fetchImpl).enqueue({
-      subject: '[FIRING] laanya-api error rate',
+      subject: '[FIRING] tinytales-api error rate',
       html: '<p>boom</p>',
       dedupeKey: 'abc123-firing',
     })
@@ -59,10 +59,10 @@ describe('createAlertEmailTaskEnqueuer', () => {
       }
     }
     expect(body.task.name).toBe(`${PARENT}/tasks/alert-email-abc123-firing`)
-    expect(body.task.httpRequest.url).toBe('https://api.laanya.test/v1/internal/alert-email')
+    expect(body.task.httpRequest.url).toBe('https://api.tinytales.test/v1/internal/alert-email')
     expect(
       JSON.parse(Buffer.from(body.task.httpRequest.body, 'base64').toString('utf8'))
-    ).toEqual({ subject: '[FIRING] laanya-api error rate', html: '<p>boom</p>' })
+    ).toEqual({ subject: '[FIRING] tinytales-api error rate', html: '<p>boom</p>' })
     expect(body.task.httpRequest.oidcToken.audience).toBe(CFG.audience)
   })
 

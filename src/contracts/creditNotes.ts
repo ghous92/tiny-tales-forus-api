@@ -27,7 +27,7 @@
  *
  * ```
  * credit_notes:
- *   credit_note_number  text pk          -- "LAA/CN/26-27/000001"
+ *   credit_note_number  text pk          -- "TT/CN/26-27/000001"
  *   invoice_number       text fk -> invoices(invoice_number) on delete restrict
  *   order_id              text fk -> payments(order_id) on delete restrict
  *   user_id               uuid fk -> users(id) on delete restrict

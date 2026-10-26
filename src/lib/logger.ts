@@ -58,11 +58,11 @@ export function buildLoggerOptions(appEnv: AppEnv): LoggerOptions {
     // actionable; `serviceContext` is what Cloud Logging's Error Reporting
     // integration groups errors by instead (and what `lib/alerts.ts` mirrors
     // in its own alert emails).
-    base: { serviceContext: { service: 'laanya-api', environment: appEnv } },
+    base: { serviceContext: { service: 'tinytales-api', environment: appEnv } },
     // Tokens and other credentials must never reach the logs. Lives here
     // (rather than only inline in app.ts) so any other place that builds a
     // pino instance — none today, but e.g. a future worker/script — gets the
     // same redaction for free instead of having to remember it.
-    redact: ['req.headers.authorization', 'req.headers.x-laanya-proxy-auth'],
+    redact: ['req.headers.authorization', 'req.headers.x-tinytales-proxy-auth'],
   }
 }

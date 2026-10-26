@@ -84,7 +84,7 @@ function inboundBody(overrides: { id?: string; from?: string; text?: string; nam
                   from: overrides.from ?? SHOPPER,
                   type: 'text',
                   timestamp: String(Math.floor(Date.now() / 1000)),
-                  text: { body: overrides.text ?? 'Do you deliver to 380015? [LNY-4F2A9C]' },
+                  text: { body: overrides.text ?? 'Do you deliver to 380015? [TT-4F2A9C]' },
                 },
               ],
             },
@@ -200,7 +200,7 @@ describe('POST /v1/whatsapp/webhook — recording', () => {
     expect(conversation).toMatchObject({
       waPhone: SHOPPER,
       profileName: 'Priya',
-      refCode: 'LNY-4F2A9C',
+      refCode: 'TT-4F2A9C',
       status: 'open',
       // Zero, not one: the auto-reply below answered it in the same request.
       unreadCount: 0,
@@ -282,7 +282,7 @@ describe('POST /v1/whatsapp/webhook — recording', () => {
 
     const second = inboundBody({
       id: 'wamid.IN2',
-      text: 'Hi Laanya! Could you tell me what products you have available? [LNY-6F341R]',
+      text: 'Hi Tiny Tales! Could you tell me what products you have available? [TT-6F341R]',
     })
     await post(second, sign(second))
     expect(sends).toHaveLength(2)
@@ -293,7 +293,7 @@ describe('POST /v1/whatsapp/webhook — recording', () => {
   it('does not answer a second site-button message inside the flood guard', async () => {
     const first = inboundBody()
     await post(first, sign(first))
-    const second = inboundBody({ id: 'wamid.IN2', text: 'products? [LNY-6F341R]' })
+    const second = inboundBody({ id: 'wamid.IN2', text: 'products? [TT-6F341R]' })
     await post(second, sign(second))
 
     expect(sends).toHaveLength(1)
@@ -319,7 +319,7 @@ describe('POST /v1/whatsapp/webhook — recording', () => {
       .where(eq(waMessages.direction, 'outbound'))
     await ageOutbound(120)
 
-    const second = inboundBody({ id: 'wamid.IN2', text: 'products? [LNY-6F341R]' })
+    const second = inboundBody({ id: 'wamid.IN2', text: 'products? [TT-6F341R]' })
     await post(second, sign(second))
 
     expect(sends).toHaveLength(1)
@@ -345,7 +345,7 @@ describe('POST /v1/whatsapp/webhook — recording', () => {
 
     const second = inboundBody({
       id: 'wamid.IN2',
-      text: 'Hi Laanya! Could you tell me what products you have available? [LNY-6F341R]',
+      text: 'Hi Tiny Tales! Could you tell me what products you have available? [TT-6F341R]',
     })
     await post(second, sign(second))
 
@@ -383,7 +383,7 @@ describe('POST /v1/whatsapp/webhook — recording', () => {
 
     const first = inboundBody()
     await post(first, sign(first))
-    const second = inboundBody({ id: 'wamid.IN2', text: 'anyone there? [LNY-6F341R]' })
+    const second = inboundBody({ id: 'wamid.IN2', text: 'anyone there? [TT-6F341R]' })
     await post(second, sign(second))
 
     const outbound = await ctx.db
@@ -397,15 +397,15 @@ describe('POST /v1/whatsapp/webhook — recording', () => {
   it('keeps the FIRST ref code when a later message carries another', async () => {
     const first = inboundBody()
     await post(first, sign(first))
-    const second = inboundBody({ id: 'wamid.IN2', text: 'and this one? [LNY-ZZZZZZ]' })
+    const second = inboundBody({ id: 'wamid.IN2', text: 'and this one? [TT-ZZZZZZ]' })
     await post(second, sign(second))
 
     const [conversation] = await ctx.db.select().from(waConversations)
-    expect(conversation?.refCode).toBe('LNY-4F2A9C')
+    expect(conversation?.refCode).toBe('TT-4F2A9C')
   })
 
   // The identity unlock: the phone number IS the login.
-  it('resolves the thread to a Laanya account when the number matches a user', async () => {
+  it('resolves the thread to a Tiny Tales account when the number matches a user', async () => {
     // Any authed request upserts USER_A, whose phone is +91…
     await ctx.app.inject({ method: 'GET', url: '/v1/me', headers: auth(USER_A.token) })
     const digits = USER_A.phoneNumber.replace(/[^0-9]/g, '')
@@ -583,7 +583,7 @@ describe('/v1/admin/whatsapp', () => {
    * one is a send that should not have been paid for.
    */
   describe('follow-up template', () => {
-    const TEMPLATE = 'laanya_support_followup'
+    const TEMPLATE = 'tinytales_support_followup'
 
     async function configureTemplate(name: unknown = TEMPLATE, locale: unknown = 'en') {
       for (const [key, value] of [

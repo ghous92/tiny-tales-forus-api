@@ -556,7 +556,7 @@ export interface PaymentRoutesOptions {
   notificationChannels?: NotificationChannelRegistry
   /**
    * Origin the ops WhatsApp message's deep link points at, e.g.
-   * `https://laanya.shop` → `.../admin/orders/<orderId>` (SPEC §3). Defaults to
+   * `https://tinytalesforus.com` → `.../admin/orders/<orderId>` (SPEC §3). Defaults to
    * the production admin origin; tests override it to assert on the exact link.
    */
   adminOrigin?: string
@@ -820,11 +820,11 @@ function resolvePaymentWiring(opts: PaymentRoutesOptions) {
     carrierCode: opts.carrierCode ?? 'delhivery',
     analyticsHook: opts.analytics ? makeAnalyticsHook(opts.analytics) : undefined,
     openAiAdsHook: opts.openAiAds
-      ? makeOpenAiAdsHook(opts.openAiAds, opts.adminOrigin ?? 'https://laanya.shop', opts.db)
+      ? makeOpenAiAdsHook(opts.openAiAds, opts.adminOrigin ?? 'https://tinytalesforus.com', opts.db)
       : undefined,
     gateway: opts.gateway ?? createPaymentsGateway(opts.razorpay ?? {}),
     notificationChannels: opts.notificationChannels ?? {},
-    adminOrigin: opts.adminOrigin ?? 'https://laanya.shop',
+    adminOrigin: opts.adminOrigin ?? 'https://tinytalesforus.com',
   }
 }
 
@@ -1154,7 +1154,7 @@ export const paymentRoutes: FastifyPluginAsyncZod<PaymentRoutesOptions> = async 
           request.params.orderId,
           {
             ip,
-            userAgent: typeof userAgent === 'string' && userAgent ? userAgent : 'laanya-mobile',
+            userAgent: typeof userAgent === 'string' && userAgent ? userAgent : 'tinytales-web',
             referer: typeof referer === 'string' && referer ? referer : adminOrigin,
           },
           policy.expiryMinutes

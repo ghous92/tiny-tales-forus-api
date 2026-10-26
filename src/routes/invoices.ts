@@ -124,7 +124,7 @@ export async function resolveInvoiceContext(db: Db): Promise<InvoiceContext> {
   return {
     seller: {
       legalName,
-      // The brand on the box is Laanya whoever the supplier is, so this stays
+      // The brand on the box is Tiny Tales whoever the supplier is, so this stays
       // on `legal.company` in both models.
       brand: asString(company.brand, legalName),
       address,
@@ -137,7 +137,7 @@ export async function resolveInvoiceContext(db: Db): Promise<InvoiceContext> {
         ? Boolean(asString(manufacturer.gstin))
         : company.gstRegistered === true && Boolean(asString(company.gstin)),
       gstin: asString(sellerRow.gstin),
-      // Support is Laanya's in both models — the shopper writes to us, not to
+      // Support is Tiny Tales's in both models — the shopper writes to us, not to
       // the manufacturer, whoever's name is on the supply.
       supportEmail: asString(company.supportEmail),
     },

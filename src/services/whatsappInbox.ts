@@ -32,7 +32,7 @@ import {
 type Tx = Parameters<Parameters<Db['transaction']>[0]>[0]
 
 /**
- * Resolve a WhatsApp number to a Laanya account, or null.
+ * Resolve a WhatsApp number to a Tiny Tales account, or null.
  *
  * The phone number IS the login (Firebase phone auth), so this is the entire
  * "linking flow" — there isn't one. Null is the normal case for a first-time
@@ -443,7 +443,7 @@ export async function countWaiting(db: Db): Promise<number> {
   return row?.n ?? 0
 }
 
-/** Threads from shoppers with no Laanya account — the acquisition slice of the inbox. */
+/** Threads from shoppers with no Tiny Tales account — the acquisition slice of the inbox. */
 export async function countAnonymous(db: Db): Promise<number> {
   const [row] = await db
     .select({ n: sql<number>`count(*)::int` })

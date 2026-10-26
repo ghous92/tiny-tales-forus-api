@@ -20,7 +20,7 @@
  * UTILITY — roughly seven times the price per send, and policy-wise it wants
  * consent.
  *
- * Laanya's consent record (`services/marketingConsent.ts`) is keyed on an
+ * Tiny Tales's consent record (`services/marketingConsent.ts`) is keyed on an
  * ORDER, so a shopper who never bought has no consent row to check. That is
  * why this send is OPERATOR-TRIGGERED ONLY and has no scheduler behind it: a
  * human looking at a thread where the shopper wrote first is the consent
@@ -35,7 +35,7 @@
  * we keep our own copy of the wording.
  *
  * That copy is {@link FOLLOW_UP_BODY}, and it is what should be pasted into
- * Meta's template editor verbatim when submitting `laanya_support_followup`.
+ * Meta's template editor verbatim when submitting `tinytales_support_followup`.
  * One string, used to render the stored transcript and to author the approval.
  * If someone edits the template at Meta without editing this constant, nothing
  * breaks at send time — Meta only matches the NAME and the parameter count —
@@ -58,7 +58,7 @@ export const FOLLOW_UP_LOCALE_KEY = 'notify.supportFollowupLocale'
  * the transcript, which is a guess rendered as if it were a quote.
  */
 export const FOLLOW_UP_BODY =
-  "Hi {{1}}, following up on your message to Laanya — reply here and we'll help with anything you need."
+  "Hi {{1}}, following up on your message to Tiny Tales — reply here and we'll help with anything you need."
 
 /** What `{{1}}` becomes when the shopper has no usable profile name. */
 export const FOLLOW_UP_FALLBACK_NAME = 'there'

@@ -9,14 +9,14 @@ set -euo pipefail
 BRANCH="${1:-dev}"
 PROJECT_ID="long-leaf-66968398"
 ORG_ID="org-still-sound-69451390"
-LOCAL_URL="postgres://neondb_owner:laanya_local_dev@127.0.0.1:5433/laanya"
+LOCAL_URL="postgres://neondb_owner:tinytales_local_dev@127.0.0.1:5433/tinytales"
 
 PG_BIN="$(brew --prefix postgresql@17)/bin"
 export PATH="$PG_BIN:$PATH"
 
 NEON_URL="$(npx --yes neonctl connection-string "$BRANCH" \
   --project-id "$PROJECT_ID" --org-id "$ORG_ID" \
-  --database-name laanya --role-name neondb_owner)"
+  --database-name tinytales --role-name neondb_owner)"
 
 WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT

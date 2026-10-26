@@ -23,11 +23,11 @@ import type { CatalogSnapshot } from '../../contracts/catalog.js'
  * catalog outage answers, it just promises a human instead of a price list.
  */
 export const FALLBACK_AUTO_REPLY =
-  'Thanks for reaching out to Laanya! Someone from our team will reply here shortly. ' +
+  'Thanks for reaching out to Tiny Tales! Someone from our team will reply here shortly. ' +
   'You can send your question, a photo, or the product you are looking at.'
 
 /** Shop URL printed at the bottom of the list. */
-const SHOP_URL = 'https://www.laanya.shop'
+const SHOP_URL = 'https://www.tinytalesforus.com'
 
 /**
  * Caps. WhatsApp's own text limit is 4096 characters, but the real constraint
@@ -114,7 +114,7 @@ export function buildCatalogAutoReply(snapshot: CatalogSnapshot | null): string 
 
   const shown = products.slice(0, MAX_PRODUCTS)
   const lines: string[] = [
-    'Thanks for reaching out to Laanya! 🌿',
+    'Thanks for reaching out to Tiny Tales! 🌿',
     '',
     "Here's what we have in stock right now:",
     '',

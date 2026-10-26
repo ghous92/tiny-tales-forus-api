@@ -32,14 +32,14 @@ import {
 import type { CloudTasksConfig } from '../../src/lib/tasks.js'
 
 const CFG: CloudTasksConfig = {
-  project: 'laanya-prod',
+  project: 'tinytalesforus-prod',
   location: 'asia-southeast1',
-  queue: 'laanya-sweeps',
-  targetBaseUrl: 'https://api.laanya.test',
-  serviceAccountEmail: 'laanya-scheduler@laanya-prod.iam.gserviceaccount.com',
-  audience: 'laanya-sweeps-prod',
+  queue: 'tinytales-sweeps',
+  targetBaseUrl: 'https://api.tinytales.test',
+  serviceAccountEmail: 'tinytales-scheduler@tinytalesforus-prod.iam.gserviceaccount.com',
+  audience: 'tinytales-sweeps-prod',
 }
-const PARENT = 'projects/laanya-prod/locations/asia-southeast1/queues/laanya-sweeps'
+const PARENT = 'projects/tinytalesforus-prod/locations/asia-southeast1/queues/tinytales-sweeps'
 const NOW = new Date('2026-09-01T00:00:00.000Z')
 const DAY_MS = 24 * 60 * 60 * 1000
 
@@ -172,7 +172,7 @@ describe('createReplenishmentTaskEnqueuer', () => {
     }
     // Scheduled 29 days out — the first hop, not the due date.
     expect(sent.task.scheduleTime).toBe(new Date(NOW.getTime() + MAX_HORIZON_MS).toISOString())
-    expect(sent.task.httpRequest.url).toBe(`https://api.laanya.test${REPLENISHMENT_TASK_PATH}`)
+    expect(sent.task.httpRequest.url).toBe(`https://api.tinytales.test${REPLENISHMENT_TASK_PATH}`)
     // …but the body still says when it is actually due. This is what makes the
     // chain converge instead of walking forward a month per hop.
     const body = JSON.parse(Buffer.from(sent.task.httpRequest.body, 'base64').toString('utf8')) as {

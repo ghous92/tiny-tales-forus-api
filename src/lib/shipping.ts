@@ -566,7 +566,7 @@ export function estimatedPincodeInfo(pincode: string): PincodeInfo | null {
  *
  * `serviceableStates` is deliberately ignored. It remains an argument while
  * existing admin/config callers migrate, but it is no longer an order or quote
- * restriction: Laanya ships PAN India.
+ * restriction: Tiny Tales ships PAN India.
  */
 export function zoneFor(
   originPincode: string,

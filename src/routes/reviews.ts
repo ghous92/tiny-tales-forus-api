@@ -45,7 +45,7 @@ const errorResponses = {
 }
 
 /** Fallback when the caller has never set a display name (`PATCH /v1/me`). */
-const ANONYMOUS_AUTHOR_NAME = 'Laanya Customer'
+const ANONYMOUS_AUTHOR_NAME = 'Tiny Tales customer'
 
 async function assertProductExists(db: Db, productId: string): Promise<void> {
   const [row] = await db.select({ id: products.id }).from(products).where(eq(products.id, productId)).limit(1)

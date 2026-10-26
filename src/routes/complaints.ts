@@ -82,7 +82,7 @@ async function resolveComplaintRecipients(db: Db): Promise<Array<{ name: string;
   const company = await getConfigValue<Record<string, unknown>>(db, 'legal.company')
   if (!company) return []
   const candidates = [
-    { name: 'Laanya Support', email: company.supportEmail },
+    { name: 'Tiny Tales Support', email: company.supportEmail },
     // Legacy, pre-scrub keys — see the note above.
     { name: 'Grievance Officer', email: company.grievanceEmail },
     { name: 'Nodal Contact', email: company.nodalContactEmail },

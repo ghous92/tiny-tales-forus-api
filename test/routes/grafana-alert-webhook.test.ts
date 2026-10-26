@@ -24,7 +24,7 @@ function grafanaBody(overrides: Record<string, unknown> = {}): Record<string, un
       {
         status: 'firing',
         fingerprint: 'fp-abc123',
-        labels: { alertname: 'laanya-api ERROR logs' },
+        labels: { alertname: 'tinytales-api ERROR logs' },
         annotations: { summary: 'ERROR-level logs detected', description: 'see Loki for detail' },
       },
     ],
@@ -89,7 +89,7 @@ describe('POST /v1/webhooks/grafana-alert — dispatch', () => {
     expect(res.json()).toEqual({ received: true })
     expect(enqueued).toHaveLength(1)
     expect(enqueued[0]!.subject).toContain('FIRING')
-    expect(enqueued[0]!.subject).toContain('laanya-api ERROR logs')
+    expect(enqueued[0]!.subject).toContain('tinytales-api ERROR logs')
     expect(enqueued[0]!.html).toContain('ERROR-level logs detected')
     expect(enqueued[0]!.dedupeKey).toBe('fp-abc123-firing')
   })
@@ -130,7 +130,7 @@ describe('POST /v1/webhooks/grafana-alert — dispatch', () => {
 
     const ctx = await createTestApp({
       grafanaAlertWebhookSecret: SECRET,
-      alerts: { brevoApiKey: 'k', emailFrom: 'hello@adix.test', emailTo: 'ops@laanya.test' },
+      alerts: { brevoApiKey: 'k', emailFrom: 'hello@adix.test', emailTo: 'ops@tinytales.test' },
       alertEmailFetchImpl: fakeFetch,
     })
 
@@ -143,7 +143,7 @@ describe('POST /v1/webhooks/grafana-alert — dispatch', () => {
 
     expect(res.statusCode).toBe(200)
     expect(calls).toHaveLength(1)
-    expect(calls[0]!.to).toEqual([{ email: 'ops@laanya.test' }])
+    expect(calls[0]!.to).toEqual([{ email: 'ops@tinytales.test' }])
   })
 
   it('still answers 200 when neither Cloud Tasks nor Brevo is configured', async () => {

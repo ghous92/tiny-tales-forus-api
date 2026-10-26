@@ -12,9 +12,9 @@
  * One-time setup per gcloud identity: grant yourself token-creator on the
  * runtime SA so you can sign custom tokens:
  *   gcloud iam service-accounts add-iam-policy-binding \
- *     laanya-api-run@laanya-prod.iam.gserviceaccount.com \
+ *     tinytales-api-run@tinytalesforus-prod.iam.gserviceaccount.com \
  *     --member="user:$(gcloud config get-value account)" \
- *     --role=roles/iam.serviceAccountTokenCreator --project laanya-prod
+ *     --role=roles/iam.serviceAccountTokenCreator --project tinytalesforus-prod
  *
  * Usage:
  *   node scripts/dev/mint-token.mjs                  # test number +919000000000
@@ -24,8 +24,8 @@ import { execFileSync } from 'node:child_process'
 import { applicationDefault, initializeApp } from 'firebase-admin/app'
 import { getAuth } from 'firebase-admin/auth'
 
-const PROJECT_ID = 'laanya-prod'
-const RUNTIME_SA = 'laanya-api-run@laanya-prod.iam.gserviceaccount.com'
+const PROJECT_ID = 'tinytalesforus-prod'
+const RUNTIME_SA = 'tinytales-api-run@tinytalesforus-prod.iam.gserviceaccount.com'
 // Firebase's auto-created Browser key — used only to call the public
 // signInWithCustomToken endpoint, never to access anything privileged.
 const BROWSER_API_KEY_RESOURCE =

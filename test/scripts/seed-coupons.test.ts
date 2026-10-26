@@ -46,7 +46,7 @@ describe('seedCouponDefaults', () => {
     })
 
     // REFILL10 is a production dependency of the approved
-    // `laanya_refill_reminder` template, whose body tells shoppers to use this
+    // `tinytales_refill_reminder` template, whose body tells shoppers to use this
     // exact code. Pin the terms the message implies: 10% off, no cap.
     //
     // The floor and expiry are the owner's 2026-09-01 guardrails for seeding

@@ -43,11 +43,11 @@ export const MAX_CONFIG_KEYS = 500
  * which read rows directly and are unaffected by this allowlist.
  *
  * Each entry must have a named public consumer:
- * - `legal.company`        — laanya-shop `src/lib/legalConfig.ts` and
+ * - `legal.company`        — tiny-tales-forus `src/lib/legalConfig.ts` and
  *                            `mobile/src/lib/legalConfig.ts`, so a GSTIN or
  *                            registered-address change reaches the published
  *                            Terms/Privacy pages without a redeploy.
- * - `orders.cancelReasons` — laanya-shop `mobile/src/lib/orders.ts`, the
+ * - `orders.cancelReasons` — tiny-tales-forus `mobile/src/lib/orders.ts`, the
  *                            cancellation reason picker.
  *
  * Before adding a key, check it is safe to print on a public page: no

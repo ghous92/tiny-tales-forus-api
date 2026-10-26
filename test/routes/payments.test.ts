@@ -69,7 +69,7 @@ const WEBHOOK_SECRET = 'test_webhook_secret_fake'
  * A Razorpay-shaped UPI intent link — same field set the real `create/upi`
  * returns (payee VPA, name, transaction ref, amount, currency, MCC).
  */
-const UPI_LINK = 'upi://pay?pa=laanya%40razopay&pn=Laanya&tr=TESTREF01&am=498&cu=INR&mc=5411'
+const UPI_LINK = 'upi://pay?pa=tinytales%40razopay&pn=Tiny Tales&tr=TESTREF01&am=498&cu=INR&mc=5411'
 const UPI_QUERY = UPI_LINK.slice(UPI_LINK.indexOf('?'))
 
 const SKU_A = 'AH-82U3-T29Q'
@@ -1848,7 +1848,7 @@ describe('credit notes on the refund transition (Phase 2.6)', () => {
         key: 'legal.company',
         value: {
           legalName: 'Adix AI',
-          brand: 'Laanya',
+          brand: 'Tiny Tales',
           address:
             '3, Qamar Makhdumi Road, near Noori Masjid, Bhuli Road, Wasseypur, Dhanbad, Jharkhand 826001',
           jurisdictionCity: 'Dhanbad',

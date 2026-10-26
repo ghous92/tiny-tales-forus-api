@@ -13,9 +13,9 @@
  *   - the failure text names the template and the shape actually sent, because
  *     the row's stored `last_error` is all an operator gets to work from.
  *
- * The two live customer templates are the regression cases: `laanya_refill_reminder`
+ * The two live customer templates are the regression cases: `tinytales_refill_reminder`
  * (2 body params + required image header + STATIC button) and
- * `laanya_order_delivered` (2 body params, NO header, STATIC button). Neither
+ * `tinytales_order_delivered` (2 body params, NO header, STATIC button). Neither
  * takes a button parameter, so neither may emit a button component.
  */
 
@@ -69,7 +69,7 @@ const OK = () => new Response(JSON.stringify({ messages: [{ id: 'wamid.TEST' }] 
 describe('createWhatsAppCloudChannel — component assembly', () => {
   it('sends a body-only template with no header and no button components', async () => {
     const f = stubFetch(OK())
-    // The approved `laanya_order_delivered` shape: 2 params, nothing else.
+    // The approved `tinytales_order_delivered` shape: 2 params, nothing else.
     const message: NotificationMessage = { params: ['Asha', 'Daniya Body Cream'] }
 
     const result = await createWhatsAppCloudChannel(CFG, f.impl).send('919900000001', message)
@@ -86,7 +86,7 @@ describe('createWhatsAppCloudChannel — component assembly', () => {
 
   it('emits an image header as a `link` parameter, before the body', async () => {
     const f = stubFetch(OK())
-    // The approved `laanya_refill_reminder` shape: header is REQUIRED.
+    // The approved `tinytales_refill_reminder` shape: header is REQUIRED.
     const message: NotificationMessage = {
       params: ['Asha', 'Daniya Body Cream'],
       header: { link: 'https://image-intake.adix-ai.workers.dev/hero.jpg' },
@@ -162,11 +162,11 @@ describe('createWhatsAppCloudChannel — template resolution', () => {
 
     await createWhatsAppCloudChannel(CFG, f.impl).send('919900000001', {
       params: ['Asha', 'Daniya Body Cream'],
-      template: { name: 'laanya_refill_reminder', locale: 'en' },
+      template: { name: 'tinytales_refill_reminder', locale: 'en' },
     })
 
     expect(f.sent().template).toMatchObject({
-      name: 'laanya_refill_reminder',
+      name: 'tinytales_refill_reminder',
       language: { code: 'en' },
     })
   })
@@ -199,11 +199,11 @@ describe('createWhatsAppCloudChannel — failure reporting', () => {
 
     const result = await createWhatsAppCloudChannel(CFG, f.impl).send('919900000001', {
       params: ['Asha', 'Daniya Body Cream'],
-      template: { name: 'laanya_order_delivered', locale: 'en' },
+      template: { name: 'tinytales_order_delivered', locale: 'en' },
     })
 
     expect(result.ok).toBe(false)
-    expect(result.error).toContain('laanya_order_delivered/en')
+    expect(result.error).toContain('tinytales_order_delivered/en')
     // Assert on the "sent ..." segment, not the whole string: the static hint
     // that follows it names header/body/button generically, so a bare
     // `not.toContain('button')` would match the hint rather than the shape.

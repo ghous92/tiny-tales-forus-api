@@ -1,5 +1,5 @@
 /**
- * X-Laanya-Env: every response carries the environment that actually served it.
+ * X-TinyTales-Env: every response carries the environment that actually served it.
  *
  * The admin SPA trusts this header over its own build-time notion of which API
  * it is pointed at, so the guarantee that matters is coverage — a header present
@@ -22,22 +22,22 @@ afterEach(async () => {
   await ctx.app.close()
 })
 
-describe('X-Laanya-Env', () => {
+describe('X-TinyTales-Env', () => {
   it("defaults to 'development' when no appEnv is supplied", async () => {
     const res = await ctx.app.inject({ method: 'GET', url: '/livez' })
-    expect(res.headers['x-laanya-env']).toBe('development')
+    expect(res.headers['x-tinytales-env']).toBe('development')
   })
 
   it('is present on 404s', async () => {
     const res = await ctx.app.inject({ method: 'GET', url: '/no-such-route' })
     expect(res.statusCode).toBe(404)
-    expect(res.headers['x-laanya-env']).toBe('development')
+    expect(res.headers['x-tinytales-env']).toBe('development')
   })
 
   it('is present on unauthenticated 401s', async () => {
     const res = await ctx.app.inject({ method: 'GET', url: '/v1/addresses' })
     expect(res.statusCode).toBe(401)
-    expect(res.headers['x-laanya-env']).toBe('development')
+    expect(res.headers['x-tinytales-env']).toBe('development')
   })
 
   it('reports the configured environment', async () => {
@@ -51,7 +51,7 @@ describe('X-Laanya-Env', () => {
     await app.ready()
     try {
       const res = await app.inject({ method: 'GET', url: '/livez' })
-      expect(res.headers['x-laanya-env']).toBe('production')
+      expect(res.headers['x-tinytales-env']).toBe('production')
     } finally {
       await app.close()
     }

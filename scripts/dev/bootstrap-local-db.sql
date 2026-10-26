@@ -3,18 +3,18 @@
 -- separate port from any other Postgres.app server already running).
 --
 -- Postgres.app boots each server with a superuser matching your macOS
--- username (no password, trusted over local TCP) and no `laanya` database.
+-- username (no password, trusted over local TCP) and no `tinytales` database.
 -- This creates the role and database SHAPED LIKE NEON — same name, same owner
 -- name — so a connection string only ever differs by host and port between
 -- environments.
 DO $$
 BEGIN
   IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'neondb_owner') THEN
-    CREATE ROLE neondb_owner WITH LOGIN PASSWORD 'laanya_local_dev' CREATEDB;
+    CREATE ROLE neondb_owner WITH LOGIN PASSWORD 'tinytales_local_dev' CREATEDB;
   END IF;
 END
 $$;
 
-SELECT 'CREATE DATABASE laanya OWNER neondb_owner'
-WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'laanya')
+SELECT 'CREATE DATABASE tinytales OWNER neondb_owner'
+WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'tinytales')
 \gexec

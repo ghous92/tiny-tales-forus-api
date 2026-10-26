@@ -3,7 +3,7 @@
  * `npm run db:seed-config` — inserts the SPEC-V2.md §2 default config values,
  * ONLY where the key is absent (never overwrites an existing value; if you
  * want to change a value, use the admin PUT route or re-run with a fresh
- * database). Values mirror `laanya-shop/mobile/src/lib/config.ts`'s current
+ * database). Values mirror `tiny-tales-forus/mobile/src/lib/config.ts`'s current
  * constants at the time SPEC-V2 was written.
  *
  * The core logic (`seedConfigDefaults`) takes a `Db` and is unit-testable
@@ -52,7 +52,7 @@ export const CONFIG_DEFAULTS: ConfigDefault[] = [
   },
   {
     key: 'pdp.sellerName',
-    value: 'Laanya',
+    value: 'Tiny Tales',
     description: '"Sold by {sellerName}" line on the product detail page.',
   },
   {
@@ -62,16 +62,16 @@ export const CONFIG_DEFAULTS: ConfigDefault[] = [
   },
   {
     key: 'legal.termsUrl',
-    value: 'https://www.laanya.shop/terms',
+    value: 'https://www.tinytalesforus.com/terms',
     description: 'Terms & Conditions URL linked from the auth sheet legal footer.',
   },
   {
     key: 'legal.privacyUrl',
-    value: 'https://www.laanya.shop/privacy',
+    value: 'https://www.tinytalesforus.com/privacy',
     description: 'Privacy Policy URL linked from the auth sheet legal footer.',
   },
   {
-    // Mirrors `laanya-shop/mobile/src/data/legal.ts`'s `COMPANY` const — the
+    // Mirrors `tiny-tales-forus/mobile/src/data/legal.ts`'s `COMPANY` const — the
     // seller of record. Server-side consumers (invoice generator, complaint
     // ticket emails) read this instead of hardcoding the entity's details a
     // second time. `gstin` stays '' while `gstRegistered` is false.
@@ -85,7 +85,7 @@ export const CONFIG_DEFAULTS: ConfigDefault[] = [
     key: 'legal.company',
     value: {
       legalName: 'Adix AI',
-      brand: 'Laanya',
+      brand: 'Tiny Tales',
       address:
         '3, Qamar Makhdumi Road, near Noori Masjid, Bhuli Road, Wasseypur, Dhanbad, Jharkhand 826001',
       jurisdictionCity: 'Dhanbad',
@@ -106,7 +106,7 @@ export const CONFIG_DEFAULTS: ConfigDefault[] = [
       registeredStateName: 'Jharkhand',
       supportEmail: 'hello@adix.ai',
       // Mirrors `invoice.sellerOfRecord` below, and MUST equal it. This copy is
-      // the one the storefront and app read (`laanya-shop/src/data/legal.ts`
+      // the one the storefront and app read (`tiny-tales-forus/src/data/legal.ts`
       // `mergeCompanyOverrides`) to decide what the published Terms say about
       // who sold you the goods; the other copy decides what the tax invoice
       // says. `db:sync-legal-config` writes both keys in one run; verify both
@@ -117,7 +117,7 @@ export const CONFIG_DEFAULTS: ConfigDefault[] = [
       'Seller-of-record entity details (Cosmetics Rules / E-Commerce Rules disclosures): registered office, GST status, and the single published contact mailbox. No personal names/emails/phones. Mirrors mobile/src/data/legal.ts COMPANY.',
   },
   {
-    // Mirrors `laanya-shop/mobile/src/data/legal.ts`'s `MANUFACTURER` const
+    // Mirrors `tiny-tales-forus/mobile/src/data/legal.ts`'s `MANUFACTURER` const
     // (sourced there from `mobile/src/lib/config.ts` CONFIG.GENUINE_SOURCE_NAME
     // / MANUFACTURER_ADDRESS / MANUFACTURER_LICENCE).
     key: 'legal.manufacturer',
@@ -151,7 +151,7 @@ export const CONFIG_DEFAULTS: ConfigDefault[] = [
      *              entity in `legal.manufacturer` under their GSTIN. This is
      *              retained for historic documents, not the current model.
      *
-     * Must agree with `COMPANY.sellerOfRecord` in `laanya-shop/src/data/legal.ts`
+     * Must agree with `COMPANY.sellerOfRecord` in `tiny-tales-forus/src/data/legal.ts`
      * (mirrored to mobile), which decides what the published Terms say about
      * who sold you the goods. Terms naming one seller while the invoice names
      * another is the failure mode both fields exist to prevent.
@@ -673,34 +673,34 @@ export const CONFIG_DEFAULTS: ConfigDefault[] = [
     key: 'notify.orderOutForDeliveryCustomerTemplate',
     value: '',
     description:
-      'WhatsApp UTILITY template for the out-for-delivery customer update. Set to `laanya_order_out_for_delivery` only after Meta approves it. It takes exactly 2 body params (first name, order id), no header, and one static URL button. Empty = no send; must be set together with notify.orderOutForDeliveryCustomerLocale.',
+      'WhatsApp UTILITY template for the out-for-delivery customer update. Set to `tinytales_order_out_for_delivery` only after Meta approves it. It takes exactly 2 body params (first name, order id), no header, and one static URL button. Empty = no send; must be set together with notify.orderOutForDeliveryCustomerLocale.',
   },
   {
     key: 'notify.orderOutForDeliveryCustomerLocale',
     value: '',
     description:
-      'Language code for notify.orderOutForDeliveryCustomerTemplate — `en` for laanya_order_out_for_delivery. Empty until the template is approved.',
+      'Language code for notify.orderOutForDeliveryCustomerTemplate — `en` for tinytales_order_out_for_delivery. Empty until the template is approved.',
   },
   {
     key: 'notify.orderDeliveredCustomerTemplate',
-    // Approved and ready: `laanya_order_delivered`. Left EMPTY here so enabling
+    // Approved and ready: `tinytales_order_delivered`. Left EMPTY here so enabling
     // it stays a deliberate admin action after a staging send is verified —
     // seeding a live template name would start messaging shoppers on deploy.
     value: '',
     description:
-      'Approved WhatsApp template name for the order_delivered_customer message to the SHOPPER. Set to `laanya_order_delivered` (APPROVED, UTILITY, en) to enable. That template takes exactly 2 body params (first name, product name), has NO header, and its single URL button is STATIC — the code must send no header and no button params. Empty = nothing is sent; there is NO env fallback. Must be set together with notify.orderDeliveredCustomerLocale.',
+      'Approved WhatsApp template name for the order_delivered_customer message to the SHOPPER. Set to `tinytales_order_delivered` (APPROVED, UTILITY, en) to enable. That template takes exactly 2 body params (first name, product name), has NO header, and its single URL button is STATIC — the code must send no header and no button params. Empty = nothing is sent; there is NO env fallback. Must be set together with notify.orderDeliveredCustomerLocale.',
   },
   {
     key: 'notify.orderDeliveredCustomerLocale',
     value: '',
     description:
-      'Approved language code for notify.orderDeliveredCustomerTemplate — `en` for laanya_order_delivered. Meta matches it exactly. Ignored unless notify.orderDeliveredCustomerTemplate is also set.',
+      'Approved language code for notify.orderDeliveredCustomerTemplate — `en` for tinytales_order_delivered. Meta matches it exactly. Ignored unless notify.orderDeliveredCustomerTemplate is also set.',
   },
   {
     key: 'notify.supportFollowupTemplate',
     value: '',
     description:
-      'Approved WhatsApp template name for the SUPPORT FOLLOW-UP an operator sends from /admin into a thread whose 24-hour service window has closed. Submit as `laanya_support_followup` with EXACTLY 1 body param (the shopper name) and NO header and NO buttons — the body text to submit is FOLLOW_UP_BODY in src/lib/whatsapp/followUp.ts, and that constant is also what /admin shows in the transcript, so keep the two identical. Meta reads this generic re-engagement as MARKETING, not UTILITY: it costs roughly 7x a utility send and it reaches shoppers who never ordered and therefore have no marketing_whatsapp_opt_in row to check, which is why it is operator-triggered only with no scheduler. Empty = the /admin button refuses; there is NO env fallback. Must be set together with notify.supportFollowupLocale.',
+      'Approved WhatsApp template name for the SUPPORT FOLLOW-UP an operator sends from /admin into a thread whose 24-hour service window has closed. Submit as `tinytales_support_followup` with EXACTLY 1 body param (the shopper name) and NO header and NO buttons — the body text to submit is FOLLOW_UP_BODY in src/lib/whatsapp/followUp.ts, and that constant is also what /admin shows in the transcript, so keep the two identical. Meta reads this generic re-engagement as MARKETING, not UTILITY: it costs roughly 7x a utility send and it reaches shoppers who never ordered and therefore have no marketing_whatsapp_opt_in row to check, which is why it is operator-triggered only with no scheduler. Empty = the /admin button refuses; there is NO env fallback. Must be set together with notify.supportFollowupLocale.',
   },
   {
     key: 'notify.supportFollowupLocale',
@@ -712,7 +712,7 @@ export const CONFIG_DEFAULTS: ConfigDefault[] = [
     key: 'notify.replenishmentTemplate',
     value: '',
     description:
-      'Approved WhatsApp template name for the replenishment_reminder. Set to `laanya_refill_reminder` (APPROVED, MARKETING, en) to enable. That template takes exactly 2 body params (first name, product name), REQUIRES an image header (so notify.customerHeaderImageUrl must be set or every send is 132000), and its single URL button is STATIC — send no button params. Its body also promises 10% OFF + Free Express Shipping under code REFILL10, which must exist in `coupons`. MARKETING sends additionally require users.marketing_whatsapp_opt_in. Empty = nothing is sent. Must be set together with notify.replenishmentLocale.',
+      'Approved WhatsApp template name for the replenishment_reminder. Set to `tinytales_refill_reminder` (APPROVED, MARKETING, en) to enable. That template takes exactly 2 body params (first name, product name), REQUIRES an image header (so notify.customerHeaderImageUrl must be set or every send is 132000), and its single URL button is STATIC — send no button params. Its body also promises 10% OFF + Free Express Shipping under code REFILL10, which must exist in `coupons`. MARKETING sends additionally require users.marketing_whatsapp_opt_in. Empty = nothing is sent. Must be set together with notify.replenishmentLocale.',
   },
   {
     key: 'notify.replenishmentLocale',
@@ -730,7 +730,7 @@ export const CONFIG_DEFAULTS: ConfigDefault[] = [
     key: 'notify.paymentReminderCustomerTemplate',
     value: '',
     description:
-      'WhatsApp MARKETING template for the unpaid-order nudge (payment_reminder_customer), sent once to a shopper whose order is still `pending` notify.paymentReminderDelayMinutes after it was created. Submit as `laanya_payment_reminder` with EXACTLY 2 body params (first name, product name), NO header, and one STATIC URL button to https://www.laanya.shop/cart/ — send no button params. Only enqueued when this pair is set AND the shopper has opted in (users.marketing_whatsapp_opt_in) AND their cart still holds items AND no newer order exists. Time sensitive, so an unset template drops the nudge instead of holding it. Empty = nothing is sent. Must be set together with notify.paymentReminderCustomerLocale.',
+      'WhatsApp MARKETING template for the unpaid-order nudge (payment_reminder_customer), sent once to a shopper whose order is still `pending` notify.paymentReminderDelayMinutes after it was created. Submit as `tinytales_payment_reminder` with EXACTLY 2 body params (first name, product name), NO header, and one STATIC URL button to https://www.tinytalesforus.com/cart/ — send no button params. Only enqueued when this pair is set AND the shopper has opted in (users.marketing_whatsapp_opt_in) AND their cart still holds items AND no newer order exists. Time sensitive, so an unset template drops the nudge instead of holding it. Empty = nothing is sent. Must be set together with notify.paymentReminderCustomerLocale.',
   },
   {
     key: 'notify.paymentReminderCustomerLocale',
@@ -748,7 +748,7 @@ export const CONFIG_DEFAULTS: ConfigDefault[] = [
     key: 'notify.reviewRequestCustomerTemplate',
     value: '',
     description:
-      'WhatsApp UTILITY template for the post-delivery review ask (review_request_customer). Submit as `laanya_review_request` with EXACTLY 2 body params (first name, product name), NO header, and one DYNAMIC URL button `https://www.laanya.shop/{{1}}` (example suffix `products/cream/?review=1`) — the code sends the suffix as the button param. Skipped when the shopper already reviewed the product or the order was refunded. Empty = nothing is sent. Must be set together with notify.reviewRequestCustomerLocale.',
+      'WhatsApp UTILITY template for the post-delivery review ask (review_request_customer). Submit as `tinytales_review_request` with EXACTLY 2 body params (first name, product name), NO header, and one DYNAMIC URL button `https://www.tinytalesforus.com/{{1}}` (example suffix `products/cream/?review=1`) — the code sends the suffix as the button param. Skipped when the shopper already reviewed the product or the order was refunded. Empty = nothing is sent. Must be set together with notify.reviewRequestCustomerLocale.',
   },
   {
     key: 'notify.reviewRequestCustomerLocale',

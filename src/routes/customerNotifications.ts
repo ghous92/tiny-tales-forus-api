@@ -202,13 +202,13 @@ function orderConfirmedParams(
 }
 
 /**
- * Build the `laanya_order_delivered` params — the APPROVED shape, verified
+ * Build the `tinytales_order_delivered` params — the APPROVED shape, verified
  * against Meta on 2026-08-31:
  *
- *   BODY    `Hi {{1}}, / Your Laanya order containing {{2}} has been
+ *   BODY    `Hi {{1}}, / Your Tiny Tales order containing {{2}} has been
  *            delivered! 📦 / …`      → exactly TWO params
  *   HEADER  none
- *   BUTTON  static URL `https://www.laanya.shop/` — NO variable
+ *   BUTTON  static URL `https://www.tinytalesforus.com/` — NO variable
  *
  * All three facts are load-bearing and none of them are what TASK-01 drafted.
  * Sending a header to a template approved without one is 132000; so is sending
@@ -226,12 +226,12 @@ function orderOutForDeliveryParams(firstName: string, orderId: string): Notifica
 }
 
 /**
- * Build the `laanya_payment_reminder` params — the shape to SUBMIT to Meta:
+ * Build the `tinytales_payment_reminder` params — the shape to SUBMIT to Meta:
  *
  *   BODY    `Hi {{1}}, your {{2}} is still in your cart and the order is not
  *            placed yet. …`   → exactly TWO params
  *   HEADER  none
- *   BUTTON  static URL `https://www.laanya.shop/cart/` — NO variable
+ *   BUTTON  static URL `https://www.tinytalesforus.com/cart/` — NO variable
  *
  * The button goes to the cart, not to the abandoned order: there is no
  * "resume this order" route, and the cart is server-side per user, so it still
@@ -245,11 +245,11 @@ export function paymentReminderParams(
 }
 
 /**
- * Build the `laanya_review_request` params — the shape to SUBMIT to Meta:
+ * Build the `tinytales_review_request` params — the shape to SUBMIT to Meta:
  *
  *   BODY    `Hi {{1}}, how are you finding your {{2}}? …` → exactly TWO params
  *   HEADER  none
- *   BUTTON  URL `https://www.laanya.shop/{{1}}` — ONE variable, the suffix
+ *   BUTTON  URL `https://www.tinytalesforus.com/{{1}}` — ONE variable, the suffix
  *
  * The suffix lands on the PDP with `?review=1`, which opens the rate dialog
  * (after sign-in if needed). Deep-linking to the product rather than the order
@@ -267,13 +267,13 @@ export function reviewRequestParams(
 }
 
 /**
- * Build the `laanya_refill_reminder` params — the APPROVED shape, verified
+ * Build the `tinytales_refill_reminder` params — the APPROVED shape, verified
  * against Meta on 2026-08-31:
  *
  *   BODY    `Hi {{1}}, time for a quick refill! 🧴 / Your {{2}} is likely
  *            running low. …`          → exactly TWO params
  *   HEADER  IMAGE — REQUIRED, since the template was approved with one
- *   BUTTON  static URL `https://laanya.shop/` — NO variable
+ *   BUTTON  static URL `https://tinytalesforus.com/` — NO variable
  *
  * Note there is no "days since order" variable: the approved copy says only
  * "likely running low". `notify.replenishmentDelayDays` still governs WHEN this

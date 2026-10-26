@@ -59,7 +59,7 @@ describe('buildCatalogAutoReply', () => {
     // Indian grouping, and NO strike-through when price === MRP.
     expect(body).toContain('• 200ml — ₹1,499')
     expect(body).not.toContain('~₹1,499~')
-    expect(body).toContain('https://www.laanya.shop')
+    expect(body).toContain('https://www.tinytalesforus.com')
   })
 
   // Listing a size we cannot ship invites exactly the reply this feature is

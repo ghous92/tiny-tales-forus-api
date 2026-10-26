@@ -1,7 +1,7 @@
 #!/usr/bin/env tsx
 /**
  * `npm run catalog:sync -- <path-or-url to catalog.v2.json>` — syncs
- * `catalog_items` from the laanya-shop generated catalog (SPEC-V2.md §3).
+ * `catalog_items` from the tiny-tales-forus generated catalog (SPEC-V2.md §3).
  * Upserts every variant by sku (product-level id/name/image, variant-level
  * size/price), then deactivates (never deletes) any db sku absent from the
  * file. Idempotent: running twice against the same file upserts everything

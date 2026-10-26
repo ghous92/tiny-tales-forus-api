@@ -35,8 +35,8 @@ set -euo pipefail
 BRANCH="${1:-dev}"
 PROJECT_ID="long-leaf-66968398"
 ORG_ID="org-still-sound-69451390"
-LOCAL_URL="postgres://neondb_owner:laanya_local_dev@127.0.0.1:5433/laanya"
-DUMP_FILE="$(mktemp -t laanya-"$BRANCH").pgc"
+LOCAL_URL="postgres://neondb_owner:tinytales_local_dev@127.0.0.1:5433/tinytales"
+DUMP_FILE="$(mktemp -t tinytales-"$BRANCH").pgc"
 
 # Homebrew keeps postgresql@17 out of PATH because it is versioned. Prepend it
 # rather than relying on the caller's shell, because a pg_dump older than the
@@ -47,7 +47,7 @@ export PATH="$PG_BIN:$PATH"
 echo "==> minting a fresh connection string for Neon branch '$BRANCH'"
 NEON_URL="$(npx --yes neonctl connection-string "$BRANCH" \
   --project-id "$PROJECT_ID" --org-id "$ORG_ID" \
-  --database-name laanya --role-name neondb_owner)"
+  --database-name tinytales --role-name neondb_owner)"
 
 echo "==> checking local Postgres.app is up"
 pg_isready -d "$LOCAL_URL" >/dev/null || {
@@ -67,9 +67,9 @@ echo "    $(du -h "$DUMP_FILE" | cut -f1) written"
 echo "==> recreating the local database"
 ADMIN_URL="postgres://$(whoami)@127.0.0.1:5433/postgres"
 psql "$ADMIN_URL" -v ON_ERROR_STOP=1 -q \
-  -c "select pg_terminate_backend(pid) from pg_stat_activity where datname = 'laanya' and pid <> pg_backend_pid()" \
-  -c 'drop database if exists laanya' \
-  -c 'create database laanya owner neondb_owner'
+  -c "select pg_terminate_backend(pid) from pg_stat_activity where datname = 'tinytales' and pid <> pg_backend_pid()" \
+  -c 'drop database if exists tinytales' \
+  -c 'create database tinytales owner neondb_owner'
 
 echo "==> restoring into local"
 pg_restore --dbname="$LOCAL_URL" --no-owner --no-privileges --exit-on-error "$DUMP_FILE"

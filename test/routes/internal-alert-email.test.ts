@@ -21,7 +21,7 @@ import {
 const SCHEDULER = { audience: SCHEDULER_AUDIENCE, allowedServiceAccounts: [SCHEDULER_SA.email] }
 const BREVO_API_KEY = 'brevo_test_fake'
 const EMAIL_FROM = 'hello@adix.test'
-const EMAIL_TO = 'ops@laanya.test'
+const EMAIL_TO = 'ops@tinytales.test'
 
 function oidc(token: string): { authorization: string } {
   return { authorization: `Bearer ${token}` }
@@ -93,14 +93,14 @@ describe('POST /v1/internal/alert-email — send', () => {
       method: 'POST',
       url: '/v1/internal/alert-email',
       headers: oidc(SCHEDULER_SA.token),
-      payload: { subject: '[FIRING] laanya-api error rate', html: '<p>boom</p>' },
+      payload: { subject: '[FIRING] tinytales-api error rate', html: '<p>boom</p>' },
     })
 
     expect(res.statusCode).toBe(200)
     expect(res.json()).toEqual({ sent: true })
     expect(calls).toHaveLength(1)
     expect(calls[0]!.to).toEqual([{ email: EMAIL_TO }])
-    expect(calls[0]!.subject).toBe('[FIRING] laanya-api error rate')
+    expect(calls[0]!.subject).toBe('[FIRING] tinytales-api error rate')
     expect(calls[0]!.htmlContent).toBe('<p>boom</p>')
   })
 

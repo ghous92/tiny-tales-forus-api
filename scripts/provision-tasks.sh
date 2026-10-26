@@ -15,7 +15,7 @@
 #   DRY_RUN=1 scripts/provision-tasks.sh prod    # print, change nothing
 #
 # Prerequisites: `gcloud auth login` with rights to enable APIs, create
-# queues and grant IAM bindings in `laanya-prod`. Staging and prod share this
+# queues and grant IAM bindings in `tinytalesforus-prod`. Staging and prod share this
 # one project — see provision-schedulers.sh's PROJECT comment.
 #
 # This script provisions infrastructure only. It does NOT set the `TASKS_*`
@@ -27,14 +27,14 @@
 set -euo pipefail
 
 ENVIRONMENT="${1:-}"
-PROJECT="laanya-prod"
+PROJECT="tinytalesforus-prod"
 REGION="asia-southeast1"
 # The runtime identity of the Cloud Run service itself — the one that calls
 # `tasks.create`, not the one the task later authenticates AS when it calls
-# back in (that's `laanya-scheduler@`, already provisioned by
+# back in (that's `tinytales-scheduler@`, already provisioned by
 # provision-schedulers.sh).
-RUN_SA="laanya-api-run@${PROJECT}.iam.gserviceaccount.com"
-SCHEDULER_SA="laanya-scheduler@${PROJECT}.iam.gserviceaccount.com"
+RUN_SA="tinytales-api-run@${PROJECT}.iam.gserviceaccount.com"
+SCHEDULER_SA="tinytales-scheduler@${PROJECT}.iam.gserviceaccount.com"
 
 # ONE QUEUE PER ENVIRONMENT, and this is load-bearing rather than tidiness.
 # Task names (`src/lib/tasks.ts`, `taskNameFor`) are `<kind>-<bucket epoch>` —
@@ -52,12 +52,12 @@ SCHEDULER_SA="laanya-scheduler@${PROJECT}.iam.gserviceaccount.com"
 # how one of them quietly stops working.
 case "$ENVIRONMENT" in
   staging)
-    QUEUE="laanya-sweeps-staging"
-    SERVICE="laanya-api-staging"
+    QUEUE="tinytales-sweeps-staging"
+    SERVICE="tinytales-api-staging"
     ;;
   prod)
-    QUEUE="laanya-sweeps"
-    SERVICE="laanya-api"
+    QUEUE="tinytales-sweeps"
+    SERVICE="tinytales-api"
     ;;
   *)
     echo "usage: $0 <staging|prod>" >&2

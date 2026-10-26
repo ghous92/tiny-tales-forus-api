@@ -226,7 +226,7 @@ if (!env.PROXY_SHARED_SECRET) {
   app.log.warn(
     { unset: ['PROXY_SHARED_SECRET'] },
     'proxy gate disabled: PROXY_SHARED_SECRET unset — service accepts direct traffic on the run.app URL; ' +
-      'set PROXY_SHARED_SECRET (Secret Manager) once clients have moved to https://www.laanya.shop/api'
+      'set PROXY_SHARED_SECRET (Secret Manager) once clients have moved to https://www.tinytalesforus.com/api'
   )
 }
 const brevoUnset = (

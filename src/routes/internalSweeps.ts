@@ -3,7 +3,7 @@
  * (docs/SPEC-SWEEP-AUTOMATION.md).
  *
  * Four sweeps already existed as operator buttons under `/v1/admin/*`. Nothing
- * ever pressed them: `gcloud scheduler jobs list --project=laanya-prod` returned
+ * ever pressed them: `gcloud scheduler jobs list --project=tinytalesforus-prod` returned
  * zero jobs, `.github/workflows/` has no `schedule:`, and there is no timer in
  * this process. So a paid order sat in `pending_manifest` until a human
  * remembered, tracking never advanced without an inbound scan push, and a failed

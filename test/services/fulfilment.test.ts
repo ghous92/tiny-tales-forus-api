@@ -394,7 +394,7 @@ describe('parseFulfilmentRule — a rule never switches itself on', () => {
     ['fulfilment.enabled', true],
     ['fulfilment.carrier', 'delhivery'],
     ['fulfilment.autoManifest', false],
-    ['fulfilment.pickupLocationName', 'LAANYA-AHM'],
+    ['fulfilment.pickupLocationName', 'TT-AHM'],
     ['fulfilment.manifestMaxAttempts', 5],
     ['fulfilment.reconcileStaleMinutes', 180],
     ['fulfilment.reconcileBatchSize', 100],
@@ -404,7 +404,7 @@ describe('parseFulfilmentRule — a rule never switches itself on', () => {
   it('parses a complete, valid config', () => {
     const rule = parseFulfilmentRule(valid)
     expect(rule.enabled).toBe(true)
-    expect(rule.pickupLocationName).toBe('LAANYA-AHM')
+    expect(rule.pickupLocationName).toBe('TT-AHM')
   })
 
   it('collapses to OFF when a key is missing', () => {
