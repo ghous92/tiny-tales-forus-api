@@ -470,7 +470,7 @@ export const OrderCancelResponseSchema = z.object({
  *
  * NOTE (2026-09-04): the original reason — "Adix is not GST-registered" — no
  * longer holds. `gstRegistered` has been `true` in prod since 2026-08-13 and
- * the real GSTIN (`20AKLPA4779M1ZY`) landed 2026-09-04. This schema is the
+ * the real GSTIN landed 2026-09-04. This schema is the
  * legacy `GET /orders/:orderId/invoice` payment-route payload, NOT the tax
  * document: `routes/invoices.ts` + `lib/invoiceDocument.ts` own the real
  * invoice and do emit GSTIN/HSN/tax columns at `docVersion: 2`. Leaving this

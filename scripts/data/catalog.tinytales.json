@@ -19,13 +19,16 @@
         {
           "sku": "TT-ELEDIYA-STD",
           "size": "Standard",
-          "in_stock": true
+          "in_stock": true,
+          "price_inr": 474,
+          "mrp_inr": 474
         }
       ],
-      "manufacturer_name": "Tiny Tales",
-      "manufacturer_address": "To be confirmed (seller address pending)",
+      "manufacturer_name": "Tiny Tales (a brand of Adix AI)",
+      "manufacturer_address": "",
       "country_of_origin": "India",
-      "consumer_care_contact": "To be confirmed"
+      "consumer_care_contact": "hello@adix.ai",
+      "seasonal_discount_pct": 20
     },
     {
       "id": "tt-shubh-labh",
@@ -46,13 +49,16 @@
         {
           "sku": "TT-SHUBHLABH-STD",
           "size": "Standard",
-          "in_stock": true
+          "in_stock": true,
+          "price_inr": 286,
+          "mrp_inr": 286
         }
       ],
-      "manufacturer_name": "Tiny Tales",
-      "manufacturer_address": "To be confirmed (seller address pending)",
+      "manufacturer_name": "Tiny Tales (a brand of Adix AI)",
+      "manufacturer_address": "",
       "country_of_origin": "India",
-      "consumer_care_contact": "To be confirmed"
+      "consumer_care_contact": "hello@adix.ai",
+      "seasonal_discount_pct": 20
     },
     {
       "id": "tt-old-wizard",
@@ -73,13 +79,16 @@
         {
           "sku": "TT-WIZARD-STD",
           "size": "Standard",
-          "in_stock": true
+          "in_stock": true,
+          "price_inr": 724,
+          "mrp_inr": 724
         }
       ],
-      "manufacturer_name": "Tiny Tales",
-      "manufacturer_address": "To be confirmed (seller address pending)",
+      "manufacturer_name": "Tiny Tales (a brand of Adix AI)",
+      "manufacturer_address": "",
       "country_of_origin": "India",
-      "consumer_care_contact": "To be confirmed"
+      "consumer_care_contact": "hello@adix.ai",
+      "seasonal_discount_pct": 20
     },
     {
       "id": "tt-dwarf-axeman",
@@ -100,13 +109,16 @@
         {
           "sku": "TT-DWARF-STD",
           "size": "Standard",
-          "in_stock": true
+          "in_stock": true,
+          "price_inr": 474,
+          "mrp_inr": 474
         }
       ],
-      "manufacturer_name": "Tiny Tales",
-      "manufacturer_address": "To be confirmed (seller address pending)",
+      "manufacturer_name": "Tiny Tales (a brand of Adix AI)",
+      "manufacturer_address": "",
       "country_of_origin": "India",
-      "consumer_care_contact": "To be confirmed"
+      "consumer_care_contact": "hello@adix.ai",
+      "seasonal_discount_pct": 20
     },
     {
       "id": "tt-cloaked-ranger",
@@ -127,13 +139,16 @@
         {
           "sku": "TT-RANGER-STD",
           "size": "Standard",
-          "in_stock": true
+          "in_stock": true,
+          "price_inr": 724,
+          "mrp_inr": 724
         }
       ],
-      "manufacturer_name": "Tiny Tales",
-      "manufacturer_address": "To be confirmed (seller address pending)",
+      "manufacturer_name": "Tiny Tales (a brand of Adix AI)",
+      "manufacturer_address": "",
       "country_of_origin": "India",
-      "consumer_care_contact": "To be confirmed"
+      "consumer_care_contact": "hello@adix.ai",
+      "seasonal_discount_pct": 20
     },
     {
       "id": "tt-elven-archer",
@@ -154,13 +169,16 @@
         {
           "sku": "TT-ARCHER-STD",
           "size": "Standard",
-          "in_stock": true
+          "in_stock": true,
+          "price_inr": 724,
+          "mrp_inr": 724
         }
       ],
-      "manufacturer_name": "Tiny Tales",
-      "manufacturer_address": "To be confirmed (seller address pending)",
+      "manufacturer_name": "Tiny Tales (a brand of Adix AI)",
+      "manufacturer_address": "",
       "country_of_origin": "India",
-      "consumer_care_contact": "To be confirmed"
+      "consumer_care_contact": "hello@adix.ai",
+      "seasonal_discount_pct": 20
     },
     {
       "id": "tt-the-lurker",
@@ -184,10 +202,10 @@
           "in_stock": true
         }
       ],
-      "manufacturer_name": "Tiny Tales",
-      "manufacturer_address": "To be confirmed (seller address pending)",
+      "manufacturer_name": "Tiny Tales (a brand of Adix AI)",
+      "manufacturer_address": "",
       "country_of_origin": "India",
-      "consumer_care_contact": "To be confirmed"
+      "consumer_care_contact": "hello@adix.ai"
     },
     {
       "id": "tt-three-wise-skulls",
@@ -211,10 +229,10 @@
           "in_stock": true
         }
       ],
-      "manufacturer_name": "Tiny Tales",
-      "manufacturer_address": "To be confirmed (seller address pending)",
+      "manufacturer_name": "Tiny Tales (a brand of Adix AI)",
+      "manufacturer_address": "",
       "country_of_origin": "India",
-      "consumer_care_contact": "To be confirmed"
+      "consumer_care_contact": "hello@adix.ai"
     },
     {
       "id": "tt-three-wise-skeletons",
@@ -238,10 +256,10 @@
           "in_stock": true
         }
       ],
-      "manufacturer_name": "Tiny Tales",
-      "manufacturer_address": "To be confirmed (seller address pending)",
+      "manufacturer_name": "Tiny Tales (a brand of Adix AI)",
+      "manufacturer_address": "",
       "country_of_origin": "India",
-      "consumer_care_contact": "To be confirmed"
+      "consumer_care_contact": "hello@adix.ai"
     },
     {
       "id": "tt-family-miniature",
@@ -265,10 +283,10 @@
           "in_stock": true
         }
       ],
-      "manufacturer_name": "Tiny Tales",
-      "manufacturer_address": "To be confirmed (seller address pending)",
+      "manufacturer_name": "Tiny Tales (a brand of Adix AI)",
+      "manufacturer_address": "",
       "country_of_origin": "India",
-      "consumer_care_contact": "To be confirmed"
+      "consumer_care_contact": "hello@adix.ai"
     }
   ]
 }

@@ -53,6 +53,13 @@ function entryFor(key: string) {
 
 async function main(): Promise<void> {
   const apply = process.argv.includes('--yes')
+  // A registered seller with a blank GSTIN would issue tax invoices without
+  // one. The value comes from TT_LEGAL_GSTIN, kept out of this public repo.
+  const company = entryFor('legal.company').value as { gstRegistered?: boolean; gstin?: string }
+  if (company.gstRegistered && !/^\d{2}[A-Z0-9]{13}$/.test(company.gstin ?? '')) {
+    console.error('db:sync-legal-config: set TT_LEGAL_GSTIN (a 15-character GSTIN) before syncing')
+    process.exit(1)
+  }
   const connectionString = process.env.DATABASE_URL_DIRECT ?? process.env.DATABASE_URL
   if (!connectionString) {
     console.error('db:sync-legal-config: set DATABASE_URL_DIRECT (preferred) or DATABASE_URL')

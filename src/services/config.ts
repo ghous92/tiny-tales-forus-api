@@ -63,6 +63,25 @@ export const PUBLIC_CONFIG_KEYS = [
   'returns.damageWindowHours',
 ] as const
 
+/**
+ * Fields stripped from a public key before it leaves the API. The GSTIN is
+ * printed on every tax invoice (CGST Rule 46 requires it there), so it stays in
+ * `legal.company` for the invoice generator, but the owner does not want it on
+ * the website (2026-10-28) and `/v1/config` is readable by anyone. The
+ * storefront needs only `gstRegistered` to word its Terms.
+ */
+const PUBLIC_REDACTED_FIELDS: Partial<Record<string, readonly string[]>> = {
+  'legal.company': ['gstin'],
+}
+
+function publicValue(key: string, value: unknown): unknown {
+  const fields = PUBLIC_REDACTED_FIELDS[key]
+  if (!fields || !value || typeof value !== 'object' || Array.isArray(value)) return value
+  const copy = { ...(value as Record<string, unknown>) }
+  for (const f of fields) delete copy[f]
+  return copy
+}
+
 /** A drizzle transaction handle — same query surface as {@link Db}. */
 type Tx = Parameters<Parameters<Db['transaction']>[0]>[0]
 
@@ -105,7 +124,7 @@ export async function getSnapshot(db: Db): Promise<ConfigSnapshot> {
   const values: Record<string, unknown> = {}
   let latest: Date | undefined
   for (const row of rows) {
-    values[row.key] = row.value
+    values[row.key] = publicValue(row.key, row.value)
     if (!latest || row.updatedAt > latest) latest = row.updatedAt
   }
 

@@ -39,6 +39,18 @@ beforeEach(async () => {
 })
 
 describe('getSnapshot', () => {
+  it('never serves the GSTIN publicly, but keeps the GST status', async () => {
+    await upsertConfigEntry(
+      db,
+      'legal.company',
+      { value: { legalName: 'Adix AI', gstRegistered: true, gstin: '20AAAAA0000A1Z5' } },
+      adminId
+    )
+    const snapshot = await getSnapshot(db)
+    expect(snapshot.values['legal.company']).toEqual({ legalName: 'Adix AI', gstRegistered: true })
+    expect(JSON.stringify(snapshot)).not.toContain('20AAAAA0000A1Z5')
+  })
+
   it('reports the epoch timestamp and a stable version when the table is empty', async () => {
     const snapshot = await getSnapshot(db)
     expect(snapshot.values).toEqual({})

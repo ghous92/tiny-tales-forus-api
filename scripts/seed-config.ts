@@ -57,7 +57,7 @@ export const CONFIG_DEFAULTS: ConfigDefault[] = [
   },
   {
     key: 'pdp.genuineSourceName',
-    value: 'TinyTales',
+    value: 'Tiny Tales (a brand of Adix AI)',
     description: 'Manufacturer name shown in the PDP\'s "100% Genuine" disclosure.',
   },
   {
@@ -76,24 +76,27 @@ export const CONFIG_DEFAULTS: ConfigDefault[] = [
     // ticket emails) read this instead of hardcoding the entity's details a
     // second time.
     //
-    // TinyTales is not registered under GST (owner, 2026-10-25), so `gstin`
-    // stays '' and `gstRegistered` false: invoices carry no GSTIN and no GST
-    // lines. Registering later is a config write here, then
-    // `db:sync-legal-config`, then a storefront redeploy.
+    // Adix AI is the seller of record and Tiny Tales its brand (owner,
+    // 2026-10-27); same entity, GSTIN and Razorpay KYC name as Laanya. The
+    // GSTIN is printed on tax invoices (CGST Rule 46) but never on the website:
+    // the public `/v1/config` snapshot strips it (services/config.ts). It is
+    // read from TT_LEGAL_GSTIN (secrets file) so it is not committed to this
+    // public repo; sync-legal-config refuses to write a registered seller
+    // without one.
     //
     // NO PERSONAL DATA HERE. `supportEmail` is the single published contact —
     // a role mailbox, not an individual — and it is what the invoice footer
     // and the complaint notification both use.
     key: 'legal.company',
     value: {
-      legalName: 'TinyTales',
+      legalName: 'Adix AI',
       brand: 'Tiny Tales',
       address:
         '3, Qamar Makhdumi Road, near Noori Masjid, Bhuli Road, Wasseypur, Dhanbad, Jharkhand 826001',
       jurisdictionCity: 'Dhanbad',
       jurisdictionState: 'Jharkhand',
-      gstRegistered: false,
-      gstin: '',
+      gstRegistered: true,
+      gstin: process.env.TT_LEGAL_GSTIN ?? '',
       gstStateCode: '20',
       registeredStateName: 'Jharkhand',
       supportEmail: 'hello@adix.ai',
@@ -105,28 +108,28 @@ export const CONFIG_DEFAULTS: ConfigDefault[] = [
       'Seller-of-record entity details (E-Commerce Rules disclosures): registered office, GST status, and the single published contact mailbox. No personal names/emails/phones. Mirrors tiny-tales-forus/src/data/legal.ts COMPANY.',
   },
   {
-    // TinyTales prints every piece itself, so the maker is the seller. The
+    // Adix AI (Tiny Tales) prints every piece itself, so the maker is the seller. The
     // invoice's manufacturer block falls back to this row for any product
     // that declares no maker of its own. No licence: 3D-printed collectibles
     // need no manufacturing licence.
     key: 'legal.manufacturer',
     value: {
-      legalName: 'TinyTales',
+      legalName: 'Adix AI',
       address:
         '3, Qamar Makhdumi Road, near Noori Masjid, Bhuli Road, Wasseypur, Dhanbad, Jharkhand 826001',
       licence: '',
-      gstin: '',
+      gstin: process.env.TT_LEGAL_GSTIN ?? '',
       gstStateCode: '20',
       registeredStateName: 'Jharkhand',
     },
     description:
-      'Maker attribution printed on invoices for products that declare none of their own. TinyTales makes its own pieces.',
+      'Maker attribution printed on invoices for products that declare none of their own. Adix AI makes its own pieces under the Tiny Tales brand.',
   },
   {
     /*
      * WHO THE INVOICE SAYS SOLD THE GOODS.
      *
-     * `company`  — TinyTales makes and sells its own pieces as principal.
+     * `company`  — Adix AI makes and sells its own pieces as principal.
      *              Current owner decision.
      * `manufacturer` — legacy vendor fulfilment: the goods are sold by the
      *              entity in `legal.manufacturer` under their GSTIN. This is
@@ -147,7 +150,7 @@ export const CONFIG_DEFAULTS: ConfigDefault[] = [
     key: 'invoice.sellerOfRecord',
     value: 'company',
     description:
-      'Which config row names the seller on a customer invoice: "company" (TinyTales sells its own pieces) or "manufacturer" (legacy vendor-fulfilment mode).',
+      'Which config row names the seller on a customer invoice: "company" (Adix AI sells its own pieces) or "manufacturer" (legacy vendor-fulfilment mode).',
   },
   {
     // Invoice numbering: "<prefix>/<FY>/<000123>", e.g. "TT/26-27/000142".

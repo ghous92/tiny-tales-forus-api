@@ -9,7 +9,7 @@
  * Two things have changed since this was written, neither of them yet
  * reflected in the code underneath:
  *
- * 1. Adix IS now registered — GSTIN `20AKLPA4779M1ZY`, and
+ * 1. Adix IS now registered — GSTIN on file (TT_LEGAL_GSTIN), and
  *    `legal.company.gstRegistered` has been `true` in prod since
  *    2026-08-13. The `docVersion: 2` forward-compatibility path described
  *    below is therefore the live path, not a future one.
@@ -119,7 +119,7 @@ export const InvoiceEmailStatusSchema = z.enum([
 
 /**
  * Seller of record. As of 2026-08-13 prod runs `gstRegistered: true`, and since
- * 2026-09-04 `gstin` is the real `20AKLPA4779M1ZY` (it was a placeholder in
+ * 2026-09-04 `gstin` is the real GSTIN (it was a placeholder in
  * between). The renderer keys off `gstRegistered` alone, so both flip together
  * or not at all.
  * `supportEmail` is a ROLE mailbox — no individual's name, personal email or
