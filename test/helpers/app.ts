@@ -192,6 +192,14 @@ export interface CreateTestAppOptions {
   alertEmailTaskEnqueuer?: AlertEmailTaskEnqueuer
   /** Test seam for the alert-email direct-send fallback's `fetch`. */
   alertEmailFetchImpl?: typeof fetch
+  /** Image-intake credentials for the upload proxies. */
+  imageIntake?: { baseUrl?: string; uploadToken?: string }
+  /** Test seam for the upload proxies' `fetch`. */
+  mediaUploadFetchImpl?: typeof fetch
+  /** Caricature previews; unset -> those routes answer 503. */
+  openai?: { apiKey?: string; previewDailyCap?: number }
+  /** Test seam for OpenAI's `fetch`. */
+  openaiFetchImpl?: typeof fetch
 }
 
 /** The allowlisted machine identity used by sweep tests. */
@@ -251,6 +259,10 @@ export async function createTestApp(options: CreateTestAppOptions = {}): Promise
     ...(options.whatsappInbound ? { whatsappInbound: options.whatsappInbound } : {}),
     ...(options.whatsapp ? { whatsapp: options.whatsapp } : {}),
     ...(options.claimsNow ? { claimsNow: options.claimsNow } : {}),
+    ...(options.imageIntake ? { imageIntake: options.imageIntake } : {}),
+    ...(options.mediaUploadFetchImpl ? { mediaUploadFetchImpl: options.mediaUploadFetchImpl } : {}),
+    ...(options.openai ? { openai: options.openai } : {}),
+    ...(options.openaiFetchImpl ? { openaiFetchImpl: options.openaiFetchImpl } : {}),
     ...(options.whatsappFetch ? { whatsappFetch: options.whatsappFetch } : {}),
     ...(options.adminPushSender ? { adminPushSender: options.adminPushSender } : {}),
     ...(options.scheduler

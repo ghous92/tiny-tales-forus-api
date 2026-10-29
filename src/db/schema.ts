@@ -1125,6 +1125,102 @@ export const damageClaims = pgTable(
 )
 
 /**
+ * A custom miniature or caricature made from the shopper's photographs
+ * (contracts/customRequests.ts). The photos live in image-intake under
+ * random UUID keys; `photos` keeps each key with the browser's check report
+ * so the team can see what the shopper was shown before uploading.
+ */
+export const customRequests = pgTable(
+  'custom_requests',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    /** Shopper-facing id, e.g. "TT-CR-20261028-7K3QZM". */
+    requestNumber: text('request_number').notNull().unique(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    /** 'miniature' | 'caricature'. */
+    kind: text('kind').notNull(),
+    /** { key, metrics?, checks? }[] (1 to 6). */
+    photos: jsonbSafe('photos').notNull(),
+    /** { mode: 'as_photo' | 'custom', notes? }. */
+    colours: jsonbSafe('colours').notNull(),
+    notes: text('notes'),
+    pincode: text('pincode'),
+    /** YYYY-MM-DD, if the shopper has a date. */
+    neededBy: text('needed_by'),
+    /** 'submitted' | 'in_review' | 'quoted' | 'declined' | 'closed'. */
+    status: text('status').notNull().default('submitted'),
+    adminNote: text('admin_note'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index('custom_requests_user_id_created_at_idx').on(table.userId, table.createdAt.desc()),
+    index('custom_requests_status_created_at_idx').on(table.status, table.createdAt),
+    check('custom_requests_kind_valid', sql`${table.kind} in ('miniature','caricature')`),
+    check(
+      'custom_requests_status_valid',
+      sql`${table.status} in ('submitted','in_review','quoted','declined','closed')`
+    ),
+  ]
+)
+
+const bytea = customType<{ data: Buffer; driverData: Uint8Array }>({
+  dataType() {
+    return 'bytea'
+  },
+  // node-postgres gives a Buffer; PGlite (tests) a plain Uint8Array.
+  fromDriver(value) {
+    return Buffer.isBuffer(value) ? value : Buffer.from(value)
+  },
+})
+
+/**
+ * Every caricature preview a shopper asked for (routes/caricaturePreviews.ts).
+ * Each one is a paid OpenAI call, so this is also the ledger the limits count:
+ * per photo, per shopper per India day, and across everyone per day. A row is
+ * written as `pending` before the call (so two requests at once cannot both
+ * slip under a limit) and settled after it; `failed` rows are ours, not the
+ * shopper's, and do not count.
+ */
+export const caricaturePreviews = pgTable(
+  'caricature_previews',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    /** SHA-256 of the photo bytes: "this photo" for the per-photo limit. */
+    photoHash: text('photo_hash').notNull(),
+    /** 'tpl:<gallery id>' or 'up:<sha-256 of the uploaded character picture>'. */
+    character: text('character').notNull(),
+    /** 'pending' | 'ok' | 'refused' | 'failed'. */
+    status: text('status').notNull().default('pending'),
+    model: text('model').notNull(),
+    inputTokens: integer('input_tokens'),
+    outputTokens: integer('output_tokens'),
+    /** image-intake key of the rendered preview, when it was stored. */
+    previewKey: text('preview_key'),
+    /** The rendered JPEG itself, so the shopper can come back to it. */
+    image: bytea('image'),
+    /** The photo it was made from, so the shopper can order it without adding it again. */
+    photo: bytea('photo'),
+    /** The shopper's own character picture, for 'up:' characters. */
+    characterImage: bytea('character_image'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index('caricature_previews_user_id_created_at_idx').on(table.userId, table.createdAt),
+    index('caricature_previews_created_at_idx').on(table.createdAt),
+    check(
+      'caricature_previews_status_valid',
+      sql`${table.status} in ('pending','ok','refused','failed')`
+    ),
+  ]
+)
+
+/**
  * "Notify me" requests for a piece that is unpriced or out of stock. Either a
  * signed-in shopper (userId) or an email address; drained when the piece
  * becomes purchasable (`notifiedAt` set once a message has gone out).
@@ -2323,4 +2419,6 @@ export const adminPushDevices = pgTable(
 
 export type AdminPushDeviceRow = typeof adminPushDevices.$inferSelect
 export type DamageClaimRow = typeof damageClaims.$inferSelect
+export type CustomRequestRow = typeof customRequests.$inferSelect
+export type CaricaturePreviewRow = typeof caricaturePreviews.$inferSelect
 export type RestockRequestRow = typeof restockRequests.$inferSelect

@@ -123,6 +123,23 @@ const EnvSchema = z
     OPENAI_ADS_PIXEL_ID: z.string().min(1).optional(),
     OPENAI_ADS_CONVERSIONS_API_KEY: z.string().min(1).optional(),
     /**
+     * OpenAI API key for caricature previews and the uploaded-character check
+     * (routes/caricaturePreviews.ts). A different key from the Ads one above:
+     * it spends money per call, so it lives in Secret Manager only. Unset ->
+     * both routes answer 503 `preview_disabled` and the storefront still takes
+     * the order without a preview.
+     */
+    OPENAI_API_KEY: z.string().min(1).optional(),
+    /** Image model for previews. Token-priced; about ₹2 a preview at medium quality. */
+    OPENAI_IMAGE_MODEL: z.string().min(1).default('gpt-image-2.5-flare'),
+    /** Vision model that judges an uploaded character. */
+    OPENAI_VISION_MODEL: z.string().min(1).default('gpt-5.4-mini'),
+    /**
+     * Previews across every shopper per India day; past it the preview step
+     * says it is busy. The spend brake if limits per shopper are not enough.
+     */
+    CARICATURE_PREVIEW_DAILY_CAP: z.coerce.number().int().min(0).max(5000).default(200),
+    /**
      * Shared secret proving a request reached this service through the
      * tiny-tales-forus Cloudflare edge Worker (which forwards `www.tinytalesforus.com/api/*`
      * here with the `/api` prefix stripped) rather than direct to the public

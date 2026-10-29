@@ -74,6 +74,8 @@ import { catalogAdminRoutes } from './routes/catalogAdmin.js'
 import { clientErrorsRoutes } from './routes/clientErrors.js'
 import { adminConfigRoutes, configRoutes } from './routes/config.js'
 import { adminClaimRoutes, claimRoutes } from './routes/claims.js'
+import { caricaturePreviewRoutes } from './routes/caricaturePreviews.js'
+import { adminCustomRequestRoutes, customRequestRoutes } from './routes/customRequests.js'
 import { adminComplaintRoutes, complaintRoutes } from './routes/complaints.js'
 import { restockRoutes } from './routes/restock.js'
 import { adminCouponsRoutes, couponRoutes } from './routes/coupons.js'
@@ -357,8 +359,20 @@ export interface BuildAppOptions {
     baseUrl?: string | undefined
     uploadToken?: string | undefined
   }
-  /** Test seam: inject a fetch for the media-upload proxy instead of calling the real Worker. */
+  /** Test seam: inject a fetch for the media and custom-photo upload proxies instead of calling the real Worker. */
   mediaUploadFetchImpl?: typeof fetch
+  /**
+   * Caricature previews and the uploaded-character check (from `env`).
+   * `apiKey` absent -> both routes answer 503 `preview_disabled`.
+   */
+  openai?: {
+    apiKey?: string | undefined
+    imageModel?: string | undefined
+    visionModel?: string | undefined
+    previewDailyCap?: number | undefined
+  }
+  /** Test seam: inject a fetch for OpenAI instead of calling the real API. */
+  openaiFetchImpl?: typeof fetch
 }
 
 export function buildApp(opts: BuildAppOptions): FastifyInstance {
@@ -840,6 +854,26 @@ export function buildApp(opts: BuildAppOptions): FastifyInstance {
     prefix: '/v1/claims',
   })
   app.register(adminClaimRoutes, { db: opts.db, prefix: '/v1/admin/claims' })
+  app.register(customRequestRoutes, {
+    db: opts.db,
+    imageIntakeBaseUrl: opts.imageIntake?.baseUrl ?? 'https://image-intake.adix-ai.workers.dev',
+    uploadToken: opts.imageIntake?.uploadToken,
+    ...(opts.mediaUploadFetchImpl ? { fetchImpl: opts.mediaUploadFetchImpl } : {}),
+    prefix: '/v1/custom-requests',
+  })
+  app.register(caricaturePreviewRoutes, {
+    db: opts.db,
+    apiKey: opts.openai?.apiKey,
+    imageModel: opts.openai?.imageModel ?? 'gpt-image-2.5-flare',
+    visionModel: opts.openai?.visionModel ?? 'gpt-5.4-mini',
+    dailyCap: opts.openai?.previewDailyCap ?? 200,
+    imageIntakeBaseUrl: opts.imageIntake?.baseUrl ?? 'https://image-intake.adix-ai.workers.dev',
+    uploadToken: opts.imageIntake?.uploadToken,
+    ...(opts.openaiFetchImpl ? { openaiFetchImpl: opts.openaiFetchImpl } : {}),
+    ...(opts.mediaUploadFetchImpl ? { intakeFetchImpl: opts.mediaUploadFetchImpl } : {}),
+    prefix: '/v1/custom-requests',
+  })
+  app.register(adminCustomRequestRoutes, { db: opts.db, prefix: '/v1/admin/custom-requests' })
   app.register(restockRoutes, { db: opts.db, prefix: '/v1/restock-requests' })
   app.register(fulfilmentRoutes, {
     db: opts.db,

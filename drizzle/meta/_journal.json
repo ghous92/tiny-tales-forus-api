@@ -15,6 +15,34 @@
       "when": 1792998958002,
       "tag": "0001_catalog_version_trigger",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1793170825751,
+      "tag": "0002_custom_requests",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1793205437047,
+      "tag": "0003_caricature_previews",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1793243732081,
+      "tag": "0004_caricature_preview_image",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1793255986343,
+      "tag": "0005_caricature_preview_sources",
+      "breakpoints": true
     }
   ]
 }

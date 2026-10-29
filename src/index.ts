@@ -97,6 +97,12 @@ const app = buildApp({
     baseUrl: env.IMAGE_INTAKE_BASE_URL,
     uploadToken: env.IMAGE_INTAKE_UPLOAD_TOKEN,
   },
+  openai: {
+    apiKey: env.OPENAI_API_KEY,
+    imageModel: env.OPENAI_IMAGE_MODEL,
+    visionModel: env.OPENAI_VISION_MODEL,
+    previewDailyCap: env.CARICATURE_PREVIEW_DAILY_CAP,
+  },
 })
 app.addHook('onClose', async () => {
   // Analytics first: Cloud Run kills instances aggressively and the SDK holds
@@ -135,6 +141,12 @@ if (!analytics.enabled) {
   app.log.warn(
     { unset: ['RUDDERSTACK_WRITE_KEY', 'RUDDERSTACK_DATA_PLANE_URL'] },
     'server-side analytics disabled: no `Order Completed` will be emitted — ad platforms and the warehouse will see zero purchases'
+  )
+}
+if (!env.OPENAI_API_KEY) {
+  app.log.warn(
+    { unset: ['OPENAI_API_KEY'] },
+    'caricature previews disabled: OPENAI_API_KEY unset — POST /v1/custom-requests/previews and /character-checks will answer 503 preview_disabled'
   )
 }
 if (!env.GOOGLE_MAPS_SERVER_KEY) {

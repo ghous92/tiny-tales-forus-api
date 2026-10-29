@@ -12,10 +12,11 @@
  * stable for identical data.
  */
 
-import { and, asc, eq, inArray } from 'drizzle-orm'
+import { and, asc, eq, inArray, ne } from 'drizzle-orm'
 
 import type { Db } from '../db/client.js'
 import { categories, products, productVariants } from '../db/schema.js'
+import { CUSTOM_FIGURE_CATEGORY } from '../lib/customFigures.js'
 import { effectivePriceInr } from '../lib/pricing.js'
 import type {
   CatalogCategory,
@@ -91,7 +92,14 @@ export async function getCatalogSnapshot(db: Db): Promise<CatalogSnapshot> {
     db
       .select()
       .from(products)
-      .where(and(eq(products.active, true), eq(products.hidden, false)))
+      .where(
+        and(
+          eq(products.active, true),
+          eq(products.hidden, false),
+          // Sold only from /custom/, with the shopper's photos; see lib/customFigures.ts.
+          ne(products.category, CUSTOM_FIGURE_CATEGORY)
+        )
+      )
       .orderBy(asc(products.sortOrder), asc(products.id)),
     db
       .select()

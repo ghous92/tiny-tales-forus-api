@@ -77,10 +77,9 @@ export const REPLENISHMENT_KIND = 'replenishment_reminder'
 export const PAYMENT_REMINDER_CUSTOMER_KIND = 'payment_reminder_customer'
 /**
  * "How is your {{product}}?", to the shopper a few days after delivery, deep
- * linking to the PDP's rate dialog. UTILITY — it is about one specific order
- * they received and carries no offer. If Meta re-categorises the template as
- * MARKETING on review, add this kind to `MARKETING_KINDS` so the send path
- * starts checking consent for it.
+ * linking to the PDP's rate dialog. MARKETING — submitted as UTILITY, but Meta
+ * re-categorised `tinytales_review_request` on review (2026-10-28), so it is in
+ * `MARKETING_KINDS` and only reaches a shopper with a stored opt-in.
  */
 export const REVIEW_REQUEST_CUSTOMER_KIND = 'review_request_customer'
 
@@ -96,6 +95,7 @@ export const REVIEW_REQUEST_CUSTOMER_KIND = 'review_request_customer'
 const MARKETING_KINDS: ReadonlySet<string> = new Set([
   REPLENISHMENT_KIND,
   PAYMENT_REMINDER_CUSTOMER_KIND,
+  REVIEW_REQUEST_CUSTOMER_KIND,
 ])
 
 export const WHATSAPP_CHANNEL = 'whatsapp_cloud'

@@ -190,8 +190,11 @@ function orderConfirmedParams(
     ],
     ...(header ? { header } : {}),
     // The URL button is approved with a static prefix plus one variable, so
-    // only the suffix travels — see `NotificationUrlButton`.
-    buttons: [{ index: 0, suffix: `account/orders/${encodeURIComponent(order.orderId)}` }],
+    // only the suffix travels — see `NotificationUrlButton`. The storefront is
+    // a static export, so an order's page is `detail/?orderId=`, not a path segment.
+    buttons: [
+      { index: 0, suffix: `account/orders/detail/?orderId=${encodeURIComponent(order.orderId)}` },
+    ],
   }
 }
 

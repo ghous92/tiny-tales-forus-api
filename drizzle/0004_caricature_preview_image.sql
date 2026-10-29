@@ -1,0 +1,1 @@
+ALTER TABLE "caricature_previews" ADD COLUMN "image" "bytea";
