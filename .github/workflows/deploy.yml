@@ -72,29 +72,12 @@ jobs:
       - run: npm ci
 
       - name: Run database migrations (Neon staging, direct endpoint)
-        run: npm run db:migrate
-        env:
-          DATABASE_URL_DIRECT: ${{ secrets.DATABASE_URL_DIRECT_STAGING }}
-
-
-      - name: Sync runtime secrets to Secret Manager
-        # Source of truth is GitHub secrets; Cloud Run mounts the Secret Manager
-        # copies. Needs roles/secretmanager.admin on the deploy service account.
-        env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          IMAGE_INTAKE_UPLOAD_TOKEN: ${{ secrets.IMAGE_INTAKE_UPLOAD_TOKEN }}
-          WHATSAPP_ACCESS_TOKEN: ${{ secrets.WHATSAPP_ACCESS_TOKEN }}
         run: |
-          push() {
-            name="$1"; value="$2"
-            if [ -z "$value" ]; then echo "::error::GitHub secret for $name is empty"; exit 1; fi
-            gcloud secrets describe "$name" --project tinytalesforus-prod >/dev/null 2>&1 \
-              || gcloud secrets create "$name" --project tinytalesforus-prod --replication-policy automatic
-            printf %s "$value" | gcloud secrets versions add "$name" --project tinytalesforus-prod --data-file=-
-          }
-          push tinytales-api-openai-api-key "$OPENAI_API_KEY"
-          push tinytales-api-image-intake-upload-token "$IMAGE_INTAKE_UPLOAD_TOKEN"
-          push tinytales-api-whatsapp-access-token "$WHATSAPP_ACCESS_TOKEN"
+          DATABASE_URL_DIRECT="$(gcloud secrets versions access latest --secret tinytales-api-database-url-direct-staging --project tinytalesforus-prod)"
+          echo "::add-mask::$DATABASE_URL_DIRECT"
+          export DATABASE_URL_DIRECT
+          npm run db:migrate
+
 
       - name: Deploy to Cloud Run (staging)
         run: |
@@ -157,9 +140,11 @@ jobs:
       - run: npm ci
 
       - name: Run database migrations (Neon main, direct endpoint)
-        run: npm run db:migrate
-        env:
-          DATABASE_URL_DIRECT: ${{ secrets.DATABASE_URL_DIRECT }}
+        run: |
+          DATABASE_URL_DIRECT="$(gcloud secrets versions access latest --secret tinytales-api-database-url-direct --project tinytalesforus-prod)"
+          echo "::add-mask::$DATABASE_URL_DIRECT"
+          export DATABASE_URL_DIRECT
+          npm run db:migrate
 
       # Same custom-delimiter rationale as the staging job above: `#` instead
       # of the default comma (no comma-separated values here today, but kept
@@ -167,25 +152,6 @@ jobs:
       # ALERT_EMAIL_TO are email addresses and would collide with `@` as a
       # delimiter).
       #
-
-      - name: Sync runtime secrets to Secret Manager
-        # Source of truth is GitHub secrets; Cloud Run mounts the Secret Manager
-        # copies. Needs roles/secretmanager.admin on the deploy service account.
-        env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          IMAGE_INTAKE_UPLOAD_TOKEN: ${{ secrets.IMAGE_INTAKE_UPLOAD_TOKEN }}
-          WHATSAPP_ACCESS_TOKEN: ${{ secrets.WHATSAPP_ACCESS_TOKEN }}
-        run: |
-          push() {
-            name="$1"; value="$2"
-            if [ -z "$value" ]; then echo "::error::GitHub secret for $name is empty"; exit 1; fi
-            gcloud secrets describe "$name" --project tinytalesforus-prod >/dev/null 2>&1 \
-              || gcloud secrets create "$name" --project tinytalesforus-prod --replication-policy automatic
-            printf %s "$value" | gcloud secrets versions add "$name" --project tinytalesforus-prod --data-file=-
-          }
-          push tinytales-api-openai-api-key "$OPENAI_API_KEY"
-          push tinytales-api-image-intake-upload-token "$IMAGE_INTAKE_UPLOAD_TOKEN"
-          push tinytales-api-whatsapp-access-token "$WHATSAPP_ACCESS_TOKEN"
 
       - name: Deploy to Cloud Run (prod)
         run: |
