@@ -679,7 +679,7 @@ export const CONFIG_DEFAULTS: ConfigDefault[] = [
     key: 'notify.reviewRequestCustomerTemplate',
     value: '',
     description:
-      'WhatsApp UTILITY template for the post-delivery review ask (review_request_customer). Submit as `tinytales_review_request` with EXACTLY 2 body params (first name, product name), NO header, and one DYNAMIC URL button `https://www.tinytalesforus.com/{{1}}` (example suffix `products/cream/?review=1`) — the code sends the suffix as the button param. Skipped when the shopper already reviewed the product or the order was refunded. Empty = nothing is sent. Must be set together with notify.reviewRequestCustomerLocale.',
+      'WhatsApp MARKETING template (Meta re-categorised it from UTILITY) for the post-delivery review ask (review_request_customer); sends only to shoppers with users.marketing_whatsapp_opt_in. Submit as `tinytales_review_request` with EXACTLY 2 body params (first name, product name), NO header, and one DYNAMIC URL button `https://www.tinytalesforus.com/{{1}}` (example suffix `products/cream/?review=1`) — the code sends the suffix as the button param. Skipped when the shopper already reviewed the product or the order was refunded. Empty = nothing is sent. Must be set together with notify.reviewRequestCustomerLocale.',
   },
   {
     key: 'notify.reviewRequestCustomerLocale',

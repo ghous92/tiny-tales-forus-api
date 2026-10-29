@@ -262,34 +262,31 @@ export const SERVICE_AREA_SEEDS = COURIER_SEEDS.map((courier) => ({
 }))
 
 /**
- * The one pickup node, seeded from the operator's actual manufacturing site
- * (Saman Product Company, Sarkhej–Juhapura, Ahmedabad) so dev quotes run over a
- * real lane rather than an invented one. `lat`/`lng` are the map coordinates
- * the operator supplied.
+ * The one pickup node: Tiny Tales' own dispatch point in Siliguri (owner,
+ * 2026-10-28). This seed only keeps dev from being empty and only inserts when
+ * `AHM-01` is absent; the live node list is admin-owned (Shipping > Pickup
+ * nodes), so staging/prod are changed there, not by re-running this.
  *
- * WHERE the node is changes the economics materially: one Ahmedabad node puts
- * most of Gujarat in Zone B, while adding a Surat or Rajkot node converts a
- * large chunk of that to Zone A. That is a business decision, so the node list
- * is admin-owned; this seed exists only so dev is not empty.
+ * The code `AHM-01` is kept so existing orders, SKU allowlists and tests that
+ * reference it do not break; it is only a handle, the name and address are what
+ * the courier sees.
  *
- * PINCODE IS UNCONFIRMED. 380055 is the Juhapura band the supplied coordinates
- * fall in, but the origin pincode decides the zone for EVERY quote, so it is
- * the single number here most worth the operator correcting in the admin
- * portal. Street address and contact are left blank for the same reason — a
- * blank field reads as "not yet entered"; a plausible fake one does not.
+ * `lat`/`lng` are null on purpose: an operator resolves and confirms the pin in
+ * the admin portal, and coordinates are only a ranking tie-break, never a price
+ * input.
  */
 export const NODE_SEED = {
   code: 'AHM-01',
-  name: 'Saman Product Company — Ahmedabad (pincode UNCONFIRMED)',
+  name: 'Tiny Tales — Siliguri',
   contactName: '',
-  contactPhone: '',
-  houseNumber: '',
-  roadArea: 'Sarkhej Road',
-  city: 'Ahmedabad',
-  state: 'Gujarat',
-  pincode: '380055',
-  lat: 23.000357,
-  lng: 72.5305072,
+  contactPhone: '+919018799997',
+  houseNumber: '735/2',
+  roadArea: "Umrao Singh Officers' Enclave, 5133 ASC BN Gate",
+  city: 'Siliguri',
+  state: 'West Bengal',
+  pincode: '734013',
+  lat: null,
+  lng: null,
   isActive: true,
   priority: 0,
 }
@@ -303,6 +300,18 @@ export const PINCODE_SEEDS: NewPincodeRow[] = [
   // The ORIGIN. `zoneFor` looks the pickup node's own pincode up in this index
   // and returns null — not a fallback zone — when it is missing, so every quote
   // in dev depends on this row existing.
+  // Siliguri origin. Office name and taluk are approximations for dev only;
+  // `npm run db:import-pincodes` loads the authoritative India Post row, which
+  // is what staging/prod use.
+  {
+    pincode: '734013',
+    officeName: 'Siliguri',
+    taluk: 'Siliguri',
+    district: 'Darjeeling',
+    state: 'West Bengal',
+    lat: 26.7271,
+    lng: 88.3953,
+  },
   {
     pincode: '380055',
     officeName: 'Juhapura',
