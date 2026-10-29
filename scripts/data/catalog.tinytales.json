@@ -18,7 +18,7 @@
       "variants": [
         {
           "sku": "TT-ELEDIYA-STD",
-          "size": "Standard",
+          "size": "13.5 × 7.5 × 5.5 cm",
           "in_stock": true,
           "price_inr": 474,
           "mrp_inr": 474
@@ -48,7 +48,7 @@
       "variants": [
         {
           "sku": "TT-SHUBHLABH-STD",
-          "size": "Standard",
+          "size": "9 × 6 × 1 cm",
           "in_stock": true,
           "price_inr": 286,
           "mrp_inr": 286
@@ -78,7 +78,7 @@
       "variants": [
         {
           "sku": "TT-WIZARD-STD",
-          "size": "Standard",
+          "size": "9.7 × 9.7 × 15.5 cm",
           "in_stock": true,
           "price_inr": 724,
           "mrp_inr": 724
@@ -108,7 +108,7 @@
       "variants": [
         {
           "sku": "TT-DWARF-STD",
-          "size": "Standard",
+          "size": "8.1 × 7.2 × 11.4 cm",
           "in_stock": true,
           "price_inr": 474,
           "mrp_inr": 474
@@ -138,7 +138,7 @@
       "variants": [
         {
           "sku": "TT-RANGER-STD",
-          "size": "Standard",
+          "size": "9.1 × 8.8 × 14 cm",
           "in_stock": true,
           "price_inr": 724,
           "mrp_inr": 724
@@ -168,7 +168,37 @@
       "variants": [
         {
           "sku": "TT-ARCHER-STD",
-          "size": "Standard",
+          "size": "10.3 × 8.5 × 14 cm",
+          "in_stock": true,
+          "price_inr": 724,
+          "mrp_inr": 724
+        }
+      ],
+      "manufacturer_name": "Tiny Tales (a brand of Adix AI)",
+      "manufacturer_address": "",
+      "country_of_origin": "India",
+      "consumer_care_contact": "hello@adix.ai",
+      "seasonal_discount_pct": 20
+    },
+    {
+      "id": "tt-night-ops-soldier",
+      "slug": "night-ops-soldier",
+      "name": "The Night-Ops Soldier",
+      "category": "characters",
+      "description": "A phone stand: a soldier lying prone in night-vision gear, rifle forward, with a slanted rest behind him for your phone.",
+      "images": {
+        "main": {
+          "thumb": "/img/specimens/night-ops-soldier-480.webp",
+          "grid": "/img/specimens/night-ops-soldier-480.webp",
+          "pdp": "/img/specimens/night-ops-soldier-800.webp",
+          "zoom": "/img/specimens/night-ops-soldier-1200.webp"
+        },
+        "gallery": []
+      },
+      "variants": [
+        {
+          "sku": "TT-NIGHTOPS-STD",
+          "size": "14 × 8.2 × 6.6 cm",
           "in_stock": true,
           "price_inr": 724,
           "mrp_inr": 724
@@ -225,14 +255,17 @@
       "variants": [
         {
           "sku": "TT-SKULLS-STD",
-          "size": "Standard",
-          "in_stock": true
+          "size": "11.2 × 5.8 × 7 cm",
+          "in_stock": true,
+          "price_inr": 724,
+          "mrp_inr": 724
         }
       ],
       "manufacturer_name": "Tiny Tales (a brand of Adix AI)",
       "manufacturer_address": "",
       "country_of_origin": "India",
-      "consumer_care_contact": "hello@adix.ai"
+      "consumer_care_contact": "hello@adix.ai",
+      "seasonal_discount_pct": 20
     },
     {
       "id": "tt-three-wise-skeletons",
@@ -252,14 +285,17 @@
       "variants": [
         {
           "sku": "TT-SKELETONS-STD",
-          "size": "Standard",
-          "in_stock": true
+          "size": "10 × 5.5 × 5.5 cm",
+          "in_stock": true,
+          "price_inr": 974,
+          "mrp_inr": 974
         }
       ],
       "manufacturer_name": "Tiny Tales (a brand of Adix AI)",
       "manufacturer_address": "",
       "country_of_origin": "India",
-      "consumer_care_contact": "hello@adix.ai"
+      "consumer_care_contact": "hello@adix.ai",
+      "seasonal_discount_pct": 20
     },
     {
       "id": "tt-family-miniature",
