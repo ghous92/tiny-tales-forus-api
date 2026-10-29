@@ -77,6 +77,25 @@ jobs:
           DATABASE_URL_DIRECT: ${{ secrets.DATABASE_URL_DIRECT_STAGING }}
 
 
+      - name: Sync runtime secrets to Secret Manager
+        # Source of truth is GitHub secrets; Cloud Run mounts the Secret Manager
+        # copies. Needs roles/secretmanager.admin on the deploy service account.
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          IMAGE_INTAKE_UPLOAD_TOKEN: ${{ secrets.IMAGE_INTAKE_UPLOAD_TOKEN }}
+          WHATSAPP_ACCESS_TOKEN: ${{ secrets.WHATSAPP_ACCESS_TOKEN }}
+        run: |
+          push() {
+            name="$1"; value="$2"
+            if [ -z "$value" ]; then echo "::error::GitHub secret for $name is empty"; exit 1; fi
+            gcloud secrets describe "$name" --project tinytalesforus-prod >/dev/null 2>&1 \
+              || gcloud secrets create "$name" --project tinytalesforus-prod --replication-policy automatic
+            printf %s "$value" | gcloud secrets versions add "$name" --project tinytalesforus-prod --data-file=-
+          }
+          push tinytales-api-openai-api-key "$OPENAI_API_KEY"
+          push tinytales-api-image-intake-upload-token "$IMAGE_INTAKE_UPLOAD_TOKEN"
+          push tinytales-api-whatsapp-access-token "$WHATSAPP_ACCESS_TOKEN"
+
       - name: Deploy to Cloud Run (staging)
         run: |
           gcloud run deploy tinytales-api-staging \
@@ -85,8 +104,8 @@ jobs:
             --region asia-southeast1 \
             --service-account tinytales-api-run@tinytalesforus-prod.iam.gserviceaccount.com \
             --allow-unauthenticated \
-            --set-secrets DATABASE_URL=tinytales-api-database-url-staging:latest \
-            --set-env-vars "^#^FIREBASE_PROJECT_ID=tinytalesforus-prod#APP_ENV=staging#CORS_ALLOWED_ORIGINS=http://localhost:3000,https://tinytalesforus.com,https://www.tinytalesforus.com,https://staging.tinytalesforus.com#SCHEDULER_OIDC_AUDIENCE=tinytales-api-sweeps-staging#SCHEDULER_SERVICE_ACCOUNTS=tinytales-scheduler@tinytalesforus-prod.iam.gserviceaccount.com#TASKS_QUEUE=tinytales-sweeps-staging#TASKS_PROJECT=tinytalesforus-prod#TASKS_LOCATION=asia-southeast1#TASKS_TARGET_BASE_URL=https://tinytales-api-staging-597924238682.asia-southeast1.run.app#TASKS_SERVICE_ACCOUNT=tinytales-scheduler@tinytalesforus-prod.iam.gserviceaccount.com" \
+            --set-secrets DATABASE_URL=tinytales-api-database-url-staging:latest,WHATSAPP_ACCESS_TOKEN=tinytales-api-whatsapp-access-token:latest,OPENAI_API_KEY=tinytales-api-openai-api-key:latest,IMAGE_INTAKE_UPLOAD_TOKEN=tinytales-api-image-intake-upload-token:latest \
+            --set-env-vars "^#^FIREBASE_PROJECT_ID=tinytalesforus-prod#APP_ENV=staging#CORS_ALLOWED_ORIGINS=http://localhost:3000,https://tinytalesforus.com,https://www.tinytalesforus.com,https://staging.tinytalesforus.com#SCHEDULER_OIDC_AUDIENCE=tinytales-api-sweeps-staging#SCHEDULER_SERVICE_ACCOUNTS=tinytales-scheduler@tinytalesforus-prod.iam.gserviceaccount.com#TASKS_QUEUE=tinytales-sweeps-staging#TASKS_PROJECT=tinytalesforus-prod#TASKS_LOCATION=asia-southeast1#TASKS_TARGET_BASE_URL=https://tinytales-api-staging-597924238682.asia-southeast1.run.app#TASKS_SERVICE_ACCOUNT=tinytales-scheduler@tinytalesforus-prod.iam.gserviceaccount.com#WHATSAPP_PHONE_NUMBER_ID=927479007124972#WHATSAPP_TEMPLATE_ORDER_PAID=tinytales_order_paid_ops#WHATSAPP_TEMPLATE_LOCALE=en" \
             --min-instances 0 \
             --cpu-boost \
             --port 8080
@@ -149,6 +168,25 @@ jobs:
       # delimiter).
       #
 
+      - name: Sync runtime secrets to Secret Manager
+        # Source of truth is GitHub secrets; Cloud Run mounts the Secret Manager
+        # copies. Needs roles/secretmanager.admin on the deploy service account.
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          IMAGE_INTAKE_UPLOAD_TOKEN: ${{ secrets.IMAGE_INTAKE_UPLOAD_TOKEN }}
+          WHATSAPP_ACCESS_TOKEN: ${{ secrets.WHATSAPP_ACCESS_TOKEN }}
+        run: |
+          push() {
+            name="$1"; value="$2"
+            if [ -z "$value" ]; then echo "::error::GitHub secret for $name is empty"; exit 1; fi
+            gcloud secrets describe "$name" --project tinytalesforus-prod >/dev/null 2>&1 \
+              || gcloud secrets create "$name" --project tinytalesforus-prod --replication-policy automatic
+            printf %s "$value" | gcloud secrets versions add "$name" --project tinytalesforus-prod --data-file=-
+          }
+          push tinytales-api-openai-api-key "$OPENAI_API_KEY"
+          push tinytales-api-image-intake-upload-token "$IMAGE_INTAKE_UPLOAD_TOKEN"
+          push tinytales-api-whatsapp-access-token "$WHATSAPP_ACCESS_TOKEN"
+
       - name: Deploy to Cloud Run (prod)
         run: |
           gcloud run deploy tinytales-api \
@@ -157,8 +195,8 @@ jobs:
             --region asia-southeast1 \
             --service-account tinytales-api-run@tinytalesforus-prod.iam.gserviceaccount.com \
             --allow-unauthenticated \
-            --set-secrets DATABASE_URL=tinytales-api-database-url:latest \
-            --set-env-vars "^#^FIREBASE_PROJECT_ID=tinytalesforus-prod#APP_ENV=production#CORS_ALLOWED_ORIGINS=https://tinytalesforus.com,https://www.tinytalesforus.com#SCHEDULER_OIDC_AUDIENCE=tinytales-api-sweeps#SCHEDULER_SERVICE_ACCOUNTS=tinytales-scheduler@tinytalesforus-prod.iam.gserviceaccount.com#TASKS_QUEUE=tinytales-sweeps#TASKS_PROJECT=tinytalesforus-prod#TASKS_LOCATION=asia-southeast1#TASKS_TARGET_BASE_URL=https://tinytales-api-597924238682.asia-southeast1.run.app#TASKS_SERVICE_ACCOUNT=tinytales-scheduler@tinytalesforus-prod.iam.gserviceaccount.com" \
+            --set-secrets DATABASE_URL=tinytales-api-database-url:latest,WHATSAPP_ACCESS_TOKEN=tinytales-api-whatsapp-access-token:latest,OPENAI_API_KEY=tinytales-api-openai-api-key:latest,IMAGE_INTAKE_UPLOAD_TOKEN=tinytales-api-image-intake-upload-token:latest \
+            --set-env-vars "^#^FIREBASE_PROJECT_ID=tinytalesforus-prod#APP_ENV=production#CORS_ALLOWED_ORIGINS=https://tinytalesforus.com,https://www.tinytalesforus.com#SCHEDULER_OIDC_AUDIENCE=tinytales-api-sweeps#SCHEDULER_SERVICE_ACCOUNTS=tinytales-scheduler@tinytalesforus-prod.iam.gserviceaccount.com#TASKS_QUEUE=tinytales-sweeps#TASKS_PROJECT=tinytalesforus-prod#TASKS_LOCATION=asia-southeast1#TASKS_TARGET_BASE_URL=https://tinytales-api-597924238682.asia-southeast1.run.app#TASKS_SERVICE_ACCOUNT=tinytales-scheduler@tinytalesforus-prod.iam.gserviceaccount.com#WHATSAPP_PHONE_NUMBER_ID=927479007124972#WHATSAPP_TEMPLATE_ORDER_PAID=tinytales_order_paid_ops#WHATSAPP_TEMPLATE_LOCALE=en" \
             --min-instances 1 \
             --cpu-boost \
             --port 8080
