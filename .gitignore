@@ -14,3 +14,6 @@ GoogleService-Info.plist
 
 # one-off dev scratch scripts
 scripts/dev/tmp-*
+
+# seeded test previews hold a real face photo
+/test-previews/

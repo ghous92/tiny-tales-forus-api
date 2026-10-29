@@ -7,6 +7,8 @@
  * transaction, holding a lock on the shopper's users row, so two previews sent
  * at once cannot both pass on the same count. `settlePreview` records how the
  * call went; `failed` rows (our fault, not the shopper's) stop counting.
+ * A gallery outfit the model refuses is our prompt's fault too, so it does not
+ * use up the photo, but it still counts for the day (each refusal may be billed).
  */
 import { and, count, desc, eq, gte, inArray, isNotNull, isNull, ne, sql } from 'drizzle-orm'
 
@@ -44,6 +46,10 @@ export interface PreviewQuota {
 }
 
 const COUNTED = ne(caricaturePreviews.status, 'failed')
+const PHOTO_COUNTED = and(
+  COUNTED,
+  sql`not (${caricaturePreviews.status} = 'refused' and ${caricaturePreviews.character} like 'tpl:%')`
+)
 
 export async function previewQuota(
   db: Db,
@@ -75,7 +81,7 @@ export async function previewQuota(
       and(
         eq(caricaturePreviews.userId, userId),
         eq(caricaturePreviews.photoHash, photoHash),
-        COUNTED
+        PHOTO_COUNTED
       )
     )
   quota.photoUsed = rows.length
@@ -104,7 +110,7 @@ export async function reservePreview(
         and(
           eq(caricaturePreviews.userId, input.userId),
           eq(caricaturePreviews.photoHash, input.photoHash),
-          COUNTED
+          PHOTO_COUNTED
         )
       )
     const photoUsed = photo?.n ?? 0
@@ -267,7 +273,7 @@ export async function photosLeft(db: Db, userId: string, photoHash: string): Pro
       and(
         eq(caricaturePreviews.userId, userId),
         eq(caricaturePreviews.photoHash, photoHash),
-        COUNTED
+        PHOTO_COUNTED
       )
     )
   return Math.max(0, PREVIEWS_PER_PHOTO - (row?.n ?? 0))

@@ -318,6 +318,24 @@ describe('POST /v1/custom-requests/previews', () => {
     expect(quota.json().usedToday).toBe(1)
   })
 
+  it('does not use up the photo when the model refuses a gallery outfit', async () => {
+    openaiReply = () =>
+      json({ error: { code: 'moderation_blocked', message: 'Your request was rejected' } }, 400)
+    const same = photo()
+    for (let i = 0; i < PREVIEWS_PER_PHOTO; i++) {
+      const res = await preview([same, { name: 'characterId', value: 'groom' }])
+      expect(res.statusCode).toBe(422)
+      expect(res.json().error.message).toMatch(/another character/)
+    }
+    openaiReply = renderOk
+    const ok = await preview([same, { name: 'characterId', value: 'doctor' }])
+    expect(ok.statusCode).toBe(200)
+    expect(ok.json().remaining).toEqual({
+      photo: PREVIEWS_PER_PHOTO - 1,
+      today: PREVIEWS_PER_DAY - PREVIEWS_PER_PHOTO - 1,
+    })
+  })
+
   it('answers 503 when no OpenAI key is configured', async () => {
     await ctx.app.close()
     ctx = await build({})

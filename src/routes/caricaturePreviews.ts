@@ -102,6 +102,9 @@ const LIMIT_REPLIES = {
 const REFUSED_MESSAGE =
   'We cannot make a preview of this photo. Our artist can still make it, and will send you a proof before printing.'
 
+const REFUSED_GALLERY_MESSAGE =
+  'We could not make this outfit with this photo. Try another character; this photo’s previews were not used up. Our artist can still make it, and will send you a proof before printing.'
+
 const sha256 = (bytes: Buffer) => createHash('sha256').update(bytes).digest('hex')
 
 export interface CaricaturePreviewRoutesOptions {
@@ -368,7 +371,12 @@ export const caricaturePreviewRoutes: FastifyPluginAsyncZod<
         request.log.warn({ err: err.message, refused: err.refused }, 'caricature preview failed')
         await settlePreview(db, reservation.id, { status: err.refused ? 'refused' : 'failed' })
         return err.refused
-          ? reply.code(422).send({ error: { code: 'preview_refused', message: REFUSED_MESSAGE } })
+          ? reply.code(422).send({
+              error: {
+                code: 'preview_refused',
+                message: uploaded ? REFUSED_MESSAGE : REFUSED_GALLERY_MESSAGE,
+              },
+            })
           : reply.code(502).send({
               error: {
                 code: 'preview_failed',

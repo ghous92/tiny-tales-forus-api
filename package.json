@@ -30,6 +30,8 @@
     "db:seed-dev-dimensions": "tsx --env-file-if-exists=.env scripts/seed-dev-dimensions.ts",
     "db:live-test-sku": "tsx --env-file-if-exists=.env scripts/seed-live-test-sku.ts",
     "db:custom-figures": "tsx --env-file-if-exists=.env scripts/seed-custom-figures.ts",
+    "db:test-previews": "tsx --env-file-if-exists=.env scripts/seed-test-previews.ts",
+    "db:reset-previews": "tsx --env-file-if-exists=.env scripts/reset-previews.ts",
     "catalog:sync": "tsx --env-file-if-exists=.env scripts/catalog-sync.ts",
     "catalog:seed": "tsx --env-file-if-exists=.env scripts/seed-catalog.ts",
     "catalog:doctor": "tsx --env-file-if-exists=.env scripts/catalog-doctor.ts",
