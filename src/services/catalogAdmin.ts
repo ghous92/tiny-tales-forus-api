@@ -59,6 +59,20 @@ const EMPTY_IMAGES: ProductImages = {
   gallery: [],
 }
 
+/**
+ * The stored image map, filled out to the contract shape. A row written
+ * without images (the column default is `{}`, e.g. the custom-figure seed)
+ * would otherwise fail response serialization and 500 the whole list.
+ */
+function toProductImages(value: unknown): ProductImages {
+  const images = (value ?? {}) as Partial<ProductImages>
+  return {
+    ...images,
+    main: images.main ?? EMPTY_IMAGES.main,
+    gallery: images.gallery ?? [],
+  }
+}
+
 // --- Row → API mappers -------------------------------------------------------
 
 function toAdminVariant(row: ProductVariantRow): AdminVariant {
@@ -95,7 +109,7 @@ function toAdminProduct(row: ProductRow, variants: ProductVariantRow[]): AdminPr
     description: row.description,
     bullets: row.bullets as string[],
     highlights: row.highlights as Highlight[],
-    images: row.images as ProductImages,
+    images: toProductImages(row.images),
     isBestSeller: row.isBestSeller,
     isRecommended: row.isRecommended,
     sortOrder: row.sortOrder,

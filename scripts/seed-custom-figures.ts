@@ -37,6 +37,8 @@ const GST_RATE_PCT = 18
 /** One boxed figure. Dims must be > 0 (`catalog_items_dimensions_positive`). */
 const PACK = { weightG: 400, lengthCm: 15, widthCm: 15, heightCm: 20 } as const
 
+const NO_IMAGES = { main: { thumb: '', grid: '', pdp: '', zoom: '' }, gallery: [] }
+
 const KINDS = [
   {
     id: 'custom-miniature',
@@ -79,6 +81,9 @@ export async function seedCustomFigures(db: Db, priceInr: number): Promise<void>
         sortOrder: 99_000,
         hsnCode: HSN_CODE,
         gstRatePct: GST_RATE_PCT,
+        // No photography: the shopper's own photo is the picture. Stored in the
+        // contract shape so the admin product list can serialize the row.
+        images: NO_IMAGES,
       }
       await tx
         .insert(products)
