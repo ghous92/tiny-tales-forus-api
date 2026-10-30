@@ -11,7 +11,7 @@
  *   catalog_items.sku       = variant.sku
  *   catalog_items.productId = product.id
  *   catalog_items.name      = product.name
- *   catalog_items.size      = variant.size
+ *   catalog_items.size      = catalogItemSize(variant.size, variant.color)
  *   catalog_items.priceInr  = effectivePriceInr(variant.priceInr, product.seasonalDiscountPct)
  *   catalog_items.weightG   = variant.weightG
  *   catalog_items.{length,width,height}Cm = variant.{length,width,height}Cm
@@ -35,6 +35,7 @@ import { and, eq, inArray, notInArray, sql } from 'drizzle-orm'
 
 import type { Db } from '../db/client.js'
 import { catalogItems, products, productVariants } from '../db/schema.js'
+import { catalogItemSize } from '../lib/filamentColors.js'
 import { effectivePriceInr } from '../lib/pricing.js'
 
 /** A drizzle transaction handle — same query surface as {@link Db}. */
@@ -110,13 +111,14 @@ export async function projectProduct(
     // An unpriced variant projects as 0 but always inactive (see isPurchasable),
     // so that 0 can never reach a cart total.
     const priceInr = effectivePriceInr(v.priceInr ?? 0, product.seasonalDiscountPct)
+    const size = catalogItemSize(v.size, v.color)
     await tx
       .insert(catalogItems)
       .values({
         sku: v.sku,
         productId: product.id,
         name: product.name,
-        size: v.size,
+        size,
         priceInr,
         // Shipping's weight authority, same reason as priceInr: cart may only
         // read catalog_items, so an unprojected weight means every cart quotes
@@ -135,7 +137,7 @@ export async function projectProduct(
         set: {
           productId: product.id,
           name: product.name,
-          size: v.size,
+          size,
           priceInr,
           weightG: v.weightG,
           lengthCm: v.lengthCm,

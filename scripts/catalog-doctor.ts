@@ -32,6 +32,7 @@ import pg from 'pg'
 
 import type { Db } from '../src/db/client.js'
 import { catalogItems, products, productVariants } from '../src/db/schema.js'
+import { catalogItemSize } from '../src/lib/filamentColors.js'
 import { effectivePriceInr } from '../src/lib/pricing.js'
 import { isPurchasable, projectProduct } from '../src/services/catalogProjection.js'
 
@@ -94,7 +95,7 @@ export async function diagnoseCatalog(db: Db): Promise<DoctorReport> {
     const expected: Record<string, unknown> = {
       productId: product.id,
       name: product.name,
-      size: v.size,
+      size: catalogItemSize(v.size, v.color),
       priceInr: effectivePriceInr(v.priceInr ?? 0, product.seasonalDiscountPct),
       weightG: v.weightG,
       lengthCm: v.lengthCm,
