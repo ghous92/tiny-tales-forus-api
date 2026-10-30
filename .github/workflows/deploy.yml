@@ -161,7 +161,7 @@ jobs:
             --region asia-southeast1 \
             --service-account tinytales-api-run@tinytalesforus-prod.iam.gserviceaccount.com \
             --allow-unauthenticated \
-            --set-secrets DATABASE_URL=tinytales-api-database-url:latest,WHATSAPP_ACCESS_TOKEN=tinytales-api-whatsapp-access-token:latest,OPENAI_API_KEY=tinytales-api-openai-api-key:latest,IMAGE_INTAKE_UPLOAD_TOKEN=tinytales-api-image-intake-upload-token:latest \
+            --set-secrets DATABASE_URL=tinytales-api-database-url:latest,WHATSAPP_ACCESS_TOKEN=tinytales-api-whatsapp-access-token:latest,OPENAI_API_KEY=tinytales-api-openai-api-key:latest,IMAGE_INTAKE_UPLOAD_TOKEN=tinytales-api-image-intake-upload-token:latest,RAZORPAY_KEY_ID=tinytales-api-razorpay-key-id-live:latest,RAZORPAY_KEY_SECRET=tinytales-api-razorpay-key-secret-live:latest,RAZORPAY_WEBHOOK_SECRET=tinytales-api-razorpay-webhook-secret-live:latest \
             --set-env-vars "^#^FIREBASE_PROJECT_ID=tinytalesforus-prod#APP_ENV=production#CORS_ALLOWED_ORIGINS=https://tinytalesforus.com,https://www.tinytalesforus.com#SCHEDULER_OIDC_AUDIENCE=tinytales-api-sweeps#SCHEDULER_SERVICE_ACCOUNTS=tinytales-scheduler@tinytalesforus-prod.iam.gserviceaccount.com#TASKS_QUEUE=tinytales-sweeps#TASKS_PROJECT=tinytalesforus-prod#TASKS_LOCATION=asia-southeast1#TASKS_TARGET_BASE_URL=https://tinytales-api-597924238682.asia-southeast1.run.app#TASKS_SERVICE_ACCOUNT=tinytales-scheduler@tinytalesforus-prod.iam.gserviceaccount.com#WHATSAPP_PHONE_NUMBER_ID=927479007124972#WHATSAPP_TEMPLATE_ORDER_PAID=tinytales_order_paid_ops#WHATSAPP_TEMPLATE_LOCALE=en" \
             --min-instances 1 \
             --cpu-boost \
@@ -169,8 +169,3 @@ jobs:
             # PROXY_SHARED_SECRET: append to --set-secrets above once that
             # secret exists (see comment block above this step).
             # --set-secrets ...,PROXY_SHARED_SECRET=tinytales-api-proxy-shared-secret:latest
-            # RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET, RAZORPAY_WEBHOOK_SECRET: the
-            # three are all-or-none (src/env.ts refuses to boot on a partial
-            # set). Add all three together once the key id and secret are in
-            # Secret Manager; the webhook secrets already exist as
-            # tinytales-api-razorpay-webhook-secret-{test,live}.
