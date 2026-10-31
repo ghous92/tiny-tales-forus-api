@@ -61,6 +61,9 @@ export const PUBLIC_CONFIG_KEYS = [
   // The storefront states the damage-reporting window on the returns page and
   // the claim form, so it must read the same number the API enforces.
   'returns.damageWindowHours',
+  // Share of guest checkouts sent to Razorpay Magic Checkout, 0-100. Read by
+  // tiny-tales-forus `src/lib/magicCheckout.ts`; absent means 0.
+  'payments.magicCheckoutPercent',
 ] as const
 
 /**

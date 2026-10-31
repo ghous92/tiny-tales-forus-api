@@ -43,6 +43,13 @@
       "when": 1793255986343,
       "tag": "0005_caricature_preview_sources",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1793436443509,
+      "tag": "0006_magic_checkouts",
+      "breakpoints": true
     }
   ]
 }

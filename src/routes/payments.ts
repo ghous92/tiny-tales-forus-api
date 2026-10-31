@@ -46,11 +46,27 @@ import { eq } from 'drizzle-orm'
 
 import type { Db } from '../db/client.js'
 import { payments } from '../db/schema.js'
+import { AddressCreateSchema } from '../contracts/address.js'
+import {
+  MagicOrderCreateSchema,
+  MagicOrderParamsSchema,
+  MagicOrderSchema,
+  MagicOrderStatusSchema,
+  RazorpayShippingInfoResponseSchema,
+  RazorpayShippingInfoSchema,
+} from '../contracts/magicCheckout.js'
 import type { Analytics } from '../lib/analytics.js'
 import type { OpenAiAdsConversions } from '../lib/openaiAdsConversions.js'
 import type { CouponLookup } from '../lib/coupons.js'
 import type { EmailSenderConfig } from '../lib/email.js'
-import { invoiceUnavailable, paymentsDisabled, validationFailed } from '../lib/errors.js'
+import {
+  invoiceUnavailable,
+  notFound,
+  paymentsDisabled,
+  rateLimitExceeded,
+  signatureInvalid,
+  validationFailed,
+} from '../lib/errors.js'
 import { makeCreditNoteIssuanceHook } from './creditNotes.js'
 import {
   makeInvoiceIssuanceHook,
@@ -70,8 +86,16 @@ import type { NotificationChannelRegistry } from '../lib/notify/registry.js'
 import { WHOLESALE_OFF, type WholesaleRule } from '../lib/pricing.js'
 import { requestSweep, MINUTE_MS, RECOVER_BUCKET_MS, type TaskEnqueuer } from '../lib/tasks.js'
 import { createPaymentsGateway, type PaymentsGateway } from '../lib/razorpay.js'
-import { getAddress } from '../services/addresses.js'
-import { getCart, type CartShippingResolver } from '../services/cart.js'
+import { createAddress, getAddress, listAddresses } from '../services/addresses.js'
+import { getCart, priceGuestLines, type CartShippingResolver } from '../services/cart.js'
+import {
+  convertMagicCheckout,
+  createMagicOrder,
+  getMagicOrderStatus,
+  magicShippingMethods,
+  sweepMagicCheckouts,
+  type MagicConversion,
+} from '../services/magicCheckout.js'
 import { checkAvailability, decrementForOrder } from '../services/stock.js'
 import {
   loadShippingContext,
@@ -87,7 +111,12 @@ import {
   setMarketingWhatsappOptIn,
 } from '../services/marketingConsent.js'
 import type { FollowUpTaskEnqueuer } from '../lib/replenishmentTask.js'
-import { getCouponRuleByCode, recordRedemption, revokeRedemption } from '../services/coupons.js'
+import {
+  getCouponRuleByCode,
+  getCouponUsage,
+  recordRedemption,
+  revokeRedemption,
+} from '../services/coupons.js'
 import type { CarrierAdapter } from '../lib/delhivery.js'
 import {
   cancelShipmentsForOrder,
@@ -105,6 +134,7 @@ import {
   listOrders,
   listPaymentAttempts,
   recover,
+  verifyHmacSha256,
   verifyPayment,
   DEFAULT_REFUND_CREDIT_DAYS,
   DEFAULT_UPI_INTENT_EXPIRY_MINUTES,
@@ -121,6 +151,34 @@ import {
 const errorResponses = {
   '4xx': ErrorEnvelopeSchema,
   '5xx': ErrorEnvelopeSchema,
+}
+
+/** Creating a Razorpay order costs a round trip, and this path needs no login. */
+const MAGIC_ORDERS_PER_MINUTE = 10
+const MAGIC_STATUS_PER_MINUTE = 60
+const MAGIC_RATE_WINDOW_MS = 60_000
+const MAGIC_RATE_MAX_IPS = 5_000
+
+/** Same per-IP window as `routes/shipping.ts`: an abuse brake, not a guarantee. */
+const magicBuckets = new Map<string, { count: number; windowStart: number }>()
+
+function magicRateLimited(key: string, limit: number, now: number): boolean {
+  const entry = magicBuckets.get(key)
+  if (!entry || now - entry.windowStart >= MAGIC_RATE_WINDOW_MS) {
+    if (magicBuckets.size >= MAGIC_RATE_MAX_IPS) {
+      const oldest = magicBuckets.keys().next()
+      if (!oldest.done) magicBuckets.delete(oldest.value)
+    }
+    magicBuckets.set(key, { count: 1, windowStart: now })
+    return false
+  }
+  entry.count += 1
+  return entry.count > limit
+}
+
+/** Test seam — resets the limiter between cases. Never called in production. */
+export function clearMagicRateLimits(): void {
+  magicBuckets.clear()
 }
 
 /**
@@ -639,6 +697,53 @@ function paidHooks(
       makeOpsNotificationSendHook(opts.db, notificationChannels, log, opts.tasks),
       ...manifestHooks(opts, log)
     ),
+    prepareCapture: wiring.gateway ? makeMagicConverter(opts.db, wiring.gateway, log) : undefined,
+  }
+}
+
+/** The stock winner per sku for a Magic order, now that its pincode is known. Never blocks. */
+function magicStockOrigins(db: Db, log: FastifyBaseLogger) {
+  return async (pincode: string, skus: string[]): Promise<ReadonlyMap<string, string>> => {
+    const origins = new Map<string, string>()
+    try {
+      for (const result of await checkAvailability(db, pincode, skus)) {
+        if (result.origin) origins.set(result.sku, result.origin.nodeId)
+      }
+    } catch (err) {
+      log.error({ err, pincode }, 'stock cascade failed at magic conversion; no origins stamped')
+    }
+    return origins
+  }
+}
+
+/**
+ * Save a guest's address so their next checkout skips straight to payment. Only
+ * for an account with none: this phone may be unverified, and it must not be
+ * able to add addresses to someone's existing account.
+ */
+async function saveFirstMagicAddress(
+  db: Db,
+  { userId, address }: MagicConversion,
+  log: FastifyBaseLogger
+): Promise<void> {
+  try {
+    if ((await listAddresses(db, userId)).length > 0) return
+    // Razorpay's text never went through our form, so it gets the same check here.
+    await createAddress(db, userId, AddressCreateSchema.parse({ ...address, isDefault: true }))
+  } catch (err) {
+    log.warn({ err, userId }, 'could not save magic checkout address; the order is unaffected')
+  }
+}
+
+function makeMagicConverter(db: Db, gateway: PaymentsGateway, log: FastifyBaseLogger) {
+  return async (orderId: string): Promise<void> => {
+    const conversion = await convertMagicCheckout(
+      db,
+      await gateway.client(),
+      orderId,
+      magicStockOrigins(db, log)
+    )
+    if (conversion) await saveFirstMagicAddress(db, conversion, log)
   }
 }
 
@@ -869,6 +974,15 @@ export async function runPaymentRecoverSweep(
   // One capture for the whole sweep: a single recover call can transition
   // several stuck orders, and each one earns its own invoice and email.
   const capture = newInvoiceCapture()
+  // First, so a guest capture we never heard about has a row for `recover` to find.
+  await sweepMagicCheckouts(
+    db,
+    gw,
+    (obj, msg) => log.error(obj, msg),
+    new Date(),
+    magicStockOrigins(db, log),
+    (conversion) => saveFirstMagicAddress(db, conversion, log)
+  )
   const result = await recover(
     db,
     gw,
@@ -1275,6 +1389,185 @@ export const paymentRoutes: FastifyPluginAsyncZod<PaymentRoutesOptions> = async 
       async (request) => runPaymentRecoverSweep(opts, request.log)
     )
   })
+
+  // --- Razorpay Magic Checkout (guests; NO auth) ------------------------------
+  // The first three are called by our own checkout. The last three are called by
+  // Razorpay's servers, from the URLs set in its dashboard. They read no database
+  // and reveal nothing, so they have no rate limit to throttle Razorpay with.
+  app.register(
+    async (scope) => {
+      const pub = scope.withTypeProvider<ZodTypeProvider>()
+
+      pub.post(
+        '/orders',
+        {
+          schema: {
+            body: MagicOrderCreateSchema,
+            response: { 201: MagicOrderSchema, ...errorResponses },
+          },
+        },
+        async (request, reply) => {
+          if (magicRateLimited(`order:${request.ip}`, MAGIC_ORDERS_PER_MINUTE, Date.now())) {
+            throw rateLimitExceeded()
+          }
+          const gw = await requirePaymentsEnabled(db, gateway)
+          // Every refusal below is a 503, and the storefront reads any failure as
+          // "use the address form instead", so the shopper still gets to buy.
+          const percent = asNumber(await getConfigValue(db, 'payments.magicCheckoutPercent'))
+          if (percent === undefined || percent <= 0) {
+            throw paymentsDisabled('Quick checkout is off')
+          }
+          // The order total is fixed here, before Razorpay knows the pincode, so
+          // this path only works while delivery is free for everyone.
+          const { rule } = await loadShippingContext(db, '')
+          if (rule.enabled) throw paymentsDisabled('Quick checkout needs free delivery')
+
+          const coupon = await getCouponRuleByCode(db, request.body.couponCode)
+          // A per-shopper limit cannot be checked before we know the shopper.
+          if (coupon.rule && coupon.rule.perUserLimit !== null) {
+            throw paymentsDisabled('This coupon needs the regular checkout')
+          }
+          const usage =
+            coupon.rule?.usageLimit != null && coupon.code
+              ? { usage: await getCouponUsage(db, coupon.code) }
+              : {}
+          const cart = await priceGuestLines(db, request.body.lines, await resolveWholesaleRule(db), {
+            ...coupon,
+            ...usage,
+          })
+          const order = await createMagicOrder(db, gw, cart, request.body)
+          if (opts.tasks) {
+            requestSweep(
+              opts.tasks,
+              'payments-recover',
+              request.log,
+              RECOVER_BUCKET_MS,
+              new Date(Date.now() + RECOVER_STALE_AFTER_MS + MINUTE_MS)
+            )
+          }
+          return reply.code(201).send(order)
+        }
+      )
+
+      // No session to check ownership against, so the signature is the proof:
+      // only Razorpay and whoever it just paid through can produce it.
+      pub.post(
+        '/verify',
+        {
+          schema: {
+            body: PaymentVerifySchema,
+            response: { 200: PaymentVerifyResponseSchema, ...errorResponses },
+          },
+        },
+        async (request) => {
+          const gw = await requirePaymentsEnabled(db, gateway)
+          const { razorpayOrderId, razorpayPaymentId, razorpaySignature } = request.body
+          if (!(await getMagicOrderStatus(db, razorpayOrderId))) throw notFound('Payment not found')
+          const signed = verifyHmacSha256(
+            `${razorpayOrderId}|${razorpayPaymentId}`,
+            gw.config.keySecret,
+            razorpaySignature
+          )
+          if (!signed) throw signatureInvalid()
+
+          try {
+            await makeMagicConverter(db, gw, request.log)(razorpayOrderId)
+          } catch (err) {
+            // The money is captured. The webhook or the sweep will finish this,
+            // so the shopper is told "confirming" rather than shown an error.
+            request.log.error(
+              { err, orderId: razorpayOrderId },
+              'magic checkout: conversion failed at verify (left for sweep)'
+            )
+            return { orderId: razorpayOrderId, status: 'pending' as const }
+          }
+          const [row] = await db
+            .select({ userId: payments.userId })
+            .from(payments)
+            .where(eq(payments.orderId, razorpayOrderId))
+            .limit(1)
+          if (!row) return { orderId: razorpayOrderId, status: 'pending' as const }
+
+          const capture = newInvoiceCapture()
+          const result = await verifyPayment(
+            db,
+            gw,
+            row.userId,
+            request.body,
+            paidHooks(opts, wiring, capture, request.log),
+            (obj, msg) => request.log.error(obj, msg)
+          )
+          sendCapturedInvoiceEmails(db, capture, email, emailFetchImpl, request.log, opts.tasks)
+          return result
+        }
+      )
+
+      pub.get(
+        '/orders/:orderId',
+        {
+          schema: {
+            params: MagicOrderParamsSchema,
+            response: { 200: MagicOrderStatusSchema, ...errorResponses },
+          },
+        },
+        async (request) => {
+          if (magicRateLimited(`status:${request.ip}`, MAGIC_STATUS_PER_MINUTE, Date.now())) {
+            throw rateLimitExceeded()
+          }
+          const status = await getMagicOrderStatus(db, request.params.orderId)
+          if (!status) throw notFound('Order not found')
+          return status
+        }
+      )
+
+      // Razorpay's docs show GET with a JSON body, which Fastify does not parse,
+      // and its Android docs show POST. Both are registered, and an empty request
+      // is logged so a real test run shows which one it actually sends.
+      pub.route({
+        method: ['GET', 'POST'],
+        url: '/shipping-info',
+        handler: async (request, reply) => {
+          const parsed = RazorpayShippingInfoSchema.safeParse(request.body ?? request.query)
+          if (!parsed.success) {
+            request.log.warn(
+              { method: request.method, issues: parsed.error.issues.length },
+              'magic shipping-info: request had no readable addresses'
+            )
+            return reply.code(400).send({ addresses: [] })
+          }
+          return RazorpayShippingInfoResponseSchema.parse({
+            addresses: parsed.data.addresses.map((address) => ({
+              id: address.id,
+              zipcode: address.zipcode,
+              country: address.country ?? 'IN',
+              shipping_methods: magicShippingMethods(
+                (address.country ?? 'IN').toUpperCase() === 'IN' ? address.zipcode : ''
+              ),
+            })),
+          })
+        },
+      })
+
+      // Coupons stay in our own cart and reach Razorpay already applied, so the
+      // modal runs with `show_coupons: false`. Its dashboard still requires both
+      // URLs, and these answer truthfully: nothing to offer, nothing to apply.
+      pub.route({
+        method: ['GET', 'POST'],
+        url: '/promotions',
+        handler: async () => ({ promotions: [] }),
+      })
+      pub.route({
+        method: ['GET', 'POST'],
+        url: '/promotions/apply',
+        handler: async (_request, reply) =>
+          reply.code(400).send({
+            failure_code: 'INVALID_PROMOTION',
+            failure_reason: 'Coupons are applied in your bag before checkout',
+          }),
+      })
+    },
+    { prefix: '/magic' }
+  )
 
   // --- Webhook (own encapsulated scope; RAW-body parser, NO auth) -------------
   // The scoped content-type parser lives ONLY here, so the authed JSON scope

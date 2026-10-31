@@ -125,6 +125,7 @@ class FakeRazorpay {
           status: 'created',
         }
       },
+      fetch: async (orderId) => ({ id: orderId }),
       fetchPayments: async (orderId) => {
         this.fetchPaymentsCalls.push(orderId)
         return { items: this.paymentsByOrder.get(orderId) ?? [] }

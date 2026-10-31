@@ -280,6 +280,40 @@ export async function getCart(
 }
 
 /**
+ * Price lines that have no `cart_items` row: a guest's bag, sent from the
+ * browser for Magic Checkout. Goes through the same {@link toCart} as every
+ * other cart, so a guest can never be quoted a different price. The client
+ * sends sku + qty only; a sku that is unknown or no longer on sale is refused
+ * rather than dropped, because the shopper was shown a total that included it.
+ */
+export async function priceGuestLines(
+  db: Db,
+  lines: ReadonlyArray<{ sku: string; qty: number }>,
+  rule: WholesaleRule = WHOLESALE_OFF,
+  coupon: CouponLookup = COUPON_NONE
+): Promise<Cart> {
+  const catalog = await getItemsBySkus(
+    db,
+    lines.map((line) => line.sku)
+  )
+  const bySku = new Map(catalog.map((item) => [item.sku, item]))
+  const now = new Date()
+  const rows = lines.map((line) => {
+    const item = bySku.get(line.sku)
+    if (!item?.active) throw validationFailed(`${line.sku} is not available`)
+    return {
+      userId: '',
+      sku: line.sku,
+      qty: line.qty,
+      priceInrSnapshot: item.priceInr,
+      createdAt: now,
+      updatedAt: now,
+    } satisfies CartItemRow
+  })
+  return toCart(rows, catalog, rule, coupon)
+}
+
+/**
  * PUT /v1/cart/items/:sku — idempotent SET of qty (not an increment). Unknown
  * sku -> 404; inactive sku -> 422 `validation_failed`; a brand-new line past
  * {@link MAX_LINES} -> 422 `limit_exceeded`. Refreshes `price_inr_snapshot`

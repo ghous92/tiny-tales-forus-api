@@ -2417,6 +2417,43 @@ export const adminPushDevices = pgTable(
   (table) => [index('admin_push_devices_user_idx').on(table.userId)]
 )
 
+/**
+ * A guest's Razorpay Magic Checkout order, before anyone has paid for it.
+ *
+ * Magic collects the phone and delivery address INSIDE Razorpay's modal, so at
+ * order-create we know neither. `payments` requires both (and every invoice,
+ * fulfilment and stock path relies on that), so a guest order waits here and
+ * only becomes a normal `payments` row once a capture exists and Razorpay can
+ * tell us who it was for. Rows that never get a capture are marked `expired`
+ * and never touch `payments`.
+ */
+export const magicCheckouts = pgTable(
+  'magic_checkouts',
+  {
+    /** Razorpay order id. Same key the `payments` row will carry after conversion. */
+    orderId: text('order_id').primaryKey(),
+    amountPaise: integer('amount_paise').notNull(),
+    currency: text('currency').notNull().default('INR'),
+    /** 'open' | 'converted' | 'expired'. */
+    status: text('status').notNull().default('open'),
+    /** Same shape as `payments.cart_snapshot`, minus stock nodes (no pincode yet). */
+    cartSnapshot: jsonbSafe('cart_snapshot').notNull(),
+    /** Evidence of the terms line the guest saw before the modal opened. */
+    termsAcceptedAt: timestamp('terms_accepted_at', { withTimezone: true }).notNull(),
+    analyticsAnonymousId: text('analytics_anonymous_id'),
+    utmSource: text('utm_source'),
+    utmMedium: text('utm_medium'),
+    utmCampaign: text('utm_campaign'),
+    utmContent: text('utm_content'),
+    gclid: text('gclid'),
+    oppref: text('oppref'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [index('magic_checkouts_status_created_idx').on(table.status, table.createdAt)]
+)
+
+export type MagicCheckoutRow = typeof magicCheckouts.$inferSelect
 export type AdminPushDeviceRow = typeof adminPushDevices.$inferSelect
 export type DamageClaimRow = typeof damageClaims.$inferSelect
 export type CustomRequestRow = typeof customRequests.$inferSelect

@@ -15,6 +15,37 @@
  * are ever exposed to clients — key secret + webhook secret never leave here.
  */
 
+/** One `line_items` entry on a Magic Checkout order. Amounts in paise. */
+export interface MagicLineItem {
+  sku: string
+  variant_id: string
+  price: number
+  offer_price: number
+  quantity: number
+  name: string
+  description: string
+  image_url?: string
+}
+
+/** An address as Razorpay returns it on `customer_details`. */
+export interface MagicAddress {
+  name?: string | null
+  contact?: string | null
+  line1?: string | null
+  line2?: string | null
+  city?: string | null
+  state?: string | null
+  zipcode?: string | null
+  country?: string | null
+}
+
+/** `customer_details` on a Magic Checkout order. */
+export interface MagicCustomerDetails {
+  contact?: string | null
+  email?: string | null
+  shipping_address?: MagicAddress | null
+}
+
 /** The subset of the Razorpay SDK the payments service uses (keeps the mock small + typed). */
 export interface RazorpayApi {
   orders: {
@@ -24,7 +55,16 @@ export interface RazorpayApi {
       receipt?: string
       notes?: Record<string, string>
       payment_capture?: 0 | 1
+      /** Magic Checkout only. Without `line_items_total` Razorpay opens Standard Checkout. */
+      line_items_total?: number
+      line_items?: MagicLineItem[]
     }): Promise<{ id: string; amount: number | string; currency: string; status: string }>
+    /** The order entity. On a Magic order this is where the shopper's address lives. */
+    fetch(orderId: string): Promise<{
+      id: string
+      status?: string
+      customer_details?: MagicCustomerDetails | null
+    }>
     fetchPayments(orderId: string): Promise<{
       items: Array<{ id: string; status: string; amount: number | string; currency?: string }>
     }>

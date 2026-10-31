@@ -77,6 +77,7 @@ class FakeRazorpay {
         currency: params.currency,
         status: 'created',
       }),
+      fetch: async (orderId) => ({ id: orderId }),
       fetchPayments: async (orderId) => ({ items: this.paymentsByOrder.get(orderId) ?? [] }),
     },
     payments: {

@@ -395,6 +395,12 @@ export interface PaymentHooks {
    */
   onOrderPaidCommitted?: ((paid: PaidTransition) => void) | undefined
   onOrderRefunded?: OrderRefundHook | undefined
+  /**
+   * Called before a capture looks for its `payments` row, so a Magic Checkout
+   * order can create that row first. A failure here is the caller's to log: the
+   * capture then finds no row, and the recover sweep converts it later.
+   */
+  prepareCapture?: ((orderId: string) => Promise<void>) | undefined
 }
 
 /**
@@ -440,7 +446,7 @@ export interface OrderShipping {
 export type AddressSnapshot = Record<string, unknown>
 
 /** INR (whole rupees) → paise. */
-function toPaise(inr: number): number {
+export function toPaise(inr: number): number {
   return inr * 100
 }
 
@@ -451,7 +457,7 @@ function toPaise(inr: number): number {
  * #4 — `timingSafeEqual` throws on unequal lengths, so the pre-check is
  * required, not optional).
  */
-function verifyHmacSha256(payload: string, secret: string, expectedHex: string): boolean {
+export function verifyHmacSha256(payload: string, secret: string, expectedHex: string): boolean {
   const expected = Buffer.from(expectedHex, 'utf8')
   const actual = Buffer.from(createHmac('sha256', secret).update(payload).digest('hex'), 'utf8')
   if (expected.length !== actual.length) return false
@@ -1369,6 +1375,8 @@ async function dispatchWebhook(
     const orderId = payment?.order_id
     const paymentId = payment?.id
     if (!orderId || !paymentId) return
+
+    await hooks?.prepareCapture?.(orderId)
 
     const paid = await db.transaction(async (tx: Tx) => {
       const [row] = await tx.select().from(payments).where(eq(payments.orderId, orderId)).limit(1)
