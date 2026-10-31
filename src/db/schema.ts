@@ -137,9 +137,32 @@ export const users = pgTable('users', {
   adAudienceOptIn: boolean('ad_audience_opt_in'),
   /** When {@link adAudienceOptIn} last changed. Null while it is null. */
   adAudienceOptInAt: timestamp('ad_audience_opt_in_at', { withTimezone: true }),
+  /**
+   * Set by `POST /v1/me/logout`: an ID token issued before this is refused, so
+   * a copied token dies at logout rather than at its hour-long expiry. Null
+   * until the first logout.
+   */
+  tokensValidAfter: timestamp('tokens_valid_after', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 })
+
+/**
+ * A shopper's saved products. `product_id` deliberately has no FK: a product
+ * leaving the catalog must not break or erase a list, and clients already drop
+ * ids they can't resolve.
+ */
+export const wishlistItems = pgTable(
+  'wishlist_items',
+  {
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    productId: text('product_id').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [primaryKey({ columns: [table.userId, table.productId] })]
+)
 
 /** A saved delivery address. Field names mirror mobile's AddressForm (snake_cased). */
 export const addresses = pgTable(
@@ -1139,6 +1162,8 @@ export const customRequests = pgTable(
     userId: uuid('user_id')
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
+    /** Random id the browser keeps, for the unpaid-miniature limit; null on older rows. */
+    deviceId: text('device_id'),
     /** 'miniature' | 'caricature'. */
     kind: text('kind').notNull(),
     /** { key, metrics?, checks? }[] (1 to 6). */
@@ -1158,12 +1183,30 @@ export const customRequests = pgTable(
   (table) => [
     index('custom_requests_user_id_created_at_idx').on(table.userId, table.createdAt.desc()),
     index('custom_requests_status_created_at_idx').on(table.status, table.createdAt),
+    index('custom_requests_device_id_idx').on(table.deviceId),
     check('custom_requests_kind_valid', sql`${table.kind} in ('miniature','caricature')`),
     check(
       'custom_requests_status_valid',
       sql`${table.status} in ('submitted','in_review','quoted','declined','closed')`
     ),
   ]
+)
+
+/**
+ * Who uploaded each custom photo. The keys inside `custom_requests.photos` are
+ * sent by the browser, so only this table may decide which image-intake files
+ * are deleted with an account.
+ */
+export const customUploads = pgTable(
+  'custom_uploads',
+  {
+    key: text('key').primaryKey(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [index('custom_uploads_user_id_idx').on(table.userId)]
 )
 
 const bytea = customType<{ data: Buffer; driverData: Uint8Array }>({
@@ -1208,6 +1251,8 @@ export const caricaturePreviews = pgTable(
     photo: bytea('photo'),
     /** The shopper's own character picture, for 'up:' characters. */
     characterImage: bytea('character_image'),
+    /** People and pets in the photo, as the browser counted them. */
+    characters: integer('characters').notNull().default(1),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
@@ -2417,6 +2462,43 @@ export const adminPushDevices = pgTable(
   (table) => [index('admin_push_devices_user_idx').on(table.userId)]
 )
 
+/**
+ * A guest's Razorpay Magic Checkout order, before anyone has paid for it.
+ *
+ * Magic collects the phone and delivery address INSIDE Razorpay's modal, so at
+ * order-create we know neither. `payments` requires both (and every invoice,
+ * fulfilment and stock path relies on that), so a guest order waits here and
+ * only becomes a normal `payments` row once a capture exists and Razorpay can
+ * tell us who it was for. Rows that never get a capture are marked `expired`
+ * and never touch `payments`.
+ */
+export const magicCheckouts = pgTable(
+  'magic_checkouts',
+  {
+    /** Razorpay order id. Same key the `payments` row will carry after conversion. */
+    orderId: text('order_id').primaryKey(),
+    amountPaise: integer('amount_paise').notNull(),
+    currency: text('currency').notNull().default('INR'),
+    /** 'open' | 'converted' | 'expired'. */
+    status: text('status').notNull().default('open'),
+    /** Same shape as `payments.cart_snapshot`, minus stock nodes (no pincode yet). */
+    cartSnapshot: jsonbSafe('cart_snapshot').notNull(),
+    /** Evidence of the terms line the guest saw before the modal opened. */
+    termsAcceptedAt: timestamp('terms_accepted_at', { withTimezone: true }).notNull(),
+    analyticsAnonymousId: text('analytics_anonymous_id'),
+    utmSource: text('utm_source'),
+    utmMedium: text('utm_medium'),
+    utmCampaign: text('utm_campaign'),
+    utmContent: text('utm_content'),
+    gclid: text('gclid'),
+    oppref: text('oppref'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [index('magic_checkouts_status_created_idx').on(table.status, table.createdAt)]
+)
+
+export type MagicCheckoutRow = typeof magicCheckouts.$inferSelect
 export type AdminPushDeviceRow = typeof adminPushDevices.$inferSelect
 export type DamageClaimRow = typeof damageClaims.$inferSelect
 export type CustomRequestRow = typeof customRequests.$inferSelect

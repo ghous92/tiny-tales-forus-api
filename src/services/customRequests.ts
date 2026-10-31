@@ -5,7 +5,7 @@
  */
 import { randomInt } from 'node:crypto'
 
-import { and, count, desc, eq, inArray } from 'drizzle-orm'
+import { and, count, desc, eq, gte, sql } from 'drizzle-orm'
 
 import type {
   CustomPhoto,
@@ -21,9 +21,19 @@ import { limitExceeded, notFound } from '../lib/errors.js'
 
 const CHARSET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
 const MAX_NUMBER_ATTEMPTS = 5
-/** Requests still waiting on the team; a brake on a runaway or abusive client. */
-export const MAX_OPEN_REQUESTS = 5
-const OPEN_STATUSES = ['submitted', 'in_review'] as const
+/**
+ * A brake on a runaway or abusive client. Counted by age, not status: every
+ * add to bag creates a request and nothing moves it on once it is paid or
+ * dropped from the bag, so an open-request cap would lock shoppers out for good.
+ */
+export const MAX_REQUESTS_PER_DAY = 10
+const REQUEST_WINDOW_MS = 24 * 60 * 60_000
+/**
+ * Miniature pieces one device or account can add before paying for one. Every
+ * piece stores the shopper's photos with us, so this stops the form being used
+ * for free. Paying for a miniature starts the count again.
+ */
+export const MAX_UNPAID_MINIATURES = 10
 
 function requestNumber(now: Date): string {
   let suffix = ''
@@ -54,22 +64,80 @@ function isUniqueViolation(err: unknown): boolean {
   return code === '23505' || causeCode === '23505'
 }
 
+export interface MiniatureAllowance {
+  limit: number
+  used: number
+  left: number
+}
+
+/**
+ * Pieces counted for this account or device since a miniature was last paid
+ * for by this account or anyone else who used the device. Matching on the
+ * account too means clearing browser storage does not reset the count.
+ */
+export async function miniatureAllowance(
+  db: Db,
+  userId: string,
+  deviceId?: string
+): Promise<MiniatureAllowance> {
+  const scope = deviceId
+    ? sql`(cr.user_id = ${userId} or cr.device_id = ${deviceId})`
+    : sql`cr.user_id = ${userId}`
+  const result = await db.execute(sql`
+    select coalesce(sum(jsonb_array_length(cr.photos)), 0)::int as used
+    from custom_requests cr
+    where cr.kind = 'miniature'
+      and ${scope}
+      and cr.created_at > coalesce(
+        (
+          select max(p.paid_at)
+          from payments p
+          where p.cart_snapshot::text like '%TT-CUSTOM-MINIATURE%'
+            and (
+              p.user_id = ${userId}
+              or p.user_id in (select cr.user_id from custom_requests cr where ${scope})
+            )
+        ),
+        '-infinity'::timestamptz
+      )
+  `)
+  const used = Number((result.rows[0] as { used?: unknown } | undefined)?.used ?? 0)
+  return {
+    limit: MAX_UNPAID_MINIATURES,
+    used,
+    left: Math.max(0, MAX_UNPAID_MINIATURES - used),
+  }
+}
+
 export async function createCustomRequest(
   db: Db,
   userId: string,
   input: CustomRequestCreate,
   now: Date = new Date()
 ): Promise<CustomRequest> {
-  const [open] = await db
+  const [recent] = await db
     .select({ n: count() })
     .from(customRequests)
     .where(
-      and(eq(customRequests.userId, userId), inArray(customRequests.status, [...OPEN_STATUSES]))
+      and(
+        eq(customRequests.userId, userId),
+        gte(customRequests.createdAt, new Date(now.getTime() - REQUEST_WINDOW_MS))
+      )
     )
-  if ((open?.n ?? 0) >= MAX_OPEN_REQUESTS) {
+  if ((recent?.n ?? 0) >= MAX_REQUESTS_PER_DAY) {
     throw limitExceeded(
-      `You have ${MAX_OPEN_REQUESTS} requests waiting for a reply. We will get back to you on those first.`
+      'You have added a lot of custom pieces today. Try again tomorrow, or email us your photos.'
     )
+  }
+  if (input.kind === 'miniature') {
+    const { limit, left } = await miniatureAllowance(db, userId, input.deviceId)
+    if (input.photos.length > left) {
+      throw limitExceeded(
+        left === 0
+          ? `You have reached ${limit} miniature pieces on this device without paying. Check out the pieces in your bag to make more.`
+          : `You can add ${left} more miniature ${left === 1 ? 'piece' : 'pieces'} on this device before paying. Remove some photos, or check out your bag first.`
+      )
+    }
   }
 
   for (let attempt = 0; attempt < MAX_NUMBER_ATTEMPTS; attempt++) {
@@ -79,6 +147,7 @@ export async function createCustomRequest(
         .values({
           requestNumber: requestNumber(now),
           userId,
+          deviceId: input.deviceId ?? null,
           kind: input.kind,
           photos: input.photos,
           colours: input.colours,

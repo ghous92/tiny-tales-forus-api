@@ -11,7 +11,14 @@ export interface CaricatureCharacter {
   costume: string
 }
 
+/** No costume: the figurine keeps the clothes and pose in the shopper's photo. */
+export const AS_PHOTO_ID = 'as-photo'
+
 export const CARICATURE_CHARACTERS = {
+  [AS_PHOTO_ID]: {
+    name: 'As in the photo',
+    costume: 'the clothes they wear in the photo',
+  },
   doctor: {
     name: 'Doctor',
     costume:

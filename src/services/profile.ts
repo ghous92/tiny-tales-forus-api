@@ -9,12 +9,23 @@
  * (docs/CONTRACTS.md).
  */
 
-import { eq, sql } from 'drizzle-orm'
+import { and, eq, isNotNull, sql } from 'drizzle-orm'
 
 import type { Profile, ProfileUpdate } from '../contracts/profile.js'
 import type { Db } from '../db/client.js'
-import { addresses, cartItems, users, type UserRow } from '../db/schema.js'
-import { notFound } from '../lib/errors.js'
+import {
+  addresses,
+  caricaturePreviews,
+  cartItems,
+  customRequests,
+  customUploads,
+  payments,
+  shipments,
+  users,
+  wishlistItems,
+  type UserRow,
+} from '../db/schema.js'
+import { conflict, notFound } from '../lib/errors.js'
 
 /** DB row → API resource. */
 export function toApiProfile(row: UserRow): Profile {
@@ -39,6 +50,62 @@ export async function getProfile(db: Db, userId: string): Promise<Profile> {
   const [row] = await db.select().from(users).where(eq(users.id, userId)).limit(1)
   if (!row) throw notFound('Profile not found')
   return toApiProfile(row)
+}
+
+/**
+ * Refuse every ID token issued so far. Floored to the second because a token's
+ * `iat` is in seconds: a new sign-in right after this must still pass.
+ */
+export async function revokeTokens(db: Db, userId: string): Promise<void> {
+  await db
+    .update(users)
+    .set({ tokensValidAfter: new Date(Math.floor(Date.now() / 1000) * 1000) })
+    .where(eq(users.id, userId))
+}
+
+/**
+ * Photos are what a custom piece is made from, and a request is not linked to
+ * its order, so an account with a paid custom piece not yet delivered cannot be
+ * deleted: it would destroy the photos of an order we still owe.
+ */
+export async function assertNoCustomPieceInProgress(db: Db, userId: string): Promise<void> {
+  const paid = await db
+    .select({ orderId: payments.orderId, cartSnapshot: payments.cartSnapshot })
+    .from(payments)
+    .where(and(eq(payments.userId, userId), eq(payments.status, 'paid')))
+  const custom = paid.filter((order) =>
+    (order.cartSnapshot as { items?: { sku?: string }[] }).items?.some((item) =>
+      item.sku?.startsWith('TT-CUSTOM-')
+    )
+  )
+  if (custom.length === 0) return
+
+  const delivered = await db
+    .select({ orderId: shipments.orderId })
+    .from(shipments)
+    .where(and(eq(shipments.userId, userId), eq(shipments.status, 'delivered')))
+  const deliveredIds = new Set(delivered.map((shipment) => shipment.orderId))
+  if (custom.some((order) => !deliveredIds.has(order.orderId))) {
+    throw conflict(
+      'Your custom piece is still being made, and we need your photos to finish it. You can delete your account once it is delivered, or write to us.'
+    )
+  }
+}
+
+/**
+ * Every image-intake file to delete with this account: uploads from the ledger
+ * and previews the server rendered, never keys sent by the browser.
+ */
+export async function listAccountImageKeys(db: Db, userId: string): Promise<string[]> {
+  const uploads = await db
+    .select({ key: customUploads.key })
+    .from(customUploads)
+    .where(eq(customUploads.userId, userId))
+  const previews = await db
+    .select({ key: caricaturePreviews.previewKey })
+    .from(caricaturePreviews)
+    .where(and(eq(caricaturePreviews.userId, userId), isNotNull(caricaturePreviews.previewKey)))
+  return [...new Set([...uploads, ...previews].map(({ key }) => key!))]
 }
 
 /** What the route needs back to finish deleting the account. */
@@ -72,6 +139,11 @@ export async function deleteAccount(db: Db, userId: string): Promise<AccountDele
   await db.transaction(async (tx) => {
     await tx.delete(cartItems).where(eq(cartItems.userId, userId))
     await tx.delete(addresses).where(eq(addresses.userId, userId))
+    await tx.delete(wishlistItems).where(eq(wishlistItems.userId, userId))
+    // Photos, previews and character pictures, including the bytes kept in the row.
+    await tx.delete(customRequests).where(eq(customRequests.userId, userId))
+    await tx.delete(caricaturePreviews).where(eq(caricaturePreviews.userId, userId))
+    await tx.delete(customUploads).where(eq(customUploads.userId, userId))
     await tx
       .update(users)
       .set({

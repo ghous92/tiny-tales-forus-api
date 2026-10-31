@@ -43,6 +43,41 @@
       "when": 1793255986343,
       "tag": "0005_caricature_preview_sources",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1793436443509,
+      "tag": "0006_magic_checkouts",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1793436503060,
+      "tag": "0007_caricature_preview_characters",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1793436919253,
+      "tag": "0008_logout_and_wishlist",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1793447549472,
+      "tag": "0009_custom_uploads",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1793450031741,
+      "tag": "0010_custom_request_device",
+      "breakpoints": true
     }
   ]
 }

@@ -1,0 +1,1 @@
+ALTER TABLE "caricature_previews" ADD COLUMN "characters" integer DEFAULT 1 NOT NULL;

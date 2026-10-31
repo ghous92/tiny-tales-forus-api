@@ -8,6 +8,7 @@
  *   POST  /v1/custom-requests/photos              upload one photo (multipart {file})
  *   POST  /v1/custom-requests                     submit a request
  *   GET   /v1/custom-requests                     the caller's requests, newest first
+ *   GET   /v1/custom-requests/miniature-allowance unpaid miniature pieces left on this device
  *   GET   /v1/admin/custom-requests               every request, newest first
  *   PATCH /v1/admin/custom-requests/:requestNumber move a request through review
  *
@@ -21,6 +22,7 @@
 import { z } from 'zod'
 
 import { CARICATURE_CHARACTER_IDS } from '../lib/caricatureCharacters.js'
+import { MAX_FIGURE_CHARACTERS } from '../lib/customFigures.js'
 
 export const CustomKindSchema = z.enum(['miniature', 'caricature'])
 
@@ -67,7 +69,9 @@ export const CustomPhotoSchema = z.strictObject({
   /** What the browser measured, e.g. { sharpness: 182, yawDeg: 9 }. */
   metrics: z.record(z.string().max(40), z.number()).optional(),
   checks: z.array(PhotoCheckSchema).max(20).optional(),
-  /** Caricatures only: the costume for the person in this photo. */
+  /** People and pets the browser counted in this photo: the piece's size, and its sku. */
+  characters: z.number().int().min(1).max(MAX_FIGURE_CHARACTERS).optional(),
+  /** Caricatures only: the costume for everyone in this photo. */
   character: CaricatureCharacterSchema.optional(),
   /** image-intake key of the preview the shopper last saw, if any. */
   previewKey: photoKey.optional(),
@@ -79,9 +83,13 @@ export const CustomColoursSchema = z.strictObject({
   notes: z.string().trim().max(500).optional(),
 })
 
+/** The random id the browser keeps for itself: not personal data, and not proof of anything. */
+export const DeviceIdSchema = z.string().regex(/^[A-Za-z0-9-]{16,64}$/)
+
 export const CustomRequestCreateSchema = z
   .strictObject({
     kind: CustomKindSchema,
+    deviceId: DeviceIdSchema.optional(),
     photos: z.array(CustomPhotoSchema).min(1, 'Add at least one photo').max(6, 'Up to 6 photos'),
     colours: CustomColoursSchema,
     notes: z.string().trim().max(2000).optional(),
@@ -112,6 +120,16 @@ export const CustomRequestSchema = z.object({
   status: CustomRequestStatusSchema,
   createdAt: z.string(),
   updatedAt: z.string(),
+})
+
+export const MiniatureAllowanceQuerySchema = z.object({
+  device: DeviceIdSchema.optional(),
+})
+
+export const MiniatureAllowanceSchema = z.object({
+  limit: z.number().int(),
+  used: z.number().int(),
+  left: z.number().int(),
 })
 
 export const CustomRequestListResponseSchema = z.object({
@@ -165,6 +183,8 @@ export const SavedPreviewsSchema = z.object({
       photoHash: z.string(),
       /** Whether the photo is kept, so the preview can be ordered from the list alone. */
       hasPhoto: z.boolean(),
+      /** People and pets in the photo, which sets the piece's price. */
+      characters: z.number().int(),
       createdAt: z.string(),
     })
   ),

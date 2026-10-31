@@ -43,3 +43,24 @@ export async function uploadToImageIntake(opts: {
   }
   return { key: data.key }
 }
+
+/** Delete one image. Deleting a key that is already gone still succeeds, so a retry is safe. */
+export async function deleteFromImageIntake(opts: {
+  fetchImpl: typeof fetch
+  baseUrl: string
+  uploadToken: string
+  key: string
+}): Promise<void> {
+  let upstream: Response
+  try {
+    upstream = await opts.fetchImpl(`${opts.baseUrl}/api/images/${encodeURIComponent(opts.key)}`, {
+      method: 'DELETE',
+      headers: { 'x-upload-token': opts.uploadToken },
+    })
+  } catch (err) {
+    throw new ImageIntakeError(
+      `Could not reach the image host: ${err instanceof Error ? err.message : String(err)}`
+    )
+  }
+  if (!upstream.ok) throw new ImageIntakeError(`Delete failed (HTTP ${upstream.status})`)
+}
