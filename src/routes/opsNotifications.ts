@@ -99,6 +99,14 @@ const MARKETING_KINDS: ReadonlySet<string> = new Set([
 ])
 
 export const WHATSAPP_CHANNEL = 'whatsapp_cloud'
+export const SMS_CHANNEL = 'msg91_sms'
+
+// SMS kinds, to the SHOPPER. Separate kinds rather than a second channel on the
+// WhatsApp ones, so each can be switched on alone: enabling an SMS kind whose
+// WhatsApp twin is live sends the shopper both.
+export const ORDER_CONFIRMED_SMS_KIND = 'order_confirmed_sms'
+export const ORDER_SHIPPED_SMS_KIND = 'order_shipped_sms'
+export const ORDER_DELIVERED_SMS_KIND = 'order_delivered_sms'
 
 /**
  * Config keys holding the approved template for each notification kind.
@@ -110,7 +118,7 @@ export const WHATSAPP_CHANNEL = 'whatsapp_cloud'
  * two pipeline runs to fix; as config it takes one admin edit, and the retry
  * sweep then drains the rows that already failed.
  */
-const TEMPLATE_CONFIG_KEYS: Record<string, { name: string; locale: string }> = {
+const TEMPLATE_CONFIG_KEYS: Record<string, { name: string; locale?: string }> = {
   [ORDER_PAID_KIND]: { name: 'notify.orderPaidTemplate', locale: 'notify.orderPaidLocale' },
   [ORDER_CANCELLED_KIND]: {
     name: 'notify.orderCancelledTemplate',
@@ -144,6 +152,10 @@ const TEMPLATE_CONFIG_KEYS: Record<string, { name: string; locale: string }> = {
     name: 'notify.reviewRequestCustomerTemplate',
     locale: 'notify.reviewRequestCustomerLocale',
   },
+  // No locale: an SMS template is identified by its MSG91 id alone.
+  [ORDER_CONFIRMED_SMS_KIND]: { name: 'notify.orderConfirmedSmsTemplate' },
+  [ORDER_SHIPPED_SMS_KIND]: { name: 'notify.orderShippedSmsTemplate' },
+  [ORDER_DELIVERED_SMS_KIND]: { name: 'notify.orderDeliveredSmsTemplate' },
 }
 
 /**
@@ -177,6 +189,9 @@ const TEMPLATE_REQUIRED_KINDS: ReadonlySet<string> = new Set([
   REPLENISHMENT_KIND,
   PAYMENT_REMINDER_CUSTOMER_KIND,
   REVIEW_REQUEST_CUSTOMER_KIND,
+  ORDER_CONFIRMED_SMS_KIND,
+  ORDER_SHIPPED_SMS_KIND,
+  ORDER_DELIVERED_SMS_KIND,
 ])
 
 /**
@@ -207,11 +222,21 @@ async function resolveTemplate(db: Db, kind: string): Promise<TemplateResolution
   if (keys === undefined) return unset
   const [name, locale] = await Promise.all([
     getConfigValue<unknown>(db, keys.name),
-    getConfigValue<unknown>(db, keys.locale),
+    keys.locale === undefined ? '' : getConfigValue<unknown>(db, keys.locale),
   ])
   if (typeof name !== 'string' || name.trim() === '') return unset
-  if (typeof locale !== 'string' || locale.trim() === '') return unset
-  return { kind: 'override', template: { name: name.trim(), locale: locale.trim() } }
+  if (keys.locale !== undefined && (typeof locale !== 'string' || locale.trim() === '')) {
+    return unset
+  }
+  return {
+    kind: 'override',
+    template: { name: name.trim(), locale: typeof locale === 'string' ? locale.trim() : '' },
+  }
+}
+
+/** Whether a kind has its template configured, for kinds enqueued only once it is. */
+export async function isTemplateConfigured(db: Db, kind: string): Promise<boolean> {
+  return (await resolveTemplate(db, kind)).kind === 'override'
 }
 
 /**

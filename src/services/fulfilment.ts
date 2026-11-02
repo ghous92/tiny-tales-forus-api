@@ -1216,6 +1216,20 @@ export function trackingUrlFor(
   return template.replace('{awb}', encodeURIComponent(awb))
 }
 
+/** The shipment a milestone scan was about. Null for an AWB not on this order. */
+export async function findShipmentForOrderByAwb(
+  db: Db,
+  orderId: string,
+  awb: string
+): Promise<ShipmentRow | null> {
+  const [row] = await db
+    .select()
+    .from(shipments)
+    .where(and(eq(shipments.orderId, orderId), eq(shipments.awb, awb)))
+    .limit(1)
+  return row ?? null
+}
+
 // ── Manual fulfilment (docs/SPEC-MANUAL-FULFILMENT.md §4B) ─────────────────
 
 /** Postgres `unique_violation` — same detection `plugins/auth.ts` uses for the `users.phone` race. */

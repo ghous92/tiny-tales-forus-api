@@ -252,6 +252,8 @@ const EnvSchema = z
     WHATSAPP_ACCESS_TOKEN: z.string().min(1).optional(),
     WHATSAPP_TEMPLATE_ORDER_PAID: z.string().min(1).optional(),
     WHATSAPP_TEMPLATE_LOCALE: z.string().min(1).optional(),
+    /** MSG91 authkey for customer SMS. Absent ⇒ SMS rows resolve `skipped_unconfigured`. */
+    MSG91_AUTH_KEY: z.string().min(1).optional(),
     /**
      * INBOUND WhatsApp (TASK-04 phase 1) — a different pair from the four above,
      * with the OPPOSITE failure posture.

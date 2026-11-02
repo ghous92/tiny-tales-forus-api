@@ -61,7 +61,7 @@ import {
   type ManifestSourceResolver,
 } from '../services/fulfilment.js'
 import type { ShipmentRow } from '../db/schema.js'
-import { reactToShipmentMilestone } from './customerNotifications.js'
+import { notifyManualDispatch, reactToShipmentMilestone } from './customerNotifications.js'
 
 const errorResponses = {
   '4xx': ErrorEnvelopeSchema,
@@ -591,6 +591,14 @@ export const fulfilmentAdminRoutes: FastifyPluginAsyncZod<FulfilmentAdminRoutesO
         actorId: request.user.id,
       })
       if (result === null) throw notFound('Shipment not found')
+      // Never awaited into the response: the dispatch is already committed.
+      void notifyManualDispatch(db, {
+        shipment: result.shipment,
+        log: request.log,
+        channels,
+      }).catch((err: unknown) => {
+        request.log.error({ err, shipmentId: request.params.id }, 'dispatch notification failed')
+      })
       return { ok: true, shipment: toDto(result.shipment) }
     }
   )
