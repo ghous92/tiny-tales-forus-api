@@ -65,6 +65,7 @@ import {
   type CarrierTracker,
 } from './lib/shreeMaruti.js'
 import { createFcmPushSender, type AdminPushSender } from './lib/notify/adminPush.js'
+import { createMsg91SmsChannel } from './lib/notify/msg91Sms.js'
 import { createWhatsAppCloudChannel } from './lib/notify/whatsappCloud.js'
 import { wishlistRoutes } from './routes/wishlist.js'
 import { whatsappAdminRoutes, whatsappRoutes } from './routes/whatsapp.js'
@@ -218,6 +219,8 @@ export interface BuildAppOptions {
     templateName?: string | undefined
     templateLocale?: string | undefined
   }
+  /** MSG91 authkey for customer SMS; absent means the SMS channel is unconfigured. */
+  msg91AuthKey?: string | undefined
   /**
    * INBOUND WhatsApp credentials (TASK-04 phase 1). Separate from `whatsapp`
    * above because the posture is opposite: those degrade to "nothing is sent",
@@ -569,14 +572,20 @@ export function buildApp(opts: BuildAppOptions): FastifyInstance {
     opts.notificationChannels ??
     (() => {
       const { phoneNumberId, accessToken, templateName, templateLocale } = opts.whatsapp ?? {}
-      if (!phoneNumberId || !accessToken || !templateName || !templateLocale) return {}
       return {
-        whatsapp_cloud: createWhatsAppCloudChannel({
-          phoneNumberId,
-          accessToken,
-          templateName,
-          templateLocale,
-        }),
+        ...(phoneNumberId && accessToken && templateName && templateLocale
+          ? {
+              whatsapp_cloud: createWhatsAppCloudChannel({
+                phoneNumberId,
+                accessToken,
+                templateName,
+                templateLocale,
+              }),
+            }
+          : {}),
+        ...(opts.msg91AuthKey
+          ? { msg91_sms: createMsg91SmsChannel({ authKey: opts.msg91AuthKey }) }
+          : {}),
       }
     })()
 

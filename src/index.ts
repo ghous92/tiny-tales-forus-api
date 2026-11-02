@@ -68,6 +68,7 @@ const app = buildApp({
     templateName: env.WHATSAPP_TEMPLATE_ORDER_PAID,
     templateLocale: env.WHATSAPP_TEMPLATE_LOCALE,
   },
+  msg91AuthKey: env.MSG91_AUTH_KEY,
   whatsappInbound: {
     appSecret: env.WHATSAPP_APP_SECRET,
     verifyToken: env.WHATSAPP_VERIFY_TOKEN,

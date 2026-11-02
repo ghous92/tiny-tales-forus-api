@@ -627,6 +627,26 @@ export const CONFIG_DEFAULTS: ConfigDefault[] = [
     description:
       'Approved language code for notify.orderDeliveredCustomerTemplate — `en` for tinytales_order_delivered. Meta matches it exactly. Ignored unless notify.orderDeliveredCustomerTemplate is also set.',
   },
+  // Left EMPTY so enabling SMS stays a deliberate admin action. Setting a kind
+  // whose WhatsApp twin is live sends the shopper both messages.
+  {
+    key: 'notify.orderConfirmedSmsTemplate',
+    value: '',
+    description:
+      'MSG91 template id (not the DLT id) for the order confirmed SMS, linked to DLT template 1177179316465463739. Variables: var1 order id, var2 amount. Empty = no SMS is enqueued.',
+  },
+  {
+    key: 'notify.orderShippedSmsTemplate',
+    value: '',
+    description:
+      'MSG91 template id (not the DLT id) for the order shipped SMS, linked to DLT template 1177179316479424379. Variables: var1 order id, var2 courier, var3 AWB, var4 tracking link. Empty = no SMS is enqueued.',
+  },
+  {
+    key: 'notify.orderDeliveredSmsTemplate',
+    value: '',
+    description:
+      'MSG91 template id (not the DLT id) for the order delivered SMS, linked to DLT template 1177179316486011816. Variables: var1 order id. Empty = no SMS is enqueued.',
+  },
   {
     key: 'notify.supportFollowupTemplate',
     value: '',

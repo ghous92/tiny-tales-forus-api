@@ -34,7 +34,7 @@ import type { FastifyBaseLogger } from 'fastify'
 import { eq } from 'drizzle-orm'
 
 import type { Db } from '../db/client.js'
-import { catalogItems, payments } from '../db/schema.js'
+import { catalogItems, payments, type ShipmentRow } from '../db/schema.js'
 import type { NotificationChannelRegistry } from '../lib/notify/registry.js'
 import type { NotificationMessage } from '../lib/notify/types.js'
 import type { TaskEnqueuer } from '../lib/tasks.js'
@@ -43,7 +43,9 @@ import {
   type FollowUpTaskEnqueuer,
   type ReplenishmentTaskEnqueuer,
 } from '../lib/replenishmentTask.js'
+import { SHREE_MARUTI_COURIER_CODE } from '../lib/shreeMaruti.js'
 import { getConfigValue } from '../services/config.js'
+import { findShipmentForOrderByAwb, trackingUrlFor } from '../services/fulfilment.js'
 import { enqueueOpsNotification } from '../services/opsNotifications.js'
 import {
   orderInvoiceSourceFromRow,
@@ -51,11 +53,16 @@ import {
   type OrderPaidHook,
 } from '../services/payments.js'
 import {
+  isTemplateConfigured,
   ORDER_CONFIRMED_CUSTOMER_KIND,
+  ORDER_CONFIRMED_SMS_KIND,
   ORDER_DELIVERED_CUSTOMER_KIND,
+  ORDER_DELIVERED_SMS_KIND,
   ORDER_OUT_FOR_DELIVERY_CUSTOMER_KIND,
+  ORDER_SHIPPED_SMS_KIND,
   REPLENISHMENT_KIND,
   sendPendingOpsNotifications,
+  SMS_CHANNEL,
   WHATSAPP_CHANNEL,
 } from './opsNotifications.js'
 
@@ -296,6 +303,99 @@ export function replenishmentParams(input: {
   }
 }
 
+/** The most a DLT `{#alp#}` variable carries; longer values get the SMS blocked. */
+const SMS_VAR_MAX = 30
+
+/** Single-spaced ASCII, cut without an ellipsis: `…` would turn the SMS into Unicode. */
+function smsVar(value: string, max = SMS_VAR_MAX): string {
+  return value
+    .replace(/[^\x20-\x7e]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, max)
+    .trim()
+}
+
+const COURIER_LABELS: Record<string, string> = {
+  delhivery: 'Delhivery',
+  [SHREE_MARUTI_COURIER_CODE]: 'Shree Maruti',
+}
+
+/**
+ * Enqueue one SMS, only once its template is configured.
+ *
+ * The same rule as out-for-delivery: a row written while unconfigured would sit
+ * as `skipped_unconfigured` and be drained the moment the template is set, which
+ * would tell old customers their order was just confirmed.
+ */
+async function enqueueSms(
+  db: Db,
+  kind: string,
+  orderId: string,
+  target: string,
+  params: string[]
+): Promise<void> {
+  if (!(await isTemplateConfigured(db, kind))) return
+  await enqueueOpsNotification(db, {
+    kind,
+    orderId,
+    channel: SMS_CHANNEL,
+    target,
+    message: { params },
+  })
+}
+
+/**
+ * The approved `order_shipped` DLT text needs all of order id, courier, AWB and
+ * tracking link, so a shipment missing either of the last two sends nothing.
+ */
+async function enqueueOrderShippedSms(
+  db: Db,
+  order: OrderInvoiceSource,
+  shipment: Pick<ShipmentRow, 'awb' | 'courierCode' | 'manualCourierName' | 'manualTrackingUrl'>,
+  log: FastifyBaseLogger
+): Promise<void> {
+  try {
+    const target = customerTargetFor(order)
+    if (target === null) return
+    const template = await getConfigValue<unknown>(db, 'fulfilment.trackingUrlTemplate')
+    const trackingUrl = trackingUrlFor(
+      typeof template === 'string' ? template : '',
+      shipment.awb,
+      shipment.manualTrackingUrl
+    )
+    if (shipment.awb === null || trackingUrl === '') {
+      log.warn({ orderId: order.orderId }, 'shipment has no AWB or tracking link; SMS skipped')
+      return
+    }
+    const courier =
+      shipment.manualCourierName ?? COURIER_LABELS[shipment.courierCode] ?? shipment.courierCode
+    await enqueueSms(db, ORDER_SHIPPED_SMS_KIND, order.orderId, target, [
+      smsVar(order.orderId),
+      smsVar(courier),
+      smsVar(shipment.awb),
+      trackingUrl,
+    ])
+  } catch (err) {
+    log.error({ err, orderId: order.orderId }, 'order shipped SMS enqueue failed')
+  }
+}
+
+/** A manual dispatch has no carrier scan behind it, so its route calls this directly. */
+export async function notifyManualDispatch(
+  db: Db,
+  input: {
+    shipment: ShipmentRow
+    log: FastifyBaseLogger
+    channels?: NotificationChannelRegistry | undefined
+  }
+): Promise<void> {
+  const order = await loadPaidOrder(db, input.shipment.orderId)
+  if (order === undefined) return
+  await enqueueOrderShippedSms(db, order, input.shipment, input.log)
+  sendNow(db, order.orderId, input)
+}
+
 /**
  * `onOrderPaid` hook — tell the shopper their order is confirmed.
  *
@@ -324,6 +424,10 @@ export function makeCustomerOrderConfirmedHook(opts: { log: FastifyBaseLogger })
         target,
         message: orderConfirmedParams(order, etaCopy, await headerImage(db)),
       })
+      await enqueueSms(db, ORDER_CONFIRMED_SMS_KIND, orderId, target, [
+        smsVar(orderId),
+        String(order.totalInr),
+      ])
     } catch (err) {
       opts.log.error(
         { err, orderId },
@@ -385,6 +489,7 @@ export async function enqueueCustomerDeliveredNotification(
       target,
       message: orderDeliveredParams(customerFirstName(order), productLabel),
     })
+    await enqueueSms(db, ORDER_DELIVERED_SMS_KIND, order.orderId, target, [smsVar(order.orderId)])
   } catch (err) {
     log.error({ err, orderId: order.orderId }, 'customer delivered enqueue failed')
   }
@@ -537,8 +642,8 @@ export async function scheduleReviewRequest(
 /**
  * React to a shipment milestone.
  *
- * Out-for-delivery and delivered each have their own customer template.
- * Earlier transit scans are ignored because neither template describes them.
+ * Out-for-delivery and delivered each have their own customer template. The
+ * first pickup or transit scan sends the shipped SMS; later ones hit its dedupe key.
  *
  * Called post-commit from the carrier webhook, never awaited into the carrier's
  * response. Both effects are idempotent under the repeat delivery scans
@@ -565,10 +670,19 @@ export async function reactToShipmentMilestone(
   }
 ): Promise<void> {
   const { orderId, status, log } = input
-  if (status !== 'out_for_delivery' && status !== 'delivered') return
+  const shipped = status === 'picked_up' || status === 'in_transit'
+  if (!shipped && status !== 'out_for_delivery' && status !== 'delivered') return
 
   const order = await loadPaidOrder(db, orderId)
   if (order === undefined) return
+
+  if (shipped) {
+    const shipment =
+      input.awb === null ? null : await findShipmentForOrderByAwb(db, orderId, input.awb)
+    if (shipment !== null) await enqueueOrderShippedSms(db, order, shipment, log)
+    sendNow(db, orderId, input)
+    return
+  }
 
   if (status === 'out_for_delivery') {
     await enqueueCustomerOutForDeliveryNotification(db, order, log)
