@@ -1978,7 +1978,8 @@ export async function cancelOrder(
   orderId: string,
   reason?: string,
   policy?: OrderCancelPolicy,
-  hooks?: PaymentHooks
+  hooks?: PaymentHooks,
+  log?: (obj: Record<string, unknown>, msg: string) => void
 ): Promise<OrderCancelResponse> {
   const [row] = await db
     .select()
@@ -2040,7 +2041,12 @@ export async function cancelOrder(
     // Surface it as a 409 instead of falling into the generic 500 handler.
     const description = gatewayErrorDescription(err)
     if (description === undefined) throw err
-    throw conflict(`Order cannot be cancelled right now: ${description}`)
+    // The gateway's wording is for us, not the shopper: it can name the
+    // merchant's Razorpay balance or dashboard.
+    log?.({ orderId, description }, 'order cancel: gateway rejected capture/refund')
+    throw conflict(
+      "We couldn't cancel this order right now. Your payment is safe. Please try again later or contact us."
+    )
   }
 
   await db.transaction((tx: Tx) => markRefunded(tx, row, hooks, reason, record))
