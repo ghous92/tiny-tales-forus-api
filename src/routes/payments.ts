@@ -1225,7 +1225,8 @@ export const paymentRoutes: FastifyPluginAsyncZod<PaymentRoutesOptions> = async 
               makeCouponRevokeHook(request.log),
               makeOrderCancelledNotificationHook({ adminOrigin, log: request.log })
             ),
-          }
+          },
+          (obj, msg) => request.log.error(obj, msg)
         )
         // One drain for both rows this request can produce — the cancellation
         // notice (enqueued inside the refund transaction) and the stuck-parcel
