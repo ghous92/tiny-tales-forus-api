@@ -6,7 +6,7 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
 import { clearCustomUploadRateLimits, sniffImageType } from '../../src/routes/customRequests.js'
-import { MAX_OPEN_REQUESTS } from '../../src/services/customRequests.js'
+import { MAX_REQUESTS_PER_DAY } from '../../src/services/customRequests.js'
 import {
   auth,
   createTestApp,
@@ -220,8 +220,8 @@ describe('POST /v1/custom-requests', () => {
     )
   })
 
-  it(`stops at ${MAX_OPEN_REQUESTS} requests waiting on the team`, async () => {
-    for (let i = 0; i < MAX_OPEN_REQUESTS; i++) expect((await submit()).statusCode).toBe(201)
+  it(`stops at ${MAX_REQUESTS_PER_DAY} requests in a day`, async () => {
+    for (let i = 0; i < MAX_REQUESTS_PER_DAY; i++) expect((await submit()).statusCode).toBe(201)
     const res = await submit()
     expect(res.statusCode).toBe(422)
     expect(res.json().error.code).toBe('limit_exceeded')

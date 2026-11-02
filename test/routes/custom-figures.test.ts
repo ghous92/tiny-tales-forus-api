@@ -3,8 +3,10 @@
  * never part of the public catalog: they can only be bought from /custom/,
  * with the shopper's photos.
  */
+import { eq } from 'drizzle-orm'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
+import { productVariants } from '../../src/db/schema.js'
 import { CUSTOM_FIGURE_SKUS } from '../../src/lib/customFigures.js'
 import { seedCustomFigures } from '../../scripts/seed-custom-figures.js'
 import { auth, createTestApp, USER_A, type TestContext } from '../helpers/app.js'
@@ -46,6 +48,20 @@ describe('custom figures', () => {
       res.json() as { items: Array<{ sku: string; qty: number; priceInr: number }> }
     ).items.find((item) => item.sku === CUSTOM_FIGURE_SKUS.caricature)
     expect(line).toMatchObject({ qty: 3, priceInr: 800 })
+  })
+
+  it('prices a group by its size', async () => {
+    const prices = await ctx.db
+      .select({ sku: productVariants.sku, priceInr: productVariants.priceInr })
+      .from(productVariants)
+      .where(eq(productVariants.productId, 'custom-miniature'))
+      .orderBy(productVariants.priceInr)
+    expect(prices).toEqual([
+      { sku: 'TT-CUSTOM-MINIATURE', priceInr: 800 },
+      { sku: 'TT-CUSTOM-MINIATURE-2', priceInr: 1360 },
+      { sku: 'TT-CUSTOM-MINIATURE-3', priceInr: 1840 },
+      { sku: 'TT-CUSTOM-MINIATURE-4', priceInr: 2320 },
+    ])
   })
 
   it('re-seeding moves the price and keeps one row per sku', async () => {

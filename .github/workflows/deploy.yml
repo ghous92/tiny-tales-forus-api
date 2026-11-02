@@ -2,7 +2,7 @@ name: Deploy
 
 # Two release paths, one pipeline, gated by the trigger:
 #
-#   manual run, ref = main    → deploy STAGING (tinytales-api-staging, Neon staging branch)
+#   manual run, ref = main    → deploy STAGING (feature/magic-checkout too, TEMPORARY — drop before merging) (tinytales-api-staging, Neon staging branch)
 #   manual run, ref = v* tag  → deploy PROD    (tinytales-api,         Neon main branch)
 #
 # Manual only (workflow_dispatch) — no push/tag auto-fires this anymore. Pick the
@@ -41,7 +41,7 @@ jobs:
   # only the database differs.
   deploy-staging:
     needs: check
-    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
+    if: github.event_name == 'workflow_dispatch' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/feature/magic-checkout')
     runs-on: ubuntu-latest
     permissions:
       contents: read

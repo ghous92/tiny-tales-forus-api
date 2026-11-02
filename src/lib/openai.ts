@@ -78,15 +78,49 @@ Keep the face clearly recognisable as this person: the same face shape, features
 
 const STUDIO = `Plain light grey studio background, soft even light, the figure centred with a margin all round. No text, no logos.`
 
+/** Who the photo shows, as the browser counted them. */
+export interface PreviewCast {
+  characters: number
+  animals: number
+}
+
+const ONE_PERSON: PreviewCast = { characters: 1, animals: 0 }
+
+function figurine({ characters, animals }: PreviewCast): string {
+  if (characters === 1 && animals === 0) return FIGURINE
+  const people = characters - animals
+  const named = [
+    people ? `${people} ${people === 1 ? 'person' : 'people'}` : '',
+    animals ? `${animals} ${animals === 1 ? 'pet' : 'pets'}` : '',
+  ].filter(Boolean)
+  return `Turn everyone in the first image (${named.join(' and ')}) into one hand-painted 3D-printed caricature figurine, together on one round grey base.
+Big heads (about 40% of each figure's height), small bodies, standing side by side, front view, the whole group from head to toe. Keep everyone in the image and add nobody.
+Keep each one clearly recognisable: the same face shape, features, expression, hair, skin tone, and facial hair and glasses if they have them. A pet keeps its breed, markings and colours.`
+}
+
 /** The prompt for a gallery costume, described in words. */
-export function galleryPrompt(costume: string): string {
-  return `${FIGURINE}\nCostume: ${costume}.\n${STUDIO}`
+export function galleryPrompt(costume: string, cast: PreviewCast = ONE_PERSON): string {
+  if (cast.characters === 1 && cast.animals === 0)
+    return `${FIGURINE}\nCostume: ${costume}.\n${STUDIO}`
+  return `${figurine(cast)}\nEveryone wears this costume, and a pet a small simple version of it. Costume: ${costume}.\n${STUDIO}`
 }
 
 /** The prompt when the shopper sends a character picture as the second image. */
-export function uploadedCharacterPrompt(): string {
+export function uploadedCharacterPrompt(cast: PreviewCast = ONE_PERSON): string {
+  if (cast.characters > 1 || cast.animals > 0) {
+    return `${figurine(cast)}
+Dress everyone as the character in the second image, and a pet in a small simple version: copy its outfit, headwear, colours and accessories, in a simpler form that suits a small figurine. Take only the clothes and look from the second image; every face must stay as it is in the first image.
+${STUDIO}`
+  }
   return `${FIGURINE}
 Dress the figurine as the character in the second image: copy its outfit, headwear, colours, accessories and pose, in a simpler form that suits a small figurine. Take only the clothes and look from the second image; the face must stay the face from the first image.
+${STUDIO}`
+}
+
+/** The prompt when the figurine stays as the photo shows: no costume at all. */
+export function asPhotoPrompt(cast: PreviewCast = ONE_PERSON): string {
+  return `${figurine(cast)}
+No costume. Keep the same clothes, colours and accessories as in the first image, in a simpler form that suits a small figurine, and keep the pose from the first image in place of a stock standing pose. If the first image does not show part of the body, complete it with clothes and shoes that match what it does show.
 ${STUDIO}`
 }
 

@@ -51,6 +51,8 @@ export interface VerifiedToken {
   uid: string
   /** E.164 phone from the token's `phone_number` claim, absent for non-phone providers. */
   phoneNumber?: string | undefined
+  /** The token's `iat`, in seconds. Absent means the verifier doesn't report it. */
+  issuedAt?: number | undefined
 }
 
 /** Verifies a raw Bearer token, throwing on any invalid/expired token. */
@@ -89,7 +91,9 @@ declare module 'fastify' {
 
 /** Production TokenVerifier: firebase-admin `verifyIdToken`, initialized lazily. */
 export function createFirebaseVerifier(projectId: string): TokenVerifier {
-  let verify: ((token: string) => Promise<{ uid: string; phone_number?: string }>) | undefined
+  let verify:
+    | ((token: string) => Promise<{ uid: string; phone_number?: string; iat?: number }>)
+    | undefined
   return async (token) => {
     if (!verify) {
       const { getApps, initializeApp } = await import('firebase-admin/app')
@@ -98,7 +102,7 @@ export function createFirebaseVerifier(projectId: string): TokenVerifier {
       verify = (t) => auth.verifyIdToken(t)
     }
     const decoded = await verify(token)
-    return { uid: decoded.uid, phoneNumber: decoded.phone_number }
+    return { uid: decoded.uid, phoneNumber: decoded.phone_number, issuedAt: decoded.iat }
   }
 }
 
@@ -128,6 +132,23 @@ export function createFirebaseUserDeleter(projectId: string): FirebaseUserDelete
       const code = err instanceof Error ? (err as { code?: string }).code : undefined
       if (code !== 'auth/user-not-found') throw err
     }
+  }
+}
+
+/** Ends a uid's Firebase refresh tokens — used by `POST /v1/me/logout`. */
+export type FirebaseTokenRevoker = (uid: string) => Promise<void>
+
+/** Production {@link FirebaseTokenRevoker}, sharing the same lazy admin app as the others. */
+export function createFirebaseTokenRevoker(projectId: string): FirebaseTokenRevoker {
+  let revoke: ((uid: string) => Promise<void>) | undefined
+  return async (uid) => {
+    if (!revoke) {
+      const { getApps, initializeApp } = await import('firebase-admin/app')
+      const { getAuth } = await import('firebase-admin/auth')
+      const auth = getAuth(getApps()[0] ?? initializeApp({ projectId }))
+      revoke = (u) => auth.revokeRefreshTokens(u)
+    }
+    await revoke(uid)
   }
 }
 
@@ -177,6 +198,14 @@ export const authPlugin = fp<AuthPluginOptions>(
         phone: users.phone,
         role: users.role,
         consentAccepted: users.consentAccepted,
+        tokensValidAfter: users.tokensValidAfter,
+      }
+      // Runs on every path below, the cached one included. A cached entry on
+      // another instance can miss a logout for at most the cache TTL.
+      const assertNotRevoked = (validAfter: Date | null | undefined) => {
+        if (validAfter && verified.issuedAt !== undefined && verified.issuedAt * 1000 < validAfter.getTime()) {
+          throw unauthorized('Invalid or expired token')
+        }
       }
 
       // `firebase_uid` and `phone` are BOTH unique, so a plain
@@ -258,17 +287,20 @@ export const authPlugin = fp<AuthPluginOptions>(
       // stored row always reaches the transaction.
       const cached = cache.get(uid)
       if (cached && cached.phone === phoneNumber && cached.consentAccepted) {
+        assertNotRevoked(cached.tokensValidAfter)
         request.user = { ...cached, uid }
         return
       }
 
       const [fresh] = await db.select(cols).from(users).where(eq(users.firebaseUid, uid)).limit(1)
       if (fresh && fresh.phone === phoneNumber && fresh.consentAccepted) {
+        assertNotRevoked(fresh.tokensValidAfter)
         const resolved = {
           id: fresh.id,
           phone: fresh.phone,
           role: fresh.role as UserRole,
           consentAccepted: fresh.consentAccepted,
+          tokensValidAfter: fresh.tokensValidAfter,
         }
         cache.set(uid, resolved)
         request.user = { ...resolved, uid }
@@ -297,6 +329,7 @@ export const authPlugin = fp<AuthPluginOptions>(
         }
       }
       if (!row) throw unauthorized()
+      assertNotRevoked(row.tokensValidAfter)
 
       if (relinkedFrom !== undefined) cache.delete(relinkedFrom)
       const resolved = {
@@ -304,6 +337,7 @@ export const authPlugin = fp<AuthPluginOptions>(
         phone: row.phone,
         role: row.role as UserRole,
         consentAccepted: row.consentAccepted,
+        tokensValidAfter: row.tokensValidAfter,
       }
       cache.set(uid, resolved)
       request.user = { ...resolved, uid }

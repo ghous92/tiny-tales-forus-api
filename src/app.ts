@@ -49,8 +49,10 @@ import { ApiError } from './lib/errors.js'
 import { buildLoggerOptions } from './lib/logger.js'
 import {
   authPlugin,
+  createFirebaseTokenRevoker,
   createFirebaseUserDeleter,
   createFirebaseVerifier,
+  type FirebaseTokenRevoker,
   type FirebaseUserDeleter,
   type TokenVerifier,
 } from './plugins/auth.js'
@@ -64,6 +66,7 @@ import {
 } from './lib/shreeMaruti.js'
 import { createFcmPushSender, type AdminPushSender } from './lib/notify/adminPush.js'
 import { createWhatsAppCloudChannel } from './lib/notify/whatsappCloud.js'
+import { wishlistRoutes } from './routes/wishlist.js'
 import { whatsappAdminRoutes, whatsappRoutes } from './routes/whatsapp.js'
 import type { NotificationChannelRegistry } from './lib/notify/registry.js'
 import { manifestBlockedBy, resolveFulfilmentRule } from './services/fulfilment.js'
@@ -144,6 +147,8 @@ export interface BuildAppOptions {
    * same rule as `verifyToken`.
    */
   deleteFirebaseUser?: FirebaseUserDeleter
+  /** `POST /v1/me/logout` override, same rule as `deleteFirebaseUser`. */
+  revokeFirebaseTokens?: FirebaseTokenRevoker
   /**
    * Identity-cache lifetime for the auth hook, in ms (`AUTH_CACHE_TTL_MS`,
    * see lib/authCache.ts). Defaults to `DEFAULT_AUTH_CACHE_TTL_MS`; pass 0 to
@@ -402,6 +407,19 @@ export function buildApp(opts: BuildAppOptions): FastifyInstance {
         )
       }
       return createFirebaseUserDeleter(opts.firebaseProjectId)(uid)
+    })
+
+  const revokeFirebaseTokens: FirebaseTokenRevoker =
+    opts.revokeFirebaseTokens ??
+    ((uid) => {
+      if (!opts.firebaseProjectId) {
+        return Promise.reject(
+          new Error(
+            'POST /v1/me/logout: firebaseProjectId is required without a revokeFirebaseTokens override'
+          )
+        )
+      }
+      return createFirebaseTokenRevoker(opts.firebaseProjectId)(uid)
     })
 
   // Hoisted above the `fastify()` call (it used to live down by the `onSend`
@@ -694,7 +712,13 @@ export function buildApp(opts: BuildAppOptions): FastifyInstance {
   app.register(profileRoutes, {
     db: opts.db,
     deleteFirebaseUser,
+    revokeFirebaseTokens,
     ...(opts.analytics ? { analytics: opts.analytics } : {}),
+    imageIntake: {
+      baseUrl: opts.imageIntake?.baseUrl ?? 'https://image-intake.adix-ai.workers.dev',
+      uploadToken: opts.imageIntake?.uploadToken,
+      ...(opts.mediaUploadFetchImpl ? { fetchImpl: opts.mediaUploadFetchImpl } : {}),
+    },
     prefix: '/v1/me',
   })
   app.register(configRoutes, { db: opts.db, prefix: '/v1/config' })
@@ -702,6 +726,7 @@ export function buildApp(opts: BuildAppOptions): FastifyInstance {
   app.register(adminConfigRoutes, { db: opts.db, prefix: '/v1/admin/config' })
   app.register(catalogAdminRoutes, { db: opts.db, prefix: '/v1/admin/catalog' })
   app.register(cartRoutes, { db: opts.db, prefix: '/v1/cart' })
+  app.register(wishlistRoutes, { db: opts.db, prefix: '/v1/wishlist' })
   app.register(reviewRoutes, { db: opts.db, prefix: '/v1/reviews' })
   app.register(authedReviewRoutes, { db: opts.db, prefix: '/v1/reviews' })
   app.register(couponRoutes, { db: opts.db, prefix: '/v1/coupons' })

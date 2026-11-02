@@ -19,13 +19,17 @@ import {
   CustomRequestListResponseSchema,
   CustomRequestParamsSchema,
   CustomRequestSchema,
+  MiniatureAllowanceQuerySchema,
+  MiniatureAllowanceSchema,
 } from '../contracts/customRequests.js'
 import type { Db } from '../db/client.js'
+import { customUploads } from '../db/schema.js'
 import { ImageIntakeError, uploadToImageIntake } from '../lib/imageIntake.js'
 import {
   createCustomRequest,
   listAllCustomRequests,
   listCustomRequests,
+  miniatureAllowance,
   updateCustomRequestStatus,
 } from '../services/customRequests.js'
 
@@ -150,6 +154,7 @@ export const customRequestRoutes: FastifyPluginAsyncZod<CustomRequestRoutesOptio
           mimetype,
           filename: file.filename,
         })
+        await db.insert(customUploads).values({ key, userId: request.user.id })
         return reply.send({ key, thumbUrl: `${imageIntakeBaseUrl}/img/${key}/thumb` })
       } catch (err) {
         if (!(err instanceof ImageIntakeError)) throw err
@@ -172,6 +177,17 @@ export const customRequestRoutes: FastifyPluginAsyncZod<CustomRequestRoutesOptio
       const created = await createCustomRequest(db, request.user.id, request.body)
       return reply.code(201).send(created)
     }
+  )
+
+  app.get(
+    '/miniature-allowance',
+    {
+      schema: {
+        querystring: MiniatureAllowanceQuerySchema,
+        response: { 200: MiniatureAllowanceSchema, ...errorResponses },
+      },
+    },
+    async (request) => miniatureAllowance(db, request.user.id, request.query.device)
   )
 
   app.get(

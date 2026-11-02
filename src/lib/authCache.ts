@@ -31,6 +31,8 @@ export interface CachedUser {
   phone: string
   role: UserRole
   consentAccepted: boolean
+  /** See `users.tokensValidAfter`. */
+  tokensValidAfter?: Date | null
 }
 
 export interface AuthCache {

@@ -96,7 +96,14 @@ export async function previewQuota(
  */
 export async function reservePreview(
   db: Db,
-  input: { userId: string; photoHash: string; character: string; model: string; dailyCap: number },
+  input: {
+    userId: string
+    photoHash: string
+    character: string
+    characters: number
+    model: string
+    dailyCap: number
+  },
   now = new Date()
 ): Promise<{ id: string; photoLeft: number; todayLeft: number }> {
   const dayStart = startOfIndiaDay(now)
@@ -138,6 +145,7 @@ export async function reservePreview(
     const [row] = await tx
       .insert(caricaturePreviews)
       .values({
+        characters: input.characters,
         userId: input.userId,
         photoHash: input.photoHash,
         character: input.character,
@@ -237,6 +245,7 @@ export async function listSavedPreviews(db: Db, userId: string, limit = 24) {
       previewKey: caricaturePreviews.previewKey,
       photoHash: caricaturePreviews.photoHash,
       hasPhoto: sql<boolean>`${caricaturePreviews.photo} is not null`,
+      characters: caricaturePreviews.characters,
       createdAt: caricaturePreviews.createdAt,
     })
     .from(caricaturePreviews)

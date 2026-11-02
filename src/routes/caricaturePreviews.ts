@@ -23,10 +23,16 @@ import {
   SavedPreviewsSchema,
 } from '../contracts/customRequests.js'
 import type { Db } from '../db/client.js'
-import { CARICATURE_CHARACTERS, type CaricatureCharacterId } from '../lib/caricatureCharacters.js'
+import {
+  AS_PHOTO_ID,
+  CARICATURE_CHARACTERS,
+  type CaricatureCharacterId,
+} from '../lib/caricatureCharacters.js'
+import { MAX_FIGURE_CHARACTERS } from '../lib/customFigures.js'
 import { ImageIntakeError, uploadToImageIntake } from '../lib/imageIntake.js'
 import {
   OpenAiError,
+  asPhotoPrompt,
   galleryPrompt,
   judgeCharacter,
   renderCaricature,
@@ -197,6 +203,7 @@ export const caricaturePreviewRoutes: FastifyPluginAsyncZod<
           previewKey: r.previewKey,
           photoHash: r.photoHash,
           hasPhoto: r.hasPhoto,
+          characters: r.characters,
           createdAt: r.createdAt.toISOString(),
         })),
       }
@@ -302,15 +309,36 @@ export const caricaturePreviewRoutes: FastifyPluginAsyncZod<
 
       const uploaded = parts.files.get('character')
       const galleryId = parts.fields.get('characterId')
+      const characters = Number(parts.fields.get('characters') ?? 1)
+      const animals = Number(parts.fields.get('animals') ?? 0)
+      if (
+        !Number.isInteger(characters) ||
+        characters < 1 ||
+        characters > MAX_FIGURE_CHARACTERS ||
+        !Number.isInteger(animals) ||
+        animals < 0 ||
+        animals > characters
+      ) {
+        return reply.code(400).send({
+          error: {
+            code: 'validation_failed',
+            message: `A piece can have up to ${MAX_FIGURE_CHARACTERS} people or pets.`,
+          },
+        })
+      }
+      const cast = { characters, animals }
       let prompt: string
       let characterRef: string
       const images: OpenAiImage[] = [photo]
       if (uploaded) {
-        prompt = uploadedCharacterPrompt()
+        prompt = uploadedCharacterPrompt(cast)
         characterRef = `up:${sha256(uploaded.bytes)}`
         images.push(uploaded)
       } else if (galleryId && Object.hasOwn(CARICATURE_CHARACTERS, galleryId)) {
-        prompt = galleryPrompt(CARICATURE_CHARACTERS[galleryId as CaricatureCharacterId].costume)
+        prompt =
+          galleryId === AS_PHOTO_ID
+            ? asPhotoPrompt(cast)
+            : galleryPrompt(CARICATURE_CHARACTERS[galleryId as CaricatureCharacterId].costume, cast)
         characterRef = `tpl:${galleryId}`
       } else {
         return reply
@@ -345,6 +373,7 @@ export const caricaturePreviewRoutes: FastifyPluginAsyncZod<
           userId: request.user.id,
           photoHash,
           character: characterRef,
+          characters,
           model: opts.imageModel,
           dailyCap: opts.dailyCap,
         })
