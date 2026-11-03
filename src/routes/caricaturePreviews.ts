@@ -262,12 +262,19 @@ export const caricaturePreviewRoutes: FastifyPluginAsyncZod<
           .send({ error: { code: 'validation_failed', message: 'No character picture sent.' } })
       }
       try {
-        return await judgeCharacter({
+        const judgement = await judgeCharacter({
           fetchImpl: openaiFetchImpl,
           apiKey,
           model: opts.visionModel,
           image: character,
         })
+        // The verdict is not stored anywhere else; without this line a shopper
+        // who leaves after a rejection is indistinguishable from one who passed.
+        request.log.info(
+          { verdict: judgement.verdict, franchise: judgement.franchise },
+          'character check'
+        )
+        return judgement
       } catch (err) {
         if (!(err instanceof OpenAiError)) throw err
         request.log.warn({ err: err.message }, 'character check failed')
