@@ -65,6 +65,7 @@ import {
   type CarrierTracker,
 } from './lib/shreeMaruti.js'
 import { createFcmPushSender, type AdminPushSender } from './lib/notify/adminPush.js'
+import { createShippedEmailChannel } from './lib/notify/brevoShippedEmail.js'
 import { createMsg91SmsChannel } from './lib/notify/msg91Sms.js'
 import { createWhatsAppCloudChannel } from './lib/notify/whatsappCloud.js'
 import { wishlistRoutes } from './routes/wishlist.js'
@@ -586,6 +587,7 @@ export function buildApp(opts: BuildAppOptions): FastifyInstance {
         ...(opts.msg91AuthKey
           ? { msg91_sms: createMsg91SmsChannel({ authKey: opts.msg91AuthKey }) }
           : {}),
+        ...(invoiceEmail ? { brevo_shipped_email: createShippedEmailChannel(invoiceEmail) } : {}),
       }
     })()
 

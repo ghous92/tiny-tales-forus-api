@@ -648,6 +648,12 @@ export const CONFIG_DEFAULTS: ConfigDefault[] = [
       'MSG91 template id (not the DLT id) for the order delivered SMS, linked to DLT template 1177179316486011816. Variables: var1 order id. Empty = no SMS is enqueued.',
   },
   {
+    key: 'notify.opsSmsNumber',
+    value: '917702449212',
+    description:
+      'Ops mobile (country code + 10 digits) that gets a copy of the order confirmed SMS for every paid order, so courier changes can be passed on by hand. Uses notify.orderConfirmedSmsTemplate, so it sends nothing until that is set. Empty = no ops copy.',
+  },
+  {
     key: 'notify.supportFollowupTemplate',
     value: '',
     description:

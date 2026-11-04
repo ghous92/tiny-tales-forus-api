@@ -107,6 +107,15 @@ export const SMS_CHANNEL = 'msg91_sms'
 export const ORDER_CONFIRMED_SMS_KIND = 'order_confirmed_sms'
 export const ORDER_SHIPPED_SMS_KIND = 'order_shipped_sms'
 export const ORDER_DELIVERED_SMS_KIND = 'order_delivered_sms'
+// The order_confirmed SMS again, to the ops number in `notify.opsSmsNumber`, so
+// someone can follow up by hand when the courier changes. DLT allows no other
+// wording, so ops receive the shopper's text.
+export const ORDER_CONFIRMED_OPS_SMS_KIND = 'order_confirmed_ops_sms'
+
+export const SHIPPED_EMAIL_CHANNEL = 'brevo_shipped_email'
+// Courier, AWB and tracking link to the shopper's email. Not template-gated:
+// the wording lives in `lib/notify/brevoShippedEmail.ts`.
+export const ORDER_SHIPPED_EMAIL_KIND = 'order_shipped_email'
 
 /**
  * Config keys holding the approved template for each notification kind.
@@ -156,6 +165,7 @@ const TEMPLATE_CONFIG_KEYS: Record<string, { name: string; locale?: string }> = 
   [ORDER_CONFIRMED_SMS_KIND]: { name: 'notify.orderConfirmedSmsTemplate' },
   [ORDER_SHIPPED_SMS_KIND]: { name: 'notify.orderShippedSmsTemplate' },
   [ORDER_DELIVERED_SMS_KIND]: { name: 'notify.orderDeliveredSmsTemplate' },
+  [ORDER_CONFIRMED_OPS_SMS_KIND]: { name: 'notify.orderConfirmedSmsTemplate' },
 }
 
 /**
@@ -192,6 +202,7 @@ const TEMPLATE_REQUIRED_KINDS: ReadonlySet<string> = new Set([
   ORDER_CONFIRMED_SMS_KIND,
   ORDER_SHIPPED_SMS_KIND,
   ORDER_DELIVERED_SMS_KIND,
+  ORDER_CONFIRMED_OPS_SMS_KIND,
 ])
 
 /**
