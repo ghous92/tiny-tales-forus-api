@@ -10,12 +10,18 @@
 import { z } from 'zod'
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod'
 
-import { ErrorEnvelopeSchema, ProfileSchema, ProfileUpdateSchema } from '../contracts/profile.js'
+import {
+  AbsorbAccountSchema,
+  ErrorEnvelopeSchema,
+  ProfileSchema,
+  ProfileUpdateSchema,
+} from '../contracts/profile.js'
 import type { Db } from '../db/client.js'
 import type { Analytics } from '../lib/analytics.js'
-import type { FirebaseTokenRevoker, FirebaseUserDeleter } from '../plugins/auth.js'
+import type { FirebaseTokenRevoker, FirebaseUserDeleter, TokenVerifier } from '../plugins/auth.js'
 import { deleteFromImageIntake, ImageIntakeError } from '../lib/imageIntake.js'
 import {
+  absorbPhonelessAccount,
   assertNoCustomPieceInProgress,
   deleteAccount,
   getProfile,
@@ -38,13 +44,15 @@ export interface ProfileRoutesOptions {
   deleteFirebaseUser: FirebaseUserDeleter
   /** Ends the caller's Firebase refresh tokens on `POST /logout`. Tests inject a fake. */
   revokeFirebaseTokens: FirebaseTokenRevoker
+  /** Verifies the earlier session's token on `POST /absorb`; the same verifier the auth plugin uses. */
+  verifyToken: TokenVerifier
   /** Where an account's photos are deleted from. `uploadToken` absent -> a delete with photos answers 503. */
   imageIntake?: { baseUrl: string; uploadToken?: string | undefined; fetchImpl?: typeof fetch }
 }
 
 export const profileRoutes: FastifyPluginAsyncZod<ProfileRoutesOptions> = async (
   app,
-  { db, deleteFirebaseUser, revokeFirebaseTokens, analytics, imageIntake }
+  { db, deleteFirebaseUser, revokeFirebaseTokens, verifyToken, analytics, imageIntake }
 ) => {
   app.addHook('onRequest', app.authenticate)
 
@@ -77,6 +85,31 @@ export const profileRoutes: FastifyPluginAsyncZod<ProfileRoutesOptions> = async 
         updatedAt: profile.updatedAt,
       })
       return profile
+    }
+  )
+
+  // Called right after checkout's phone check signed a Google/Apple shopper
+  // into the phone's existing account. The body token proves they held the
+  // earlier session; an invalid one, or one that already has a phone, is
+  // simply nothing to absorb, so the browser can fire this and forget it.
+  app.post(
+    '/absorb',
+    {
+      schema: {
+        body: AbsorbAccountSchema,
+        response: { 204: z.null(), ...errorResponses },
+      },
+    },
+    async (request, reply) => {
+      const from = await verifyToken(request.body.idToken).catch(() => null)
+      if (from?.uid && !from.phoneNumber && from.uid !== request.user.uid) {
+        const absorbed = await absorbPhonelessAccount(db, request.user.id, from.uid)
+        if (absorbed) {
+          app.invalidateAuthUser(absorbed)
+          request.log.info({ userId: request.user.id, fromUid: absorbed }, 'absorbed phone-less account')
+        }
+      }
+      return reply.code(204).send(null)
     }
   )
 

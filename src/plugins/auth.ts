@@ -8,6 +8,13 @@
  * missing header, bad token, token without a phone claim — becomes a 401 with
  * the standard error envelope.
  *
+ * `app.authenticateAnyProvider` is the one exception to the phone rule: it
+ * also accepts a Google/Apple token with no phone yet, resolving it to a
+ * phone-less `users` row. Only the custom-request routes use it (photo
+ * upload, character check, previews, sending the request), so a shopper from
+ * an ad can try a caricature before giving a number; the phone is verified at
+ * checkout, which stays behind `app.authenticate` like everything else.
+ *
  * Resolving the caller is layered, cheapest first: the in-process identity
  * cache (lib/authCache.ts, off when `AUTH_CACHE_TTL_MS=0`), then a single
  * indexed SELECT, and only then the upsert transaction. Each layer is used
@@ -67,8 +74,12 @@ export interface AuthedUser {
   id: string
   /** Firebase uid, for audit/logging correlation. */
   uid: string
-  /** E.164 phone as stored (`+91…`). */
-  phone: string
+  /**
+   * E.164 phone as stored (`+91…`). Always set behind `app.authenticate`;
+   * null only behind `app.authenticateAnyProvider`, for a Google/Apple
+   * account that has not verified a phone yet.
+   */
+  phone: string | null
   role: UserRole
   /** Terms + Privacy acceptance; forced true by the upsert below whenever it isn't already. */
   consentAccepted: boolean
@@ -78,6 +89,8 @@ declare module 'fastify' {
   interface FastifyInstance {
     /** onRequest hook: verify the Bearer token and populate `request.user`. */
     authenticate: (request: FastifyRequest, reply: FastifyReply) => Promise<void>
+    /** onRequest hook: as `authenticate`, but a Google/Apple token without a phone also passes. */
+    authenticateAnyProvider: (request: FastifyRequest, reply: FastifyReply) => Promise<void>
     /** onRequest hook: run after `authenticate`; 403s unless `request.user.role === 'admin'`. */
     requireAdmin: (request: FastifyRequest, reply: FastifyReply) => Promise<void>
     /** Drop a uid from this instance's identity cache (see lib/authCache.ts). */
@@ -104,6 +117,15 @@ export function createFirebaseVerifier(projectId: string): TokenVerifier {
     const decoded = await verify(token)
     return { uid: decoded.uid, phoneNumber: decoded.phone_number, issuedAt: decoded.iat }
   }
+}
+
+/** The `users` columns `request.user` is built from. */
+const userCols = {
+  id: users.id,
+  phone: users.phone,
+  role: users.role,
+  consentAccepted: users.consentAccepted,
+  tokensValidAfter: users.tokensValidAfter,
 }
 
 /** Revokes a Firebase account by uid — used by account deletion (`DELETE /v1/me`). */
@@ -172,7 +194,8 @@ export const authPlugin = fp<AuthPluginOptions>(
     // (today: `DELETE /v1/me`). Per-instance only — see lib/authCache.ts.
     app.decorate('invalidateAuthUser', (uid: string) => cache.delete(uid))
 
-    app.decorate('authenticate', async (request: FastifyRequest) => {
+    /** Verify the request's Bearer token; any failure is a 401. */
+    async function verifyBearer(request: FastifyRequest): Promise<VerifiedToken> {
       const header = request.headers.authorization
       if (!header?.startsWith('Bearer ')) {
         throw unauthorized('Missing bearer token')
@@ -187,26 +210,27 @@ export const authPlugin = fp<AuthPluginOptions>(
         // Deliberately swallowed: verifier failures must not leak detail (or the token) anywhere.
         throw unauthorized('Invalid or expired token')
       }
-      if (!verified.uid || !verified.phoneNumber) {
+      if (!verified.uid) throw unauthorized('Token is missing required claims')
+      return verified
+    }
+
+    // Runs on every path below, the cached one included. A cached entry on
+    // another instance can miss a logout for at most the cache TTL.
+    function assertNotRevokedFor(verified: VerifiedToken, validAfter: Date | null | undefined) {
+      if (validAfter && verified.issuedAt !== undefined && verified.issuedAt * 1000 < validAfter.getTime()) {
+        throw unauthorized('Invalid or expired token')
+      }
+    }
+
+    app.decorate('authenticate', async (request: FastifyRequest) => {
+      const verified = await verifyBearer(request)
+      if (!verified.phoneNumber) {
         throw unauthorized('Token is missing required claims')
       }
 
       const phoneNumber = verified.phoneNumber
       const uid = verified.uid
-      const cols = {
-        id: users.id,
-        phone: users.phone,
-        role: users.role,
-        consentAccepted: users.consentAccepted,
-        tokensValidAfter: users.tokensValidAfter,
-      }
-      // Runs on every path below, the cached one included. A cached entry on
-      // another instance can miss a logout for at most the cache TTL.
-      const assertNotRevoked = (validAfter: Date | null | undefined) => {
-        if (validAfter && verified.issuedAt !== undefined && verified.issuedAt * 1000 < validAfter.getTime()) {
-          throw unauthorized('Invalid or expired token')
-        }
-      }
+      const assertNotRevoked = (validAfter: Date | null | undefined) => assertNotRevokedFor(verified, validAfter)
 
       // `firebase_uid` and `phone` are BOTH unique, so a plain
       // `ON CONFLICT (firebase_uid)` upsert only covers uid reuse — it 500s
@@ -229,7 +253,7 @@ export const authPlugin = fp<AuthPluginOptions>(
             .update(users)
             .set({ phone: phoneNumber, consentAccepted: true, updatedAt: sql`now()` })
             .where(eq(users.firebaseUid, uid))
-            .returning(cols)
+            .returning(userCols)
           if (byUid) return byUid
 
           const [existingByPhone] = await tx
@@ -247,7 +271,7 @@ export const authPlugin = fp<AuthPluginOptions>(
               updatedAt: sql`now()`,
             })
             .where(eq(users.phone, phoneNumber))
-            .returning(cols)
+            .returning(userCols)
           if (byPhone) {
             // Recorded for cache invalidation below: the old uid may still
             // hold a cached entry carrying the `role` this relink just
@@ -263,7 +287,7 @@ export const authPlugin = fp<AuthPluginOptions>(
           const [inserted] = await tx
             .insert(users)
             .values({ firebaseUid: uid, phone: phoneNumber })
-            .returning(cols)
+            .returning(userCols)
           return inserted
         })
 
@@ -292,7 +316,7 @@ export const authPlugin = fp<AuthPluginOptions>(
         return
       }
 
-      const [fresh] = await db.select(cols).from(users).where(eq(users.firebaseUid, uid)).limit(1)
+      const [fresh] = await db.select(userCols).from(users).where(eq(users.firebaseUid, uid)).limit(1)
       if (fresh && fresh.phone === phoneNumber && fresh.consentAccepted) {
         assertNotRevoked(fresh.tokensValidAfter)
         const resolved = {
@@ -332,6 +356,64 @@ export const authPlugin = fp<AuthPluginOptions>(
       assertNotRevoked(row.tokensValidAfter)
 
       if (relinkedFrom !== undefined) cache.delete(relinkedFrom)
+      const resolved = {
+        id: row.id,
+        phone: row.phone,
+        role: row.role as UserRole,
+        consentAccepted: row.consentAccepted,
+        tokensValidAfter: row.tokensValidAfter,
+      }
+      cache.set(uid, resolved)
+      request.user = { ...resolved, uid }
+    })
+
+    app.decorate('authenticateAnyProvider', async (request: FastifyRequest, reply: FastifyReply) => {
+      const verified = await verifyBearer(request)
+      // A phone token is the ordinary case, re-link rules and all.
+      if (verified.phoneNumber) return app.authenticate(request, reply)
+
+      // Google/Apple with no phone yet: the uid is the only identity, so the
+      // row is found or created by uid alone and its phone is left as it is.
+      const uid = verified.uid
+      const cached = cache.get(uid)
+      if (cached && cached.consentAccepted) {
+        assertNotRevokedFor(verified, cached.tokensValidAfter)
+        request.user = { ...cached, uid }
+        return
+      }
+
+      const resolveRow = () =>
+        db.transaction(async (tx) => {
+          const [byUid] = await tx
+            .update(users)
+            .set({ consentAccepted: true, updatedAt: sql`now()` })
+            .where(eq(users.firebaseUid, uid))
+            .returning(userCols)
+          if (byUid) return byUid
+          const [inserted] = await tx
+            .insert(users)
+            .values({ firebaseUid: uid, phone: null })
+            .returning(userCols)
+          return inserted
+        })
+
+      let row
+      const [fresh] = await db.select(userCols).from(users).where(eq(users.firebaseUid, uid)).limit(1)
+      if (fresh && fresh.consentAccepted) {
+        row = fresh
+      } else {
+        try {
+          row = await resolveRow()
+        } catch (err) {
+          // Two first requests for the same new uid race the INSERT; the
+          // loser finds the winner's row on the retry.
+          if (!isUniqueViolation(err)) throw err
+          row = await resolveRow()
+        }
+      }
+      if (!row) throw unauthorized()
+      assertNotRevokedFor(verified, row.tokensValidAfter)
+
       const resolved = {
         id: row.id,
         phone: row.phone,

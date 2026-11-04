@@ -97,12 +97,16 @@ export interface CustomRequestRoutesOptions {
   fetchImpl?: typeof fetch
 }
 
-/** Mounted at '/v1/custom-requests'. Authenticated: a shopper's own requests only. */
+/**
+ * Mounted at '/v1/custom-requests'. Authenticated: a shopper's own requests
+ * only. A Google/Apple sign-in without a phone is enough here (see
+ * `authenticateAnyProvider` in plugins/auth.ts); paying still needs one.
+ */
 export const customRequestRoutes: FastifyPluginAsyncZod<CustomRequestRoutesOptions> = async (
   app,
   { db, imageIntakeBaseUrl, uploadToken, fetchImpl = fetch }
 ) => {
-  app.addHook('onRequest', app.authenticate)
+  app.addHook('onRequest', app.authenticateAnyProvider)
 
   await app.register(multipart, {
     limits: { fileSize: MAX_UPLOAD_BYTES, files: 1 },

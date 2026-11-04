@@ -796,7 +796,8 @@ export async function createUpiIntent(
     .from(users)
     .where(eq(users.id, userId))
     .limit(1)
-  if (!user) throw notFound('Payment not found')
+  // Paying is behind `app.authenticate`, so the payer always has a phone.
+  if (!user?.phone) throw notFound('Payment not found')
 
   const rzp = await gateway.client()
   let created: { razorpay_payment_id: string; link?: string }
