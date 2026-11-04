@@ -50,13 +50,19 @@ const jsonbSafe = customType<{ data: unknown; driverData: unknown }>({
   },
 })
 
-/** One row per authenticated shopper, keyed by their Firebase phone-auth identity. */
+/** One row per authenticated shopper, keyed by their Firebase identity. */
 export const users = pgTable('users', {
   id: uuid('id').primaryKey().defaultRandom(),
   /** Firebase `uid` from the verified ID token. Upsert target on every authed request. */
   firebaseUid: text('firebase_uid').notNull().unique(),
-  /** E.164 phone from the token's `phone_number` claim, e.g. "+919876543210". */
-  phone: text('phone').notNull().unique(),
+  /**
+   * E.164 phone from the token's `phone_number` claim, e.g. "+919876543210".
+   * Null only for a Google/Apple sign-in that has not verified a phone yet;
+   * such a row can reach the custom-request routes alone
+   * (`app.authenticateAnyProvider`), and is absorbed into the phone account
+   * if that phone already had one (`POST /v1/me/absorb`).
+   */
+  phone: text('phone').unique(),
   /**
    * Display name, captured by the app's post-login profile prompt
    * (`PATCH /v1/me`). Null until the shopper fills it in — phone auth carries
@@ -1976,6 +1982,74 @@ export const reviewHelpfulVotes = pgTable(
 )
 
 /**
+ * One-use review invite for a buyer who ordered off-site (WhatsApp/Instagram
+ * DMs), so has no `users`/`payments` row to verify against. Only an admin can
+ * mint one (routes/storeReviews.ts), and only to send to someone they actually
+ * sold to — that is what lets the storefront tag the resulting review
+ * "Verified buyer". `buyerLabel` is the operator's private note ("Priya, Pune,
+ * couple caricature") and is never returned by a public route.
+ */
+export const reviewInvites = pgTable(
+  'review_invites',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    /** URL-safe random token, 22 chars. Unique; the link is `/review/?t=<token>`. */
+    token: text('token').notNull().unique(),
+    buyerLabel: text('buyer_label').notNull().default(''),
+    /** 'whatsapp' | 'instagram' | 'website' | 'other' — where the sale happened. */
+    channel: text('channel').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    usedAt: timestamp('used_at', { withTimezone: true }),
+  },
+  (table) => [
+    index('review_invites_created_at_idx').on(table.createdAt.desc()),
+    check(
+      'review_invites_channel_valid',
+      sql`${table.channel} in ('whatsapp', 'instagram', 'website', 'other')`
+    ),
+  ]
+)
+
+/**
+ * Shop-level review (the storefront's review widget), written by an invited
+ * buyer through `/review/`. Text is the buyer's own and is NEVER editable by
+ * an admin — moderation is approve/reject only, and the published average is
+ * computed from approved rows. Same no-seed rule as `reviews`: there is no
+ * route or script that inserts a row without a used invite behind it.
+ */
+export const storeReviews = pgTable(
+  'store_reviews',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    inviteId: uuid('invite_id')
+      .notNull()
+      .unique()
+      .references(() => reviewInvites.id, { onDelete: 'cascade' }),
+    authorName: text('author_name').notNull(),
+    city: text('city').notNull().default(''),
+    rating: integer('rating').notNull(),
+    title: text('title').notNull().default(''),
+    body: text('body').notNull(),
+    /** What they bought, in their words ("Couple caricature"). Optional. */
+    productLabel: text('product_label').notNull().default(''),
+    /** Copied from the invite at write time. */
+    channel: text('channel').notNull(),
+    /** 'pending' | 'approved' | 'rejected'. */
+    status: text('status').notNull().default('pending'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    moderatedAt: timestamp('moderated_at', { withTimezone: true }),
+  },
+  (table) => [
+    index('store_reviews_status_created_at_idx').on(table.status, table.createdAt.desc()),
+    check('store_reviews_rating_range', sql`${table.rating} between 1 and 5`),
+    check(
+      'store_reviews_status_valid',
+      sql`${table.status} in ('pending', 'approved', 'rejected')`
+    ),
+  ]
+)
+
+/**
  * One parcel handed to a carrier (docs/SPEC-LOGISTICS.md §3.1). Owned by the
  * `fulfilment` module; consumes the shared `payments`/`users` read models.
  *
@@ -2295,6 +2369,8 @@ export type NewPincodeRow = typeof pincodes.$inferInsert
 export type ReviewRow = typeof reviews.$inferSelect
 export type NewReviewRow = typeof reviews.$inferInsert
 export type ReviewHelpfulVoteRow = typeof reviewHelpfulVotes.$inferSelect
+export type ReviewInviteRow = typeof reviewInvites.$inferSelect
+export type StoreReviewRow = typeof storeReviews.$inferSelect
 export type PickupNodeSkuRow = typeof pickupNodeSkus.$inferSelect
 export type NewPickupNodeSkuRow = typeof pickupNodeSkus.$inferInsert
 export type StoreStockRow = typeof storeStock.$inferSelect

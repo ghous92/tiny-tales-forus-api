@@ -67,7 +67,7 @@ async function main(): Promise<void> {
     const lines = ['email,phone']
     for (const row of rows) {
       const email = row.email ? sha256(normalizeEmail(row.email)) : ''
-      const digits = normalizePhone(row.phone)
+      const digits = row.phone ? normalizePhone(row.phone) : null
       const phone = digits ? sha256(digits) : ''
       if (email || phone) lines.push(`${email},${phone}`)
     }

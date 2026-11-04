@@ -107,6 +107,14 @@ export const ProfileSchema = z.object({
   updatedAt: z.iso.datetime(),
 })
 
+/**
+ * POST /v1/me/absorb body: the ID token of the Google/Apple session the
+ * shopper had before verifying a phone that already had its own account.
+ */
+export const AbsorbAccountSchema = z.strictObject({
+  idToken: z.string().min(1).max(8192),
+})
+
 /** The error envelope every non-2xx response uses. */
 export const ErrorEnvelopeSchema = z.object({
   error: z.object({
@@ -117,3 +125,4 @@ export const ErrorEnvelopeSchema = z.object({
 
 export type ProfileUpdate = z.infer<typeof ProfileUpdateSchema>
 export type Profile = z.infer<typeof ProfileSchema>
+export type AbsorbAccount = z.infer<typeof AbsorbAccountSchema>

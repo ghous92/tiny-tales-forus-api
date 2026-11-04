@@ -28,7 +28,8 @@ import type { UserRole } from '../plugins/auth.js'
 /** The subset of the caller's `users` row that `request.user` is built from. */
 export interface CachedUser {
   id: string
-  phone: string
+  /** Null for a Google/Apple account with no verified phone yet. */
+  phone: string | null
   role: UserRole
   consentAccepted: boolean
   /** See `users.tokensValidAfter`. */

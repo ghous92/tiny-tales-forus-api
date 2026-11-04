@@ -9,7 +9,7 @@
  * (docs/CONTRACTS.md).
  */
 
-import { and, eq, isNotNull, sql } from 'drizzle-orm'
+import { and, eq, isNotNull, isNull, sql } from 'drizzle-orm'
 
 import type { Profile, ProfileUpdate } from '../contracts/profile.js'
 import type { Db } from '../db/client.js'
@@ -37,7 +37,8 @@ export function toApiProfile(row: UserRow): Profile {
     // contract's `genderEnum`-validated PATCH body.
     gender: row.gender as Profile['gender'],
     dob: row.dob,
-    phone: row.phone.slice(-10),
+    // `/v1/me` is behind `app.authenticate`, so the phone is always set here.
+    phone: (row.phone ?? '').slice(-10),
     marketingWhatsappOptIn: row.marketingWhatsappOptIn,
     adAudienceOptIn: row.adAudienceOptIn,
     createdAt: row.createdAt.toISOString(),
@@ -56,6 +57,41 @@ export async function getProfile(db: Db, userId: string): Promise<Profile> {
  * Refuse every ID token issued so far. Floored to the second because a token's
  * `iat` is in seconds: a new sign-in right after this must still pass.
  */
+/**
+ * Move a phone-less Google/Apple account's custom work into the caller's
+ * account, then drop the phone-less row. That row exists when a shopper tried
+ * a caricature before verifying a phone, and the phone they verified at
+ * checkout already belonged to another account: Firebase signs them into that
+ * one, and without this their photos, previews and requests would stay on an
+ * account nobody can reach (requests are matched to orders by account).
+ *
+ * Only a row with no phone is ever absorbed, and only those three tables can
+ * hold its data: phone-less tokens reach the custom-request routes alone.
+ * Returns the absorbed row's uid, or null when there was nothing to absorb.
+ */
+export async function absorbPhonelessAccount(
+  db: Db,
+  intoUserId: string,
+  fromUid: string
+): Promise<string | null> {
+  return db.transaction(async (tx) => {
+    const [from] = await tx
+      .select({ id: users.id })
+      .from(users)
+      .where(and(eq(users.firebaseUid, fromUid), isNull(users.phone)))
+      .limit(1)
+    if (!from || from.id === intoUserId) return null
+    await tx.update(customRequests).set({ userId: intoUserId }).where(eq(customRequests.userId, from.id))
+    await tx.update(customUploads).set({ userId: intoUserId }).where(eq(customUploads.userId, from.id))
+    await tx
+      .update(caricaturePreviews)
+      .set({ userId: intoUserId })
+      .where(eq(caricaturePreviews.userId, from.id))
+    await tx.delete(users).where(eq(users.id, from.id))
+    return fromUid
+  })
+}
+
 export async function revokeTokens(db: Db, userId: string): Promise<void> {
   await db
     .update(users)

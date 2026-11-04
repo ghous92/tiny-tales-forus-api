@@ -128,12 +128,12 @@ export interface CaricaturePreviewRoutesOptions {
   intakeFetchImpl?: typeof fetch
 }
 
-/** Mounted at '/v1/custom-requests'. Authenticated. */
+/** Mounted at '/v1/custom-requests'. Authenticated; a Google/Apple sign-in without a phone is enough. */
 export const caricaturePreviewRoutes: FastifyPluginAsyncZod<
   CaricaturePreviewRoutesOptions
 > = async (app, opts) => {
   const { db, apiKey, openaiFetchImpl = fetch, intakeFetchImpl = fetch } = opts
-  app.addHook('onRequest', app.authenticate)
+  app.addHook('onRequest', app.authenticateAnyProvider)
 
   await app.register(multipart, {
     limits: { fileSize: MAX_IMAGE_BYTES, files: 2, fields: 4 },

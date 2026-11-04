@@ -103,6 +103,7 @@ import { notificationsAdminRoutes } from './routes/notificationsAdmin.js'
 import { paymentRoutes, type PaymentRoutesOptions } from './routes/payments.js'
 import { profileRoutes } from './routes/profile.js'
 import { authedReviewRoutes, reviewRoutes } from './routes/reviews.js'
+import { adminStoreReviewRoutes, storeReviewRoutes } from './routes/storeReviews.js'
 import { shippingRoutes } from './routes/shipping.js'
 import { shippingAdminRoutes } from './routes/shippingAdmin.js'
 import { stockRoutes } from './routes/stock.js'
@@ -724,6 +725,7 @@ export function buildApp(opts: BuildAppOptions): FastifyInstance {
     db: opts.db,
     deleteFirebaseUser,
     revokeFirebaseTokens,
+    verifyToken,
     ...(opts.analytics ? { analytics: opts.analytics } : {}),
     imageIntake: {
       baseUrl: opts.imageIntake?.baseUrl ?? 'https://image-intake.adix-ai.workers.dev',
@@ -740,6 +742,8 @@ export function buildApp(opts: BuildAppOptions): FastifyInstance {
   app.register(wishlistRoutes, { db: opts.db, prefix: '/v1/wishlist' })
   app.register(reviewRoutes, { db: opts.db, prefix: '/v1/reviews' })
   app.register(authedReviewRoutes, { db: opts.db, prefix: '/v1/reviews' })
+  app.register(storeReviewRoutes, { db: opts.db, prefix: '/v1/store-reviews' })
+  app.register(adminStoreReviewRoutes, { db: opts.db, prefix: '/v1/admin/store-reviews' })
   app.register(couponRoutes, { db: opts.db, prefix: '/v1/coupons' })
   app.register(adminCouponsRoutes, { db: opts.db, prefix: '/v1/admin/coupons' })
   app.register(shippingRoutes, { db: opts.db, prefix: '/v1/shipping' })
