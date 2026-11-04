@@ -47,6 +47,7 @@ import { SHREE_MARUTI_COURIER_CODE } from '../lib/shreeMaruti.js'
 import { getConfigValue } from '../services/config.js'
 import { findShipmentForOrderByAwb, trackingUrlFor } from '../services/fulfilment.js'
 import { enqueueOpsNotification } from '../services/opsNotifications.js'
+import { getProfile } from '../services/profile.js'
 import {
   orderInvoiceSourceFromRow,
   type OrderInvoiceSource,
@@ -55,13 +56,16 @@ import {
 import {
   isTemplateConfigured,
   ORDER_CONFIRMED_CUSTOMER_KIND,
+  ORDER_CONFIRMED_OPS_SMS_KIND,
   ORDER_CONFIRMED_SMS_KIND,
   ORDER_DELIVERED_CUSTOMER_KIND,
   ORDER_DELIVERED_SMS_KIND,
   ORDER_OUT_FOR_DELIVERY_CUSTOMER_KIND,
+  ORDER_SHIPPED_EMAIL_KIND,
   ORDER_SHIPPED_SMS_KIND,
   REPLENISHMENT_KIND,
   sendPendingOpsNotifications,
+  SHIPPED_EMAIL_CHANNEL,
   SMS_CHANNEL,
   WHATSAPP_CHANNEL,
 } from './opsNotifications.js'
@@ -345,39 +349,69 @@ async function enqueueSms(
   })
 }
 
+/** The shopper's contact email, or null when the profile has none. */
+async function shopperEmail(db: Db, userId: string): Promise<string | null> {
+  try {
+    const email = (await getProfile(db, userId)).email
+    return email === undefined || email === null || email.trim() === '' ? null : email.trim()
+  } catch {
+    return null
+  }
+}
+
 /**
- * The approved `order_shipped` DLT text needs all of order id, courier, AWB and
- * tracking link, so a shipment missing either of the last two sends nothing.
+ * Tell the shopper their parcel left: courier, AWB and tracking link.
+ *
+ * By email, when the profile has one. The `order_shipped` SMS stays wired but
+ * off (its config key is empty): DLT drops any SMS whose link is not a
+ * whitelisted CTA, and a courier's tracking page never is. Ops get every paid
+ * order by SMS (`order_confirmed_ops_sms`) and pass on courier changes by hand.
  */
-async function enqueueOrderShippedSms(
+async function enqueueOrderShippedMessages(
   db: Db,
   order: OrderInvoiceSource,
   shipment: Pick<ShipmentRow, 'awb' | 'courierCode' | 'manualCourierName' | 'manualTrackingUrl'>,
   log: FastifyBaseLogger
 ): Promise<void> {
   try {
-    const target = customerTargetFor(order)
-    if (target === null) return
+    if (shipment.awb === null) {
+      log.warn({ orderId: order.orderId }, 'shipment has no AWB; shipped messages skipped')
+      return
+    }
     const template = await getConfigValue<unknown>(db, 'fulfilment.trackingUrlTemplate')
     const trackingUrl = trackingUrlFor(
       typeof template === 'string' ? template : '',
       shipment.awb,
       shipment.manualTrackingUrl
     )
-    if (shipment.awb === null || trackingUrl === '') {
-      log.warn({ orderId: order.orderId }, 'shipment has no AWB or tracking link; SMS skipped')
-      return
-    }
     const courier =
       shipment.manualCourierName ?? COURIER_LABELS[shipment.courierCode] ?? shipment.courierCode
-    await enqueueSms(db, ORDER_SHIPPED_SMS_KIND, order.orderId, target, [
-      smsVar(order.orderId),
-      smsVar(courier),
-      smsVar(shipment.awb),
-      trackingUrl,
-    ])
+
+    const email = await shopperEmail(db, order.userId)
+    if (email !== null) {
+      await enqueueOpsNotification(db, {
+        kind: ORDER_SHIPPED_EMAIL_KIND,
+        orderId: order.orderId,
+        channel: SHIPPED_EMAIL_CHANNEL,
+        target: email,
+        message: {
+          params: [customerFirstName(order), order.orderId, courier, shipment.awb, trackingUrl],
+        },
+      })
+    }
+
+    // The approved DLT text needs the tracking link, so no link means no SMS.
+    const target = customerTargetFor(order)
+    if (target !== null && trackingUrl !== '') {
+      await enqueueSms(db, ORDER_SHIPPED_SMS_KIND, order.orderId, target, [
+        smsVar(order.orderId),
+        smsVar(courier),
+        smsVar(shipment.awb),
+        trackingUrl,
+      ])
+    }
   } catch (err) {
-    log.error({ err, orderId: order.orderId }, 'order shipped SMS enqueue failed')
+    log.error({ err, orderId: order.orderId }, 'order shipped enqueue failed')
   }
 }
 
@@ -392,7 +426,7 @@ export async function notifyManualDispatch(
 ): Promise<void> {
   const order = await loadPaidOrder(db, input.shipment.orderId)
   if (order === undefined) return
-  await enqueueOrderShippedSms(db, order, input.shipment, input.log)
+  await enqueueOrderShippedMessages(db, order, input.shipment, input.log)
   sendNow(db, order.orderId, input)
 }
 
@@ -410,12 +444,18 @@ export async function notifyManualDispatch(
 export function makeCustomerOrderConfirmedHook(opts: { log: FastifyBaseLogger }): OrderPaidHook {
   return async (tx, orderId, _lines, order) => {
     try {
+      const db = tx as unknown as Db
+      const smsParams = [smsVar(orderId), String(order.totalInr)]
+      // Ops get the copy even when the shopper's own number is unusable.
+      const opsTarget = toWhatsAppTarget(await getConfigValue<unknown>(db, 'notify.opsSmsNumber'))
+      if (opsTarget !== null) {
+        await enqueueSms(db, ORDER_CONFIRMED_OPS_SMS_KIND, orderId, opsTarget, smsParams)
+      }
       const target = customerTargetFor(order)
       if (target === null) {
         opts.log.warn({ orderId }, 'order has no usable customer phone; confirmation not enqueued')
         return
       }
-      const db = tx as unknown as Db
       const etaCopy = (await getConfigValue<string>(db, 'notify.customerEtaCopy')) ?? 'in 3–5 days'
       await enqueueOpsNotification(tx, {
         kind: ORDER_CONFIRMED_CUSTOMER_KIND,
@@ -424,10 +464,7 @@ export function makeCustomerOrderConfirmedHook(opts: { log: FastifyBaseLogger })
         target,
         message: orderConfirmedParams(order, etaCopy, await headerImage(db)),
       })
-      await enqueueSms(db, ORDER_CONFIRMED_SMS_KIND, orderId, target, [
-        smsVar(orderId),
-        String(order.totalInr),
-      ])
+      await enqueueSms(db, ORDER_CONFIRMED_SMS_KIND, orderId, target, smsParams)
     } catch (err) {
       opts.log.error(
         { err, orderId },
@@ -679,7 +716,7 @@ export async function reactToShipmentMilestone(
   if (shipped) {
     const shipment =
       input.awb === null ? null : await findShipmentForOrderByAwb(db, orderId, input.awb)
-    if (shipment !== null) await enqueueOrderShippedSms(db, order, shipment, log)
+    if (shipment !== null) await enqueueOrderShippedMessages(db, order, shipment, log)
     sendNow(db, orderId, input)
     return
   }
