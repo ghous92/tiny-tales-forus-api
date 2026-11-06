@@ -174,6 +174,41 @@ export function createFirebaseTokenRevoker(projectId: string): FirebaseTokenRevo
   }
 }
 
+/** How to reach a uid's owner, from their Firebase account. */
+export interface FirebaseContact {
+  email: string | null
+  name: string | null
+  phone: string | null
+}
+
+/**
+ * Looks up a uid's Firebase account — used by the custom-request hand-check
+ * email, since a Google/Apple sign-in leaves no phone and `users.email` is
+ * only filled by the profile screen.
+ */
+export type FirebaseContactLookup = (uid: string) => Promise<FirebaseContact>
+
+/** Production {@link FirebaseContactLookup}, sharing the same lazy admin app as the others. */
+export function createFirebaseContactLookup(projectId: string): FirebaseContactLookup {
+  let getUser:
+    | ((uid: string) => Promise<{ email?: string; displayName?: string; phoneNumber?: string }>)
+    | undefined
+  return async (uid) => {
+    if (!getUser) {
+      const { getApps, initializeApp } = await import('firebase-admin/app')
+      const { getAuth } = await import('firebase-admin/auth')
+      const auth = getAuth(getApps()[0] ?? initializeApp({ projectId }))
+      getUser = (u) => auth.getUser(u)
+    }
+    const user = await getUser(uid)
+    return {
+      email: user.email ?? null,
+      name: user.displayName ?? null,
+      phone: user.phoneNumber ?? null,
+    }
+  }
+}
+
 export interface AuthPluginOptions {
   db: Db
   verifyToken: TokenVerifier
