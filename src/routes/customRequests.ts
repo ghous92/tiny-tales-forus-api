@@ -25,8 +25,11 @@ import {
   type CustomPhoto,
   type CustomRequest,
 } from '../contracts/customRequests.js'
+import { eq } from 'drizzle-orm'
+
 import type { Db } from '../db/client.js'
-import { customUploads } from '../db/schema.js'
+import { customUploads, users } from '../db/schema.js'
+import type { FirebaseContact, FirebaseContactLookup } from '../plugins/auth.js'
 import { escapeHtml, sendTransactionalEmail, type EmailSenderConfig } from '../lib/email.js'
 import { ImageIntakeError, uploadToImageIntake } from '../lib/imageIntake.js'
 import {
@@ -109,6 +112,52 @@ export interface CustomRequestRoutesOptions {
   alertEmailTo?: string | undefined
   /** Test seam: injected fetch for the Brevo call. */
   emailFetchImpl?: typeof fetch
+  /** Fills in a Google/Apple shopper's email and name for the hand-check email. */
+  lookupContact?: FirebaseContactLookup | undefined
+}
+
+/**
+ * How to reach the shopper: our own record first (phone from OTP sign-in,
+ * name and email from the profile screen), then their Firebase account for
+ * whatever is missing (a Google/Apple sign-in's email and name).
+ */
+async function shopperContact(
+  db: Db,
+  userId: string,
+  uid: string,
+  lookup: FirebaseContactLookup | undefined,
+  log: FastifyBaseLogger
+): Promise<FirebaseContact> {
+  const [row] = await db
+    .select({ name: users.name, email: users.email, phone: users.phone })
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1)
+  const own = { name: row?.name ?? null, email: row?.email ?? null, phone: row?.phone ?? null }
+  if ((own.email && own.name && own.phone) || !lookup) return own
+  try {
+    const fb = await lookup(uid)
+    return { name: own.name ?? fb.name, email: own.email ?? fb.email, phone: own.phone ?? fb.phone }
+  } catch (err) {
+    log.warn({ err }, 'custom request: could not read the shopper from Firebase')
+    return own
+  }
+}
+
+function contactHtml({ name, email, phone }: FirebaseContact): string {
+  const lines: string[] = []
+  if (name) lines.push(escapeHtml(name))
+  if (phone) {
+    const digits = phone.replace(/\D/g, '')
+    lines.push(
+      `<a href="tel:${escapeHtml(phone)}">${escapeHtml(phone)}</a> · ` +
+        `<a href="https://wa.me/${digits}">WhatsApp</a>`
+    )
+  }
+  if (email) lines.push(`<a href="mailto:${escapeHtml(email)}">${escapeHtml(email)}</a>`)
+  return lines.length
+    ? `<p><b>Shopper:</b><br>${lines.join('<br>')}</p>`
+    : `<p><b>Shopper:</b> no phone or email on their account. If they pay, the order has their delivery phone.</p>`
 }
 
 /**
@@ -130,6 +179,7 @@ export function handCheckReason(photo: CustomPhoto): string | null {
 /** Best-effort: an email failure never fails the request, which is already saved. */
 async function sendHandCheckEmail(
   request: CustomRequest,
+  contact: () => Promise<FirebaseContact>,
   photos: CustomPhoto[],
   imageIntakeBaseUrl: string,
   email: EmailSenderConfig | undefined,
@@ -147,6 +197,11 @@ async function sendHandCheckEmail(
     'custom request: photos need a hand check'
   )
   if (!email || !alertEmailTo) return
+  // Best-effort like the send: the request is already saved.
+  const shopper = await contact().catch((err: unknown) => {
+    log.warn({ err }, 'custom request: could not read the shopper contact')
+    return { name: null, email: null, phone: null }
+  })
   const rows = flagged
     .map(({ photo, n, reason }) => {
       const thumb = `${imageIntakeBaseUrl}/img/${photo.key}/thumb`
@@ -171,6 +226,7 @@ async function sendHandCheckEmail(
           `before modelling, and ask for a new photo if one will not work.</p>` +
           `<p>Request <b>${escapeHtml(request.requestNumber)}</b>, ${escapeHtml(request.kind)}. ` +
           `It is in their bag, not yet paid.</p>` +
+          contactHtml(shopper) +
           `<table style="border-collapse:collapse;">${rows}</table>` +
           `</div>`,
       },
@@ -191,7 +247,16 @@ async function sendHandCheckEmail(
  */
 export const customRequestRoutes: FastifyPluginAsyncZod<CustomRequestRoutesOptions> = async (
   app,
-  { db, imageIntakeBaseUrl, uploadToken, fetchImpl = fetch, email, alertEmailTo, emailFetchImpl }
+  {
+    db,
+    imageIntakeBaseUrl,
+    uploadToken,
+    fetchImpl = fetch,
+    email,
+    alertEmailTo,
+    emailFetchImpl,
+    lookupContact,
+  }
 ) => {
   app.addHook('onRequest', app.authenticateAnyProvider)
 
@@ -268,6 +333,7 @@ export const customRequestRoutes: FastifyPluginAsyncZod<CustomRequestRoutesOptio
       const created = await createCustomRequest(db, request.user.id, request.body)
       await sendHandCheckEmail(
         created,
+        () => shopperContact(db, request.user.id, request.user.uid, lookupContact, request.log),
         request.body.photos,
         imageIntakeBaseUrl,
         email,

@@ -50,8 +50,10 @@ import { buildLoggerOptions } from './lib/logger.js'
 import {
   authPlugin,
   createFirebaseTokenRevoker,
+  createFirebaseContactLookup,
   createFirebaseUserDeleter,
   createFirebaseVerifier,
+  type FirebaseContactLookup,
   type FirebaseTokenRevoker,
   type FirebaseUserDeleter,
   type TokenVerifier,
@@ -150,6 +152,8 @@ export interface BuildAppOptions {
    * same rule as `verifyToken`.
    */
   deleteFirebaseUser?: FirebaseUserDeleter
+  /** Custom-request hand-check email: who to contact. Defaults to firebase-admin when `firebaseProjectId` is set. */
+  lookupFirebaseContact?: FirebaseContactLookup
   /** `POST /v1/me/logout` override, same rule as `deleteFirebaseUser`. */
   revokeFirebaseTokens?: FirebaseTokenRevoker
   /**
@@ -413,6 +417,10 @@ export function buildApp(opts: BuildAppOptions): FastifyInstance {
       }
       return createFirebaseUserDeleter(opts.firebaseProjectId)(uid)
     })
+
+  const lookupFirebaseContact: FirebaseContactLookup | undefined =
+    opts.lookupFirebaseContact ??
+    (opts.firebaseProjectId ? createFirebaseContactLookup(opts.firebaseProjectId) : undefined)
 
   const revokeFirebaseTokens: FirebaseTokenRevoker =
     opts.revokeFirebaseTokens ??
@@ -908,10 +916,12 @@ export function buildApp(opts: BuildAppOptions): FastifyInstance {
     imageIntakeBaseUrl: opts.imageIntake?.baseUrl ?? 'https://image-intake.adix-ai.workers.dev',
     uploadToken: opts.imageIntake?.uploadToken,
     ...(opts.mediaUploadFetchImpl ? { fetchImpl: opts.mediaUploadFetchImpl } : {}),
-    // Photos sent past the storefront's checker are mailed to the team inbox.
+    // Photos sent past the storefront's checker are mailed to the team inbox,
+    // with how to reach the shopper.
     ...(customRequestEmail && opts.alerts?.emailTo
       ? { email: customRequestEmail, alertEmailTo: opts.alerts.emailTo }
       : {}),
+    ...(lookupFirebaseContact ? { lookupContact: lookupFirebaseContact } : {}),
     ...(opts.alertEmailFetchImpl ? { emailFetchImpl: opts.alertEmailFetchImpl } : {}),
     prefix: '/v1/custom-requests',
   })
