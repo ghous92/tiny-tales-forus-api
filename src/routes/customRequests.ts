@@ -7,6 +7,7 @@
  * the storefront re-encodes every photo to JPEG after checking it.
  */
 import multipart from '@fastify/multipart'
+import type { FastifyBaseLogger } from 'fastify'
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod'
 
 import { ErrorEnvelopeSchema } from '../contracts/cart.js'
@@ -21,9 +22,12 @@ import {
   CustomRequestSchema,
   MiniatureAllowanceQuerySchema,
   MiniatureAllowanceSchema,
+  type CustomPhoto,
+  type CustomRequest,
 } from '../contracts/customRequests.js'
 import type { Db } from '../db/client.js'
 import { customUploads } from '../db/schema.js'
+import { escapeHtml, sendTransactionalEmail, type EmailSenderConfig } from '../lib/email.js'
 import { ImageIntakeError, uploadToImageIntake } from '../lib/imageIntake.js'
 import {
   createCustomRequest,
@@ -95,6 +99,89 @@ export interface CustomRequestRoutesOptions {
   uploadToken?: string | undefined
   /** Test seam: inject a fetch instead of calling the real Worker. */
   fetchImpl?: typeof fetch
+  /**
+   * Brevo sender for the hand-check email, on the same credentials as the
+   * other alert senders. Absent (or no `alertEmailTo`) -> requests are still
+   * created; only the email is skipped.
+   */
+  email?: EmailSenderConfig | undefined
+  /** `ALERT_EMAIL_TO`: the team inbox the hand-check email goes to. */
+  alertEmailTo?: string | undefined
+  /** Test seam: injected fetch for the Brevo call. */
+  emailFetchImpl?: typeof fetch
+}
+
+/**
+ * Why the team must look at this photo by hand before modelling, or null when
+ * the storefront's checker passed it. The checker is advice, not a gate: the
+ * shopper may send a photo it flagged ("Use this photo"), and a slow or
+ * missing checker lets a photo through unjudged. The storefront promises
+ * these are checked by hand, so each one is mailed to the team.
+ */
+export function handCheckReason(photo: CustomPhoto): string | null {
+  const failed = (photo.checks ?? []).filter((c) => c.status === 'fail').map((c) => c.id)
+  const m = photo.metrics ?? {}
+  if (failed.length) return `Sent past the photo checker. Failed: ${failed.join(', ')}`
+  if (m.checkerTimedOut) return 'The photo checker timed out on their phone; not checked'
+  if (m.checkerFailed) return 'The photo checker could not load on their phone; not checked'
+  return null
+}
+
+/** Best-effort: an email failure never fails the request, which is already saved. */
+async function sendHandCheckEmail(
+  request: CustomRequest,
+  photos: CustomPhoto[],
+  imageIntakeBaseUrl: string,
+  email: EmailSenderConfig | undefined,
+  alertEmailTo: string | undefined,
+  emailFetchImpl: typeof fetch | undefined,
+  log: FastifyBaseLogger
+): Promise<void> {
+  const flagged = photos.flatMap((photo, i) => {
+    const reason = handCheckReason(photo)
+    return reason ? [{ photo, n: i + 1, reason }] : []
+  })
+  if (!flagged.length) return
+  log.info(
+    { requestNumber: request.requestNumber, photos: flagged.map((f) => f.n) },
+    'custom request: photos need a hand check'
+  )
+  if (!email || !alertEmailTo) return
+  const rows = flagged
+    .map(({ photo, n, reason }) => {
+      const thumb = `${imageIntakeBaseUrl}/img/${photo.key}/thumb`
+      return (
+        `<tr><td style="padding:8px;vertical-align:top;"><a href="${escapeHtml(thumb)}">` +
+        `<img src="${escapeHtml(thumb)}" width="120" alt="Photo ${n}" style="border-radius:6px;"></a></td>` +
+        `<td style="padding:8px;vertical-align:top;"><b>Photo ${n}</b> (${photo.characters ?? '?'} in it)<br>` +
+        `${escapeHtml(reason)}</td></tr>`
+      )
+    })
+    .join('')
+  try {
+    await sendTransactionalEmail(
+      email,
+      {
+        to: [{ email: alertEmailTo }],
+        subject: `Hand check: custom ${request.kind} ${request.requestNumber} (${flagged.length} of ${photos.length} photos)`,
+        html:
+          `<div style="font-family:Arial,Helvetica,sans-serif;color:#111;max-width:640px;">` +
+          `<p>A shopper sent ${flagged.length === 1 ? 'a photo' : 'photos'} the photo checker did not pass. ` +
+          `The page tells them we check every photo by hand, so look at ${flagged.length === 1 ? 'it' : 'these'} ` +
+          `before modelling, and ask for a new photo if one will not work.</p>` +
+          `<p>Request <b>${escapeHtml(request.requestNumber)}</b>, ${escapeHtml(request.kind)}. ` +
+          `It is in their bag, not yet paid.</p>` +
+          `<table style="border-collapse:collapse;">${rows}</table>` +
+          `</div>`,
+      },
+      emailFetchImpl
+    )
+  } catch (caught) {
+    log.error(
+      { err: caught, requestNumber: request.requestNumber },
+      'custom request: failed to send hand-check email'
+    )
+  }
 }
 
 /**
@@ -104,7 +191,7 @@ export interface CustomRequestRoutesOptions {
  */
 export const customRequestRoutes: FastifyPluginAsyncZod<CustomRequestRoutesOptions> = async (
   app,
-  { db, imageIntakeBaseUrl, uploadToken, fetchImpl = fetch }
+  { db, imageIntakeBaseUrl, uploadToken, fetchImpl = fetch, email, alertEmailTo, emailFetchImpl }
 ) => {
   app.addHook('onRequest', app.authenticateAnyProvider)
 
@@ -179,6 +266,15 @@ export const customRequestRoutes: FastifyPluginAsyncZod<CustomRequestRoutesOptio
     },
     async (request, reply) => {
       const created = await createCustomRequest(db, request.user.id, request.body)
+      await sendHandCheckEmail(
+        created,
+        request.body.photos,
+        imageIntakeBaseUrl,
+        email,
+        alertEmailTo,
+        emailFetchImpl,
+        request.log
+      )
       return reply.code(201).send(created)
     }
   )

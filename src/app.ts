@@ -542,6 +542,15 @@ export function buildApp(opts: BuildAppOptions): FastifyInstance {
       : undefined
   })()
 
+  // Fifth sender identity on the same credentials: the hand-check email for
+  // custom-request photos the storefront's checker did not pass.
+  const customRequestEmail: EmailSenderConfig | undefined = (() => {
+    const { brevoApiKey, emailFrom } = opts.alerts ?? {}
+    return brevoApiKey && emailFrom
+      ? { apiKey: brevoApiKey, fromEmail: emailFrom, fromName: 'Tiny Tales Custom Orders' }
+      : undefined
+  })()
+
   // The carrier adapter, or nothing. Both a token AND a base URL are required —
   // a token with no base URL has no host to talk to, and a base URL with no
   // token gets 401s from Delhivery. Half a config is not a degraded carrier,
@@ -899,6 +908,11 @@ export function buildApp(opts: BuildAppOptions): FastifyInstance {
     imageIntakeBaseUrl: opts.imageIntake?.baseUrl ?? 'https://image-intake.adix-ai.workers.dev',
     uploadToken: opts.imageIntake?.uploadToken,
     ...(opts.mediaUploadFetchImpl ? { fetchImpl: opts.mediaUploadFetchImpl } : {}),
+    // Photos sent past the storefront's checker are mailed to the team inbox.
+    ...(customRequestEmail && opts.alerts?.emailTo
+      ? { email: customRequestEmail, alertEmailTo: opts.alerts.emailTo }
+      : {}),
+    ...(opts.alertEmailFetchImpl ? { emailFetchImpl: opts.alertEmailFetchImpl } : {}),
     prefix: '/v1/custom-requests',
   })
   app.register(caricaturePreviewRoutes, {
