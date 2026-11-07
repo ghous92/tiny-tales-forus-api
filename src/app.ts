@@ -82,6 +82,7 @@ import { clientErrorsRoutes } from './routes/clientErrors.js'
 import { adminConfigRoutes, configRoutes } from './routes/config.js'
 import { adminClaimRoutes, claimRoutes } from './routes/claims.js'
 import { caricaturePreviewRoutes } from './routes/caricaturePreviews.js'
+import { customLeadRoutes } from './routes/customLeads.js'
 import { adminCustomRequestRoutes, customRequestRoutes } from './routes/customRequests.js'
 import { adminComplaintRoutes, complaintRoutes } from './routes/complaints.js'
 import { restockRoutes } from './routes/restock.js'
@@ -939,6 +940,14 @@ export function buildApp(opts: BuildAppOptions): FastifyInstance {
   })
   app.register(adminCustomRequestRoutes, { db: opts.db, prefix: '/v1/admin/custom-requests' })
   app.register(restockRoutes, { db: opts.db, prefix: '/v1/restock-requests' })
+  // "No photo to hand?" on /custom/: the prices by email, from the shop's own
+  // sender name, and a note to the team inbox.
+  app.register(customLeadRoutes, {
+    ...(invoiceEmail ? { email: invoiceEmail } : {}),
+    ...(opts.alerts?.emailTo ? { alertEmailTo: opts.alerts.emailTo } : {}),
+    ...(opts.alertEmailFetchImpl ? { emailFetchImpl: opts.alertEmailFetchImpl } : {}),
+    prefix: '/v1/custom-leads',
+  })
   app.register(fulfilmentRoutes, {
     db: opts.db,
     ...(opts.delhivery?.webhookSecret ? { webhookSecret: opts.delhivery.webhookSecret } : {}),

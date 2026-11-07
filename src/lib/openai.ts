@@ -124,6 +124,28 @@ No costume. Keep the same clothes, colours and accessories as in the first image
 ${STUDIO}`
 }
 
+/**
+ * The prompt for a miniature: true to life, not a caricature. Natural
+ * proportions, the clothes and pose from the photo, painted the way our
+ * miniatures are, so the shopper sees roughly what we would make.
+ */
+export function miniaturePrompt({ characters, animals }: PreviewCast = ONE_PERSON): string {
+  const people = characters - animals
+  const named = [
+    people ? `${people} ${people === 1 ? 'person' : 'people'}` : '',
+    animals ? `${animals} ${animals === 1 ? 'pet' : 'pets'}` : '',
+  ].filter(Boolean)
+  const who =
+    characters === 1 && animals === 0
+      ? 'the person in the first image'
+      : `everyone in the first image (${named.join(' and ')}), together`
+  return `Turn ${who} into one small hand-painted 3D-printed miniature figurine on a round grey base, front view, ${characters === 1 ? 'the whole figure' : 'the whole group'} from head to toe.
+True to life: natural body proportions, not a caricature, no big heads. Simplified the way a small painted figurine is: smooth surfaces, clean painted colours, simple details, a slight satin finish.${characters > 1 ? ' Keep everyone in the image and add nobody.' : ''}
+Keep each one clearly recognisable: the same face shape, features, expression, hair, skin tone, and facial hair and glasses if they have them. A pet keeps its breed, markings and colours.
+Keep the same clothes, colours and accessories as in the first image, and the pose from the first image. If the first image does not show part of the body, complete it with clothes and shoes that match what it does show.
+${STUDIO}`
+}
+
 export async function renderCaricature(opts: {
   fetchImpl: typeof fetch
   apiKey: string

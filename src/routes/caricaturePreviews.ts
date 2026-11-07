@@ -1,5 +1,5 @@
 /**
- * Caricature previews and the uploaded-character check
+ * Caricature and miniature previews, and the uploaded-character check
  * (contracts/customRequests.ts). Both call OpenAI and cost money per call, so
  * both are signed-in only, and previews are counted against limits per photo,
  * per shopper per day, and for everyone per day (services/caricaturePreviews.ts).
@@ -35,6 +35,7 @@ import {
   asPhotoPrompt,
   galleryPrompt,
   judgeCharacter,
+  miniaturePrompt,
   renderCaricature,
   uploadedCharacterPrompt,
   type OpenAiImage,
@@ -110,6 +111,12 @@ const REFUSED_MESSAGE =
 
 const REFUSED_GALLERY_MESSAGE =
   'We could not make this outfit with this photo. Try another character; this photo’s previews were not used up. Our artist can still make it, and will send you a proof before printing.'
+
+/**
+ * `characterId` for a miniature preview: no costume, true to life. Stored as
+ * 'tpl:miniature' and counted against the same limits as a caricature's.
+ */
+export const MINIATURE_PREVIEW_ID = 'miniature'
 
 const sha256 = (bytes: Buffer) => createHash('sha256').update(bytes).digest('hex')
 
@@ -337,7 +344,10 @@ export const caricaturePreviewRoutes: FastifyPluginAsyncZod<
       let prompt: string
       let characterRef: string
       const images: OpenAiImage[] = [photo]
-      if (uploaded) {
+      if (galleryId === MINIATURE_PREVIEW_ID && !uploaded) {
+        prompt = miniaturePrompt(cast)
+        characterRef = `tpl:${MINIATURE_PREVIEW_ID}`
+      } else if (uploaded) {
         prompt = uploadedCharacterPrompt(cast)
         characterRef = `up:${sha256(uploaded.bytes)}`
         images.push(uploaded)
@@ -410,7 +420,10 @@ export const caricaturePreviewRoutes: FastifyPluginAsyncZod<
           ? reply.code(422).send({
               error: {
                 code: 'preview_refused',
-                message: uploaded ? REFUSED_MESSAGE : REFUSED_GALLERY_MESSAGE,
+                message:
+                  uploaded || galleryId === MINIATURE_PREVIEW_ID
+                    ? REFUSED_MESSAGE
+                    : REFUSED_GALLERY_MESSAGE,
               },
             })
           : reply.code(502).send({
