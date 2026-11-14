@@ -3,12 +3,19 @@
  * preview is a paid image-model call, so a shopper gets a few per photo and a
  * few per India day, and everyone together gets a daily cap set in env.
  *
+ * A preview belongs to an owner: the signed-in shopper (`user_id`), or, before
+ * signing in, the browser's own id (`guest_id`). Guests get fewer previews; the
+ * point of letting them preview at all is that nobody signed in to see one
+ * when a sign-in stood in the way. When a guest signs in, `claimGuestPreviews`
+ * moves their rows onto the account, so the previews come back and the saved
+ * list fills in.
+ *
  * `reservePreview` checks the limits and writes a `pending` row in one
- * transaction, holding a lock on the shopper's users row, so two previews sent
- * at once cannot both pass on the same count. `settlePreview` records how the
- * call went; `failed` rows (our fault, not the shopper's) stop counting.
- * A gallery outfit the model refuses is our prompt's fault too, so it does not
- * use up the photo, but it still counts for the day (each refusal may be billed).
+ * transaction, holding a lock on the owner, so two previews sent at once cannot
+ * both pass on the same count. `settlePreview` records how the call went;
+ * `failed` rows (our fault, not the shopper's) stop counting. A gallery outfit
+ * the model refuses is our prompt's fault too, so it does not use up the photo,
+ * but it still counts for the day (each refusal may be billed).
  */
 import { and, count, desc, eq, gte, inArray, isNotNull, isNull, ne, sql } from 'drizzle-orm'
 
@@ -17,6 +24,29 @@ import { caricaturePreviews } from '../db/schema.js'
 
 export const PREVIEWS_PER_PHOTO = 2
 export const PREVIEWS_PER_DAY = 5
+export const GUEST_PREVIEWS_PER_PHOTO = 1
+export const GUEST_PREVIEWS_PER_DAY = 2
+
+/** Whose previews: a signed-in shopper, or a browser that has not signed in. */
+export type PreviewOwner = { kind: 'user'; id: string } | { kind: 'guest'; id: string }
+
+/** The browser's own id (web `getDeviceId`, a UUID), as sent in X-Preview-Guest. */
+const GUEST_ID = /^[A-Za-z0-9_-]{16,64}$/
+
+export function guestIdFromHeader(header: string | string[] | undefined): string | null {
+  return typeof header === 'string' && GUEST_ID.test(header) ? header : null
+}
+
+export function previewLimits(owner: PreviewOwner): { perPhoto: number; perDay: number } {
+  return owner.kind === 'user'
+    ? { perPhoto: PREVIEWS_PER_PHOTO, perDay: PREVIEWS_PER_DAY }
+    : { perPhoto: GUEST_PREVIEWS_PER_PHOTO, perDay: GUEST_PREVIEWS_PER_DAY }
+}
+
+const ownedBy = (owner: PreviewOwner) =>
+  owner.kind === 'user'
+    ? eq(caricaturePreviews.userId, owner.id)
+    : eq(caricaturePreviews.guestId, owner.id)
 
 const IST_OFFSET_MS = 330 * 60_000
 
@@ -53,23 +83,16 @@ const PHOTO_COUNTED = and(
 
 export async function previewQuota(
   db: Db,
-  userId: string,
+  owner: PreviewOwner,
   now = new Date(),
   photoHash?: string
 ): Promise<PreviewQuota> {
   const [row] = await db
     .select({ n: count() })
     .from(caricaturePreviews)
-    .where(
-      and(
-        eq(caricaturePreviews.userId, userId),
-        gte(caricaturePreviews.createdAt, startOfIndiaDay(now)),
-        COUNTED
-      )
-    )
+    .where(and(ownedBy(owner), gte(caricaturePreviews.createdAt, startOfIndiaDay(now)), COUNTED))
   const quota: PreviewQuota = {
-    perPhoto: PREVIEWS_PER_PHOTO,
-    perDay: PREVIEWS_PER_DAY,
+    ...previewLimits(owner),
     usedToday: row?.n ?? 0,
   }
   if (!photoHash) return quota
@@ -77,13 +100,7 @@ export async function previewQuota(
   const rows = await db
     .select({ character: caricaturePreviews.character, status: caricaturePreviews.status })
     .from(caricaturePreviews)
-    .where(
-      and(
-        eq(caricaturePreviews.userId, userId),
-        eq(caricaturePreviews.photoHash, photoHash),
-        PHOTO_COUNTED
-      )
-    )
+    .where(and(ownedBy(owner), eq(caricaturePreviews.photoHash, photoHash), PHOTO_COUNTED))
   quota.photoUsed = rows.length
   quota.saved = [...new Set(rows.filter((r) => r.status === 'ok').map((r) => r.character))]
   return quota
@@ -97,7 +114,7 @@ export async function previewQuota(
 export async function reservePreview(
   db: Db,
   input: {
-    userId: string
+    owner: PreviewOwner
     photoHash: string
     character: string
     characters: number
@@ -107,34 +124,30 @@ export async function reservePreview(
   now = new Date()
 ): Promise<{ id: string; photoLeft: number; todayLeft: number }> {
   const dayStart = startOfIndiaDay(now)
+  const { owner } = input
+  const limits = previewLimits(owner)
   return db.transaction(async (tx) => {
-    await tx.execute(sql`select 1 from users where id = ${input.userId} for update`)
+    // One reservation at a time per owner: the users row for a shopper, an
+    // advisory lock on the id for a guest (who has no row).
+    if (owner.kind === 'user') {
+      await tx.execute(sql`select 1 from users where id = ${owner.id} for update`)
+    } else {
+      await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${owner.id}))`)
+    }
 
     const [photo] = await tx
       .select({ n: count() })
       .from(caricaturePreviews)
-      .where(
-        and(
-          eq(caricaturePreviews.userId, input.userId),
-          eq(caricaturePreviews.photoHash, input.photoHash),
-          PHOTO_COUNTED
-        )
-      )
+      .where(and(ownedBy(owner), eq(caricaturePreviews.photoHash, input.photoHash), PHOTO_COUNTED))
     const photoUsed = photo?.n ?? 0
-    if (photoUsed >= PREVIEWS_PER_PHOTO) throw new PreviewLimitError('photo')
+    if (photoUsed >= limits.perPhoto) throw new PreviewLimitError('photo')
 
     const [day] = await tx
       .select({ n: count() })
       .from(caricaturePreviews)
-      .where(
-        and(
-          eq(caricaturePreviews.userId, input.userId),
-          gte(caricaturePreviews.createdAt, dayStart),
-          COUNTED
-        )
-      )
+      .where(and(ownedBy(owner), gte(caricaturePreviews.createdAt, dayStart), COUNTED))
     const dayUsed = day?.n ?? 0
-    if (dayUsed >= PREVIEWS_PER_DAY) throw new PreviewLimitError('day')
+    if (dayUsed >= limits.perDay) throw new PreviewLimitError('day')
 
     const [everyone] = await tx
       .select({ n: count() })
@@ -146,7 +159,8 @@ export async function reservePreview(
       .insert(caricaturePreviews)
       .values({
         characters: input.characters,
-        userId: input.userId,
+        userId: owner.kind === 'user' ? owner.id : null,
+        guestId: owner.kind === 'guest' ? owner.id : null,
         photoHash: input.photoHash,
         character: input.character,
         model: input.model,
@@ -155,10 +169,23 @@ export async function reservePreview(
       .returning({ id: caricaturePreviews.id })
     return {
       id: row!.id,
-      photoLeft: PREVIEWS_PER_PHOTO - photoUsed - 1,
-      todayLeft: PREVIEWS_PER_DAY - dayUsed - 1,
+      photoLeft: limits.perPhoto - photoUsed - 1,
+      todayLeft: limits.perDay - dayUsed - 1,
     }
   })
+}
+
+/**
+ * A guest who signs in keeps their previews: rows made under this browser's id
+ * with no account yet become the account's. Returns how many moved.
+ */
+export async function claimGuestPreviews(db: Db, userId: string, guestId: string): Promise<number> {
+  const rows = await db
+    .update(caricaturePreviews)
+    .set({ userId })
+    .where(and(eq(caricaturePreviews.guestId, guestId), isNull(caricaturePreviews.userId)))
+    .returning({ id: caricaturePreviews.id })
+  return rows.length
 }
 
 export async function settlePreview(
@@ -206,10 +233,10 @@ export async function keepPreviewSources(
     .where(and(eq(caricaturePreviews.id, id), isNull(caricaturePreviews.photo)))
 }
 
-/** A preview this shopper already paid for with this photo and character. */
+/** A preview this owner already paid for with this photo and character. */
 export async function findSavedPreview(
   db: Db,
-  userId: string,
+  owner: PreviewOwner,
   photoHash: string,
   character: string
 ): Promise<{ id: string; image: Buffer; previewKey: string | null; hasPhoto: boolean } | null> {
@@ -223,7 +250,7 @@ export async function findSavedPreview(
     .from(caricaturePreviews)
     .where(
       and(
-        eq(caricaturePreviews.userId, userId),
+        ownedBy(owner),
         eq(caricaturePreviews.photoHash, photoHash),
         eq(caricaturePreviews.character, character),
         eq(caricaturePreviews.status, 'ok')
@@ -236,7 +263,7 @@ export async function findSavedPreview(
     : null
 }
 
-/** The shopper's saved previews, newest first (no image bytes). */
+/** The shopper's saved previews, newest first (no image bytes). Signed in only. */
 export async function listSavedPreviews(db: Db, userId: string, limit = 24) {
   return db
     .select({
@@ -274,16 +301,10 @@ export async function getSavedPreviewImage(
   return row?.bytes ?? null
 }
 
-export async function photosLeft(db: Db, userId: string, photoHash: string): Promise<number> {
+export async function photosLeft(db: Db, owner: PreviewOwner, photoHash: string): Promise<number> {
   const [row] = await db
     .select({ n: count() })
     .from(caricaturePreviews)
-    .where(
-      and(
-        eq(caricaturePreviews.userId, userId),
-        eq(caricaturePreviews.photoHash, photoHash),
-        PHOTO_COUNTED
-      )
-    )
-  return Math.max(0, PREVIEWS_PER_PHOTO - (row?.n ?? 0))
+    .where(and(ownedBy(owner), eq(caricaturePreviews.photoHash, photoHash), PHOTO_COUNTED))
+  return Math.max(0, previewLimits(owner).perPhoto - (row?.n ?? 0))
 }

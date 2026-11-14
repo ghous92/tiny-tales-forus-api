@@ -709,7 +709,9 @@ export function buildApp(opts: BuildAppOptions): FastifyInstance {
         cb(null, false)
       },
       methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-      allowedHeaders: ['Authorization', 'Content-Type'],
+      // X-Preview-Guest: the browser's own id, so a shopper can see a caricature
+      // or miniature preview before signing in (routes/caricaturePreviews.ts).
+      allowedHeaders: ['Authorization', 'Content-Type', 'X-Preview-Guest'],
       // Without this the browser hides X-TinyTales-Env from cross-origin JS, so the
       // admin SPA — which is always cross-origin to this API — could set the
       // header and still be unable to read it back.

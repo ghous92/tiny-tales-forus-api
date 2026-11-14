@@ -32,6 +32,7 @@ import { customUploads, users } from '../db/schema.js'
 import type { FirebaseContact, FirebaseContactLookup } from '../plugins/auth.js'
 import { escapeHtml, sendTransactionalEmail, type EmailSenderConfig } from '../lib/email.js'
 import { ImageIntakeError, uploadToImageIntake } from '../lib/imageIntake.js'
+import { claimGuestPreviews, guestIdFromHeader } from '../services/caricaturePreviews.js'
 import {
   createCustomRequest,
   listAllCustomRequests,
@@ -330,6 +331,10 @@ export const customRequestRoutes: FastifyPluginAsyncZod<CustomRequestRoutesOptio
       },
     },
     async (request, reply) => {
+      // Previews made on this browser before signing in become the account's,
+      // so the one they approved is on the request's user, not a loose id.
+      const guestId = guestIdFromHeader(request.headers['x-preview-guest'])
+      if (guestId) await claimGuestPreviews(db, request.user.id, guestId)
       const created = await createCustomRequest(db, request.user.id, request.body)
       await sendHandCheckEmail(
         created,

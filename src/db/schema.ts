@@ -1237,9 +1237,13 @@ export const caricaturePreviews = pgTable(
   'caricature_previews',
   {
     id: uuid('id').primaryKey().defaultRandom(),
-    userId: uuid('user_id')
-      .notNull()
-      .references(() => users.id, { onDelete: 'cascade' }),
+    /** The signed-in shopper; null for a preview made before signing in. */
+    userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }),
+    /**
+     * The browser's own id (web `getDeviceId`) for a preview made without
+     * signing in. Kept after the shopper signs in and the row gets a user_id.
+     */
+    guestId: text('guest_id'),
     /** SHA-256 of the photo bytes: "this photo" for the per-photo limit. */
     photoHash: text('photo_hash').notNull(),
     /** 'tpl:<gallery id>' or 'up:<sha-256 of the uploaded character picture>'. */
@@ -1264,9 +1268,14 @@ export const caricaturePreviews = pgTable(
   (table) => [
     index('caricature_previews_user_id_created_at_idx').on(table.userId, table.createdAt),
     index('caricature_previews_created_at_idx').on(table.createdAt),
+    index('caricature_previews_guest_id_created_at_idx').on(table.guestId, table.createdAt),
     check(
       'caricature_previews_status_valid',
       sql`${table.status} in ('pending','ok','refused','failed')`
+    ),
+    check(
+      'caricature_previews_owner_present',
+      sql`${table.userId} is not null or ${table.guestId} is not null`
     ),
   ]
 )
