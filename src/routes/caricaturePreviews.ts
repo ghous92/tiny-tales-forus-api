@@ -1,8 +1,16 @@
 /**
  * Caricature and miniature previews, and the uploaded-character check
  * (contracts/customRequests.ts). Both call OpenAI and cost money per call, so
- * both are signed-in only, and previews are counted against limits per photo,
- * per shopper per day, and for everyone per day (services/caricaturePreviews.ts).
+ * previews are counted against limits per photo, per shopper per day, and for
+ * everyone per day (services/caricaturePreviews.ts).
+ *
+ * A shopper need not sign in to see a preview. Every shopper who was asked to
+ * sign in before one closed the dialog, so the preview is where the sign-in
+ * wall used to be and sign-in is asked for at add-to-bag only. Without a
+ * token the browser sends its own id in `X-Preview-Guest`; a guest gets fewer
+ * previews, a per-connection brake on top, and when they sign in their
+ * previews move onto the account. The saved-preview list and its pictures stay
+ * signed-in only: a guessed browser id must not open someone's photos.
  *
  * The browser sends the photo bytes and either a gallery id or a character
  * picture; the words the image model is given are built here
@@ -11,7 +19,7 @@
 import { createHash } from 'node:crypto'
 
 import multipart from '@fastify/multipart'
-import type { FastifyRequest } from 'fastify'
+import type { FastifyReply, FastifyRequest } from 'fastify'
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod'
 import { z } from 'zod'
 
@@ -42,8 +50,11 @@ import {
 } from '../lib/openai.js'
 import {
   PreviewLimitError,
+  type PreviewOwner,
+  claimGuestPreviews,
   findSavedPreview,
   getSavedPreviewImage,
+  guestIdFromHeader,
   keepPreviewSources,
   listSavedPreviews,
   photosLeft,
@@ -52,6 +63,44 @@ import {
   settlePreview,
 } from '../services/caricaturePreviews.js'
 import { sniffImageType } from './customRequests.js'
+
+declare module 'fastify' {
+  interface FastifyRequest {
+    /** Set by `identify` on the preview routes a guest may call. */
+    previewOwner: PreviewOwner | null
+  }
+}
+
+const guestIdOf = (request: FastifyRequest) =>
+  guestIdFromHeader(request.headers['x-preview-guest'])
+
+/**
+ * Guests are only told apart by an id the browser chose, so a per-connection
+ * brake sits on top of the per-guest limits: this many preview attempts per
+ * IP per India day, counted whether or not the render succeeds.
+ */
+const GUEST_IP_PREVIEWS_PER_DAY = 6
+const GUEST_IP_MAX_KEYS = 20_000
+const guestIpBuckets = new Map<string, { count: number; windowStart: number }>()
+
+function guestIpLimited(ip: string, now: number): boolean {
+  const entry = guestIpBuckets.get(ip)
+  if (!entry || now - entry.windowStart >= 24 * 60 * 60_000) {
+    if (guestIpBuckets.size >= GUEST_IP_MAX_KEYS) {
+      const oldest = guestIpBuckets.keys().next()
+      if (!oldest.done) guestIpBuckets.delete(oldest.value)
+    }
+    guestIpBuckets.set(ip, { count: 1, windowStart: now })
+    return false
+  }
+  entry.count += 1
+  return entry.count > GUEST_IP_PREVIEWS_PER_DAY
+}
+
+/** Test seam — resets the guest brake between cases. */
+export function clearGuestPreviewRateLimits(): void {
+  guestIpBuckets.clear()
+}
 
 const errorResponses = {
   '4xx': ErrorEnvelopeSchema,
@@ -65,15 +114,15 @@ const CHECK_WINDOW_MS = 60 * 60_000
 const CHECK_MAX_USERS = 5_000
 const checkBuckets = new Map<string, { count: number; windowStart: number }>()
 
-/** Fixed-window per-user brake on character checks, same shape as the photo-upload one. */
-function checkRateLimited(userId: string, now: number): boolean {
-  const entry = checkBuckets.get(userId)
+/** Fixed-window per-owner brake on character checks, same shape as the photo-upload one. */
+function checkRateLimited(ownerKey: string, now: number): boolean {
+  const entry = checkBuckets.get(ownerKey)
   if (!entry || now - entry.windowStart >= CHECK_WINDOW_MS) {
     if (checkBuckets.size >= CHECK_MAX_USERS) {
       const oldest = checkBuckets.keys().next()
       if (!oldest.done) checkBuckets.delete(oldest.value)
     }
-    checkBuckets.set(userId, { count: 1, windowStart: now })
+    checkBuckets.set(ownerKey, { count: 1, windowStart: now })
     return false
   }
   entry.count += 1
@@ -97,6 +146,16 @@ const LIMIT_REPLIES = {
     code: 'limit_exceeded',
     message:
       'You have used today’s previews. Send your request without one, or try again tomorrow.',
+  },
+  guestDay: {
+    status: 429,
+    code: 'limit_exceeded',
+    message: 'You have used today’s previews. Sign in for more, or send your request without one.',
+  },
+  connection: {
+    status: 429,
+    code: 'limit_exceeded',
+    message: 'Previews from this connection are used up for today. Sign in to make more.',
   },
   busy: {
     status: 503,
@@ -135,12 +194,51 @@ export interface CaricaturePreviewRoutesOptions {
   intakeFetchImpl?: typeof fetch
 }
 
-/** Mounted at '/v1/custom-requests'. Authenticated; a Google/Apple sign-in without a phone is enough. */
+/**
+ * Mounted at '/v1/custom-requests'. Previews, the quota and the character
+ * check take a signed-in shopper (a Google/Apple sign-in without a phone is
+ * enough) or a guest with an X-Preview-Guest id; the saved list and its
+ * pictures take a signed-in shopper only.
+ */
 export const caricaturePreviewRoutes: FastifyPluginAsyncZod<
   CaricaturePreviewRoutesOptions
 > = async (app, opts) => {
   const { db, apiKey, openaiFetchImpl = fetch, intakeFetchImpl = fetch } = opts
-  app.addHook('onRequest', app.authenticateAnyProvider)
+  app.decorateRequest('previewOwner', null)
+
+  /**
+   * Who is asking: a bearer token makes this the signed-in shopper (and claims
+   * any previews their browser made before signing in); otherwise the browser
+   * id. Neither -> 401, the same answer the signed-in-only routes give.
+   */
+  async function identify(request: FastifyRequest, reply: FastifyReply): Promise<void> {
+    const guestId = guestIdOf(request)
+    if (request.headers.authorization) {
+      await app.authenticateAnyProvider(request, reply)
+      if (reply.sent) return
+      request.previewOwner = { kind: 'user', id: request.user.id }
+      if (guestId) {
+        const moved = await claimGuestPreviews(db, request.user.id, guestId)
+        if (moved) request.log.info({ moved }, 'guest previews claimed')
+      }
+      return
+    }
+    if (!guestId) {
+      return reply.code(401).send({
+        error: {
+          code: 'unauthorized',
+          message: 'Sign in, or allow this site to remember your previews on this device.',
+        },
+      })
+    }
+    request.previewOwner = { kind: 'guest', id: guestId }
+  }
+
+  function ownerOf(request: FastifyRequest): PreviewOwner {
+    const owner = request.previewOwner
+    if (!owner) throw new Error('preview route without identify')
+    return owner
+  }
 
   await app.register(multipart, {
     limits: { fileSize: MAX_IMAGE_BYTES, files: 2, fields: 4 },
@@ -184,6 +282,7 @@ export const caricaturePreviewRoutes: FastifyPluginAsyncZod<
   app.get(
     '/previews/quota',
     {
+      onRequest: identify,
       schema: {
         querystring: z.object({
           photo: z
@@ -194,13 +293,16 @@ export const caricaturePreviewRoutes: FastifyPluginAsyncZod<
         response: { 200: PreviewQuotaSchema, ...errorResponses },
       },
     },
-    async (request) => previewQuota(db, request.user.id, new Date(), request.query.photo)
+    async (request) => previewQuota(db, ownerOf(request), new Date(), request.query.photo)
   )
 
   // The shopper's own earlier previews, so they can come back and order.
   app.get(
     '/previews/mine',
-    { schema: { response: { 200: SavedPreviewsSchema, ...errorResponses } } },
+    {
+      onRequest: app.authenticateAnyProvider,
+      schema: { response: { 200: SavedPreviewsSchema, ...errorResponses } },
+    },
     async (request) => {
       const rows = await listSavedPreviews(db, request.user.id)
       return {
@@ -223,6 +325,7 @@ export const caricaturePreviewRoutes: FastifyPluginAsyncZod<
   app.get(
     '/previews/:id/:part',
     {
+      onRequest: app.authenticateAnyProvider,
       schema: {
         params: z.object({
           id: z.string().uuid(),
@@ -245,10 +348,14 @@ export const caricaturePreviewRoutes: FastifyPluginAsyncZod<
 
   app.post(
     '/character-checks',
-    { schema: { response: { 200: CharacterCheckResponseSchema, ...errorResponses } } },
+    {
+      onRequest: identify,
+      schema: { response: { 200: CharacterCheckResponseSchema, ...errorResponses } },
+    },
     async (request, reply) => {
       if (!apiKey) return reply.code(503).send(disabled)
-      if (checkRateLimited(request.user.id, Date.now())) {
+      const owner = ownerOf(request)
+      if (checkRateLimited(`${owner.kind}:${owner.id}`, Date.now())) {
         return reply.code(429).send({
           error: {
             code: 'limit_exceeded',
@@ -305,9 +412,17 @@ export const caricaturePreviewRoutes: FastifyPluginAsyncZod<
 
   app.post(
     '/previews',
-    { schema: { response: { 200: CaricaturePreviewResponseSchema, ...errorResponses } } },
+    {
+      onRequest: identify,
+      schema: { response: { 200: CaricaturePreviewResponseSchema, ...errorResponses } },
+    },
     async (request, reply) => {
       if (!apiKey) return reply.code(503).send(disabled)
+      const owner = ownerOf(request)
+      if (owner.kind === 'guest' && guestIpLimited(request.ip, Date.now())) {
+        const r = LIMIT_REPLIES.connection
+        return reply.code(r.status).send({ error: { code: r.code, message: r.message } })
+      }
       const parts = await readParts(request)
       if (!parts.ok) {
         return reply
@@ -365,7 +480,7 @@ export const caricaturePreviewRoutes: FastifyPluginAsyncZod<
 
       // Same photo and character as one already paid for: hand that back, free.
       const photoHash = sha256(photo.bytes)
-      const saved = await findSavedPreview(db, request.user.id, photoHash, characterRef)
+      const saved = await findSavedPreview(db, owner, photoHash, characterRef)
       if (saved) {
         if (!saved.hasPhoto) {
           await keepPreviewSources(db, saved.id, {
@@ -373,12 +488,12 @@ export const caricaturePreviewRoutes: FastifyPluginAsyncZod<
             characterImage: uploaded?.bytes ?? null,
           })
         }
-        const quota = await previewQuota(db, request.user.id)
+        const quota = await previewQuota(db, owner)
         return {
           image: `data:image/jpeg;base64,${saved.image.toString('base64')}`,
           previewKey: saved.previewKey,
           remaining: {
-            photo: await photosLeft(db, request.user.id, photoHash),
+            photo: await photosLeft(db, owner, photoHash),
             today: Math.max(0, quota.perDay - quota.usedToday),
           },
         }
@@ -387,7 +502,7 @@ export const caricaturePreviewRoutes: FastifyPluginAsyncZod<
       let reservation: Awaited<ReturnType<typeof reservePreview>>
       try {
         reservation = await reservePreview(db, {
-          userId: request.user.id,
+          owner,
           photoHash,
           character: characterRef,
           characters,
@@ -396,7 +511,10 @@ export const caricaturePreviewRoutes: FastifyPluginAsyncZod<
         })
       } catch (err) {
         if (!(err instanceof PreviewLimitError)) throw err
-        const r = LIMIT_REPLIES[err.limit]
+        const r =
+          err.limit === 'day' && owner.kind === 'guest'
+            ? LIMIT_REPLIES.guestDay
+            : LIMIT_REPLIES[err.limit]
         return reply.code(r.status).send({ error: { code: r.code, message: r.message } })
       }
 

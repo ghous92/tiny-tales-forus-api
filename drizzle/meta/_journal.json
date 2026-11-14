@@ -92,6 +92,13 @@
       "when": 1793801371884,
       "tag": "0012_store_reviews",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1794661500650,
+      "tag": "0013_caricature_previews_guest",
+      "breakpoints": true
     }
   ]
 }
